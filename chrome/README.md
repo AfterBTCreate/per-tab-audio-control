@@ -2,7 +2,7 @@
 
 Take complete control of audio in your browser. Boost quiet videos, fine-tune levels, or mute specific tabs while keeping others playing.
 
-**[Screenshots and full feature list on our website](https://afterbedtimecreations.com/projects/per-tab-audio-control)**
+**[Screenshots and full feature list on our website](https://afterbedtimecreations.com/projects.html)**
 
 ## Features
 
