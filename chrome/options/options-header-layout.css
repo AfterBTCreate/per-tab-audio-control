@@ -1,0 +1,394 @@
+/* ==================== Header Layout Customization ==================== */
+/* Visual drag-and-drop editor matching the header-icon-arranger tool style */
+
+/* Header Preview - the main drag-and-drop area */
+.header-layout-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 12px 16px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  min-height: 56px;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.header-layout-label {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Item wrapper for drop indicator positioning */
+.header-item-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Drop indicator - blue bar showing where item will be placed */
+.drop-indicator {
+  position: absolute;
+  left: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #3b82f6;
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.1s;
+  z-index: 10;
+}
+
+.drop-indicator.right {
+  left: auto;
+  right: -2px;
+}
+
+.drop-indicator.visible {
+  opacity: 1;
+}
+
+/* Icon item (buttons) */
+.header-icon-item {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #334155;
+  border-radius: 6px;
+  cursor: grab;
+  transition: all 0.15s ease;
+  position: relative;
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+.header-icon-item:hover {
+  background: #475569;
+  transform: scale(1.08);
+}
+
+.header-icon-item.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+.header-icon-item svg {
+  width: 20px;
+  height: 20px;
+  color: #e2e8f0;
+}
+
+.header-icon-item.logo svg {
+  width: 28px;
+  height: 28px;
+  color: #22c55e;
+}
+
+.header-icon-item.companyLogo {
+  background: transparent;
+}
+
+.header-icon-item.companyLogo svg {
+  width: 32px;
+  height: 32px;
+}
+
+.header-icon-item.hidden-item {
+  opacity: 0.3;
+}
+
+/* Locked item (cannot be moved) */
+.header-icon-item.locked-item {
+  cursor: default;
+}
+
+/* Tooltip on hover */
+.header-icon-item .tooltip,
+.header-spacer-item .tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  margin-bottom: 6px;
+  border: 1px solid #334155;
+  z-index: 20;
+}
+
+.header-icon-item:hover .tooltip,
+.header-spacer-item:hover .tooltip {
+  opacity: 1;
+}
+
+/* First item tooltip - align left to prevent cutoff */
+.header-item-wrapper:first-child .tooltip {
+  left: 0;
+  transform: none;
+}
+
+/* Spacer item */
+.header-spacer-item {
+  width: 28px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 2px dashed #475569;
+  border-radius: 6px;
+  cursor: grab;
+  transition: all 0.15s ease;
+  position: relative;
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+.header-spacer-item:hover {
+  border-color: #64748b;
+  background: rgba(71, 85, 105, 0.2);
+}
+
+.header-spacer-item.dragging {
+  opacity: 0.4;
+}
+
+.header-spacer-item svg {
+  width: 16px;
+  height: 16px;
+  color: #64748b;
+}
+
+/* Controls section */
+.header-layout-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Visibility toggles */
+.visibility-section {
+  flex: 1;
+  min-width: 200px;
+}
+
+.visibility-section h4 {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.visibility-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.visibility-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.visibility-toggle:hover {
+  border-color: #475569;
+}
+
+.visibility-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.visibility-toggle label {
+  font-size: 13px;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.visibility-toggle.unchecked {
+  opacity: 0.5;
+}
+
+.visibility-toggle.unchecked label {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+/* Spacer Controls */
+.spacer-section {
+  min-width: 180px;
+}
+
+.spacer-section h4 {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.spacer-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.spacer-btn {
+  width: 40px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.spacer-btn:hover {
+  border-color: #475569;
+  background: #334155;
+}
+
+.spacer-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+/* Button row */
+.header-layout-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* Hint text */
+.header-layout-hint {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* Status message */
+.header-layout-status {
+  margin-top: 12px;
+}
+
+/* ==================== Light Mode ==================== */
+
+body.light-mode .header-layout-preview {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+body.light-mode .header-icon-item {
+  background: #e2e8f0;
+}
+
+body.light-mode .header-icon-item:hover {
+  background: #cbd5e1;
+}
+
+body.light-mode .header-icon-item svg {
+  color: #334155;
+}
+
+body.light-mode .header-icon-item.logo svg {
+  color: #16a34a;
+}
+
+body.light-mode .header-icon-item .tooltip,
+body.light-mode .header-spacer-item .tooltip {
+  background: #fff;
+  color: #334155;
+  border-color: #e2e8f0;
+}
+
+body.light-mode .header-spacer-item {
+  border-color: #cbd5e1;
+}
+
+body.light-mode .header-spacer-item:hover {
+  border-color: #94a3b8;
+  background: rgba(148, 163, 184, 0.2);
+}
+
+body.light-mode .header-spacer-item svg {
+  color: #94a3b8;
+}
+
+body.light-mode .visibility-section h4,
+body.light-mode .spacer-section h4 {
+  color: #64748b;
+}
+
+body.light-mode .visibility-toggle {
+  background: #fff;
+  border-color: #e2e8f0;
+}
+
+body.light-mode .visibility-toggle:hover {
+  border-color: #cbd5e1;
+}
+
+body.light-mode .visibility-toggle label {
+  color: #334155;
+}
+
+body.light-mode .visibility-toggle.unchecked label {
+  color: #94a3b8;
+}
+
+body.light-mode .spacer-btn {
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+body.light-mode .spacer-btn:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+body.light-mode .spacer-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+body.light-mode .header-layout-hint {
+  color: #64748b;
+}
+
+body.light-mode .header-layout-label {
+  color: #64748b;
+}

@@ -1,0 +1,278 @@
+/* ==================== Presets ==================== */
+/* Preset buttons and mute button */
+
+/* Presets */
+.presets {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.preset-btn {
+  flex: 1;
+  padding: 7px 6px;
+  background: #0f1621;
+  border: 1px solid #5a7a9a;
+  border-radius: 6px;
+  color: #f0f0f0;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.preset-btn:hover {
+  background: #1a2744;
+  border-color: #7a9ab8;
+  transform: translateY(-1px);
+}
+
+.preset-btn:active {
+  transform: translateY(0);
+}
+
+.preset-btn.active {
+  background: #ffffff;
+  color: #0d0d0d;
+  border-color: #ffffff;
+}
+
+.preset-btn.reduced {
+  background: linear-gradient(135deg, #1a1a2a 0%, #0d0d1a 100%);
+  border-color: #2a2a4a;
+  color: #60a5fa;
+}
+
+.preset-btn.reduced:hover {
+  background: linear-gradient(135deg, #2a2a3a 0%, #1a1a2a 100%);
+  border-color: #3a3a5a;
+}
+
+.preset-btn.reduced.active {
+  background: #60a5fa;
+  color: #0d0d0d;
+  border-color: #60a5fa;
+}
+
+.preset-btn.boost {
+  background: linear-gradient(135deg, #1a2a1a 0%, #0d1a0d 100%);
+  border-color: #2a4a2a;
+  color: #4ade80;
+}
+
+.preset-btn.boost:hover {
+  background: linear-gradient(135deg, #2a3a2a 0%, #1a2a1a 100%);
+  border-color: #3a5a3a;
+}
+
+.preset-btn.boost.active {
+  background: #4ade80;
+  color: #0d0d0d;
+  border-color: #4ade80;
+}
+
+.preset-btn.high {
+  background: linear-gradient(135deg, #2a2a1a 0%, #1a1a0d 100%);
+  border-color: #4a4a2a;
+  color: #facc15;
+}
+
+.preset-btn.high:hover {
+  background: linear-gradient(135deg, #3a3a2a 0%, #2a2a1a 100%);
+  border-color: #5a5a3a;
+}
+
+.preset-btn.high.active {
+  background: #facc15;
+  color: #0d0d0d;
+  border-color: #facc15;
+}
+
+.preset-btn.extreme {
+  background: linear-gradient(135deg, #2a1a0a 0%, #1a0d00 100%);
+  border-color: #4a2a0a;
+  color: #fb923c;
+}
+
+.preset-btn.extreme:hover {
+  background: linear-gradient(135deg, #3a2a1a 0%, #2a1a0a 100%);
+  border-color: #5a3a1a;
+}
+
+.preset-btn.extreme.active {
+  background: #fb923c;
+  color: #0d0d0d;
+  border-color: #fb923c;
+}
+
+.preset-btn.ultra {
+  background: linear-gradient(135deg, #2a1a2a 0%, #1a0d1a 100%);
+  border-color: #4a2a4a;
+  color: #a855f7;
+}
+
+.preset-btn.ultra:hover {
+  background: linear-gradient(135deg, #3a2a3a 0%, #2a1a2a 100%);
+  border-color: #5a3a5a;
+}
+
+.preset-btn.ultra.active {
+  background: #a855f7;
+  color: #0d0d0d;
+  border-color: #a855f7;
+}
+
+.preset-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Mute button styling */
+#muteBtn {
+  background: linear-gradient(135deg, #2a1a1a 0%, #1a0d0d 100%);
+  border-color: #3a2a2a;
+  color: #f87171;
+}
+
+#muteBtn:hover {
+  background: linear-gradient(135deg, #3a2a2a 0%, #2a1a1a 100%);
+  border-color: #4a3a3a;
+}
+
+#muteBtn.muted {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+/* Focus styles */
+.preset-btn:focus {
+  outline: none;
+}
+
+.preset-btn:focus-visible {
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+/* ==================== Light Mode: Presets (Morning Theme) ==================== */
+
+body.light-mode .preset-btn {
+  background: #faf5ef;
+  border-color: #d4c4b0;
+  color: #2d2520;
+}
+
+body.light-mode .preset-btn:hover {
+  background: #f5ede3;
+  border-color: #c4b4a0;
+}
+
+body.light-mode .preset-btn.active {
+  background: #8b7355;
+  color: #ffffff;
+  border-color: #8b7355;
+}
+
+body.light-mode .preset-btn.reduced {
+  background: linear-gradient(135deg, #e8eeff 0%, #dce6ff 100%);
+  border-color: #c0d0ff;
+  color: #3b82f6;
+}
+
+body.light-mode .preset-btn.reduced:hover {
+  background: linear-gradient(135deg, #dce6ff 0%, #c8d8ff 100%);
+}
+
+body.light-mode .preset-btn.reduced.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+body.light-mode .preset-btn.boost {
+  background: linear-gradient(135deg, #e8ffef 0%, #dcffe6 100%);
+  border-color: #a0e0b0;
+  color: #22c55e;
+}
+
+body.light-mode .preset-btn.boost:hover {
+  background: linear-gradient(135deg, #dcffe6 0%, #c8ffd8 100%);
+}
+
+body.light-mode .preset-btn.boost.active {
+  background: #22c55e;
+  color: #ffffff;
+  border-color: #22c55e;
+}
+
+body.light-mode .preset-btn.high {
+  background: linear-gradient(135deg, #fffde8 0%, #fff8c8 100%);
+  border-color: #e0d080;
+  color: #ca8a04;
+}
+
+body.light-mode .preset-btn.high:hover {
+  background: linear-gradient(135deg, #fff8c8 0%, #fff0a0 100%);
+}
+
+body.light-mode .preset-btn.high.active {
+  background: #eab308;
+  color: #ffffff;
+  border-color: #eab308;
+}
+
+body.light-mode .preset-btn.extreme {
+  background: linear-gradient(135deg, #fff4e8 0%, #ffe8d0 100%);
+  border-color: #f0c090;
+  color: #ea580c;
+}
+
+body.light-mode .preset-btn.extreme:hover {
+  background: linear-gradient(135deg, #ffe8d0 0%, #ffd8b0 100%);
+}
+
+body.light-mode .preset-btn.extreme.active {
+  background: #ea580c;
+  color: #ffffff;
+  border-color: #ea580c;
+}
+
+body.light-mode .preset-btn.ultra {
+  background: linear-gradient(135deg, #f8e8ff 0%, #f0d8ff 100%);
+  border-color: #d0a0e0;
+  color: #9333ea;
+}
+
+body.light-mode .preset-btn.ultra:hover {
+  background: linear-gradient(135deg, #f0d8ff 0%, #e8c8ff 100%);
+}
+
+body.light-mode .preset-btn.ultra.active {
+  background: #9333ea;
+  color: #ffffff;
+  border-color: #9333ea;
+}
+
+body.light-mode #muteBtn {
+  background: linear-gradient(135deg, #fff0f0 0%, #ffe8e8 100%);
+  border-color: #ffc0c0;
+  color: #dc2626;
+}
+
+body.light-mode #muteBtn:hover {
+  background: linear-gradient(135deg, #ffe8e8 0%, #ffd8d8 100%);
+}
+
+body.light-mode #muteBtn.muted {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+body.light-mode .preset-btn:focus-visible {
+  box-shadow: 0 0 0 2px #8b7355;
+}

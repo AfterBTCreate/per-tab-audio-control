@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Per-Tab Audio Control</title>
+  <!-- Modular CSS - load order: base → tab → volume → presets → effects → controls -->
+  <link rel="stylesheet" href="popup-base.css">
+  <link rel="stylesheet" href="popup-tab.css">
+  <link rel="stylesheet" href="popup-volume.css">
+  <link rel="stylesheet" href="popup-presets.css">
+  <link rel="stylesheet" href="popup-effects.css">
+  <link rel="stylesheet" href="popup-controls.css">
+</head>
+<body class="initializing">
+  <div class="container">
+    <header class="header">
+      <!-- 1. Brand Logo -->
+      <a data-header-item="companyLogo" href="https://afterbedtimecreations.com" target="_blank" rel="noopener noreferrer" class="brand-logo-link" title="Visit After Bedtime Creations">
+        <div class="brand-logo">
+          <!-- Dark mode logo -->
+          <svg class="logo-dark" width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations">
+            <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="#0f172a"/>
+            <line x1="50" y1="10" x2="50" y2="90" stroke="#5a7a9a" stroke-width="3"/>
+            <line x1="10" y1="50" x2="90" y2="50" stroke="#5a7a9a" stroke-width="3"/>
+            <rect x="53" y="53" width="34" height="34" rx="3" fill="#d4c78a"/>
+            <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#c9a0a0" text-anchor="middle">A</text>
+            <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0c9a8" text-anchor="middle">B</text>
+            <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0b8c9" text-anchor="middle">C</text>
+            <path d="M60 66 L60 74 L64 74 L72 80 L72 60 L64 66 Z" fill="#0f172a"/>
+            <path d="M76 65 Q80 70 76 75" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M80 62 Q86 70 80 78" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+          <!-- Light mode logo -->
+          <svg class="logo-light" width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations">
+            <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
+            <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
+            <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
+            <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
+            <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
+            <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
+            <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
+            <path d="M60 66 L60 74 L64 74 L72 80 L72 60 L64 66 Z" fill="#faf5ef"/>
+            <path d="M76 65 Q80 70 76 75" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M80 62 Q86 70 80 78" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+      </a>
+      <!-- 2. Tab Capture / Web Audio Toggle -->
+      <button data-header-item="audioMode" class="header-btn audio-mode-toggle" id="audioModeToggle" title="Tab Capture mode" aria-label="Toggle Tab Capture / Web Audio mode">
+        <!-- Tab Capture icon: capture frame/box -->
+        <svg class="icon-tabcapture" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="7" y="7" width="10" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <!-- Web Audio icon: waveform -->
+        <svg class="icon-webaudio" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 12h2l2-4 3 8 3-8 2 4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <!-- 3. Bypass -->
+      <button data-header-item="offMode" class="header-btn" id="disableDomainBtn" title="Bypass - Skip audio processing" aria-label="Toggle Bypass mode" aria-pressed="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+          <line x1="5.5" y1="5.5" x2="18.5" y2="18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <!-- 4. Mute Others -->
+      <button data-header-item="muteOthers" class="header-btn" id="muteOthersBtn" title="Mute other tabs" aria-label="Mute other tabs">
+        <!-- Speaker icon (default state) -->
+        <svg class="mute-icon-unmuted" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+        <!-- Muted speaker icon (active state) -->
+        <svg class="mute-icon-muted" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+        </svg>
+      </button>
+      <!-- 5. Spacer -->
+      <div data-header-item="spacer1" class="header-spacer"></div>
+      <!-- 6. Basic/Advanced Mode Toggle -->
+      <button data-header-item="modeToggle" class="header-btn mode-toggle" id="modeToggle" title="Switch to Basic mode" aria-label="Toggle Basic/Advanced mode">
+        <!-- Basic mode icon: single line -->
+        <svg class="icon-basic" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <!-- Advanced mode icon: three lines -->
+        <svg class="icon-advanced" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="4" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="4" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <!-- 7. Shortcuts -->
+      <div data-header-item="shortcuts" class="shortcuts-popover-wrapper">
+        <button class="header-btn" id="shortcutsBtn" title="Keyboard shortcuts" aria-label="Show keyboard shortcuts" aria-expanded="false" aria-controls="shortcutsPopover">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+            <path d="M6 10H6.01M10 10H10.01M14 10H14.01M18 10H18.01M8 14H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="shortcuts-popover" id="shortcutsPopover">
+          <div class="shortcuts-popover-title">Keyboard Shortcuts</div>
+          <div class="shortcuts-popover-row">
+            <span class="shortcut-action">Volume Up</span>
+            <span class="shortcut-key" id="shortcutsVolUp">Alt+Shift+↑</span>
+          </div>
+          <div class="shortcuts-popover-row">
+            <span class="shortcut-action">Volume Down</span>
+            <span class="shortcut-key" id="shortcutsVolDown">Alt+Shift+↓</span>
+          </div>
+          <div class="shortcuts-popover-row">
+            <span class="shortcut-action">Mute</span>
+            <span class="shortcut-key" id="shortcutsMute">Alt+Shift+M</span>
+          </div>
+        </div>
+      </div>
+      <!-- 8. Theme -->
+      <button data-header-item="theme" class="header-btn" id="themeToggle" title="Toggle morning/bedtime" aria-label="Toggle morning/bedtime">
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <!-- 9. Settings -->
+      <button data-header-item="settings" class="header-btn" id="settingsBtn" title="Settings" aria-label="Open settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <!-- 10. Volume Icon -->
+      <div data-header-item="logo" class="logo" id="volumeLogo" title="Volume level indicator" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path class="speaker-icon" d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Mute X - only shown when muted -->
+          <g class="mute-x">
+            <line x1="18" y1="9" x2="14" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="14" y1="9" x2="18" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </g>
+          <!-- Wave 1: 1-50% (closest to speaker) -->
+          <path class="volume-wave wave-1" d="M14.5 10C15.1 10.7 15.5 11.3 15.5 12C15.5 12.7 15.1 13.3 14.5 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Wave 2: 51-100% -->
+          <path class="volume-wave wave-2" d="M16.5 8.5C17.5 9.5 18 10.7 18 12C18 13.3 17.5 14.5 16.5 15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Wave 3: 101-200% -->
+          <path class="volume-wave wave-3" d="M18.5 7C19.8 8.3 20.5 10.1 20.5 12C20.5 13.9 19.8 15.7 18.5 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Wave 4: 201-350% -->
+          <path class="volume-wave wave-4" d="M20.5 5.5C22.2 7.2 23 9.5 23 12C23 14.5 22.2 16.8 20.5 18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Wave 5: 351-500% (ultra) -->
+          <path class="volume-wave wave-5" d="M22.5 4C24.5 6 25.5 8.8 25.5 12C25.5 15.2 24.5 18 22.5 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </header>
+
+    <div class="tab-info-wrapper">
+      <div class="tab-info">
+        <canvas id="visualizer" class="visualizer-canvas" title="Click: Go to tab | Long-press: Change style" aria-label="Audio visualizer - click to go to tab, long-press to change style" role="img"></canvas>
+        <button class="media-toggle-btn" id="mediaToggleBtn" title="Toggle play/pause" aria-label="Toggle play/pause">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+            <rect x="3" y="5" width="3" height="14" rx="0.5"/>
+          </svg>
+        </button>
+        <div class="tab-title" id="tabTitle">Loading...</div>
+        <div class="tab-url" id="tabUrl"></div>
+        <div class="tab-counter" id="tabCounter" aria-live="polite" aria-atomic="true"></div>
+        <div class="visualizer-unavailable" id="visualizerUnavailable" title="Audio not accessible to visualizer" aria-label="Visualizer unavailable - audio not accessible">
+          <span>Visualizer</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+        </div>
+        <div class="visualizer-off" id="visualizerOff" title="Click visualizer to change style" aria-label="Visualizer off - click to change style">
+          <span>Visualizer</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M17 7L7 17M7 7l10 10"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="volume-row" role="group" aria-label="Volume controls">
+      <div class="volume-display">
+        <button class="volume-adjust-btn" id="volumeDown" title="Decrease 1%" aria-label="Decrease volume by 1%">−</button>
+        <span class="volume-value" id="volumeValue" aria-live="polite" aria-atomic="true">100</span>
+        <button class="volume-adjust-btn" id="volumeUp" title="Increase 1%" aria-label="Increase volume by 1%">+</button>
+      </div>
+      <div class="disabled-status" id="disabledStatus" role="status" aria-live="polite"></div>
+      <button class="tab-nav-btn" id="prevTabBtn" title="Previous audio tab (Left arrow)" aria-label="Previous audio tab" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <button class="tab-nav-btn" id="nextTabBtn" title="Next audio tab (Right arrow)" aria-label="Next audio tab" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+      <button class="tab-nav-btn" id="resetTabBtn" title="Reset tab to defaults" aria-label="Reset current tab to default settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 4v6h6"/>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="slider-container">
+      <div class="slider-track">
+        <div class="slider-fill" id="sliderFill"></div>
+        <div class="slider-markers">
+          <span class="marker" data-value="0">0</span>
+          <span class="marker" data-value="50">50</span>
+          <span class="marker" data-value="100">100</span>
+          <span class="marker" data-value="300">300</span>
+          <span class="marker" data-value="500">500</span>
+        </div>
+      </div>
+      <input
+        type="range"
+        id="volumeSlider"
+        min="0"
+        max="100"
+        value="50"
+        step="0.5"
+        class="volume-slider"
+        title="Drag to adjust volume (0-500%)"
+        aria-label="Volume slider"
+        aria-valuemin="0"
+        aria-valuemax="500"
+        aria-valuenow="100"
+      >
+    </div>
+
+    <div class="presets" role="group" aria-label="Volume presets">
+      <button class="preset-btn" data-volume="0" id="muteBtn" title="Mute audio (0%)" aria-label="Mute audio" aria-pressed="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Mute
+      </button>
+      <button class="preset-btn reduced" data-volume="25" title="Reduced volume" aria-label="Set volume to 25%">25%</button>
+      <button class="preset-btn boost" data-volume="100" title="Normal volume" aria-label="Set volume to 100%">100%</button>
+      <button class="preset-btn high" data-volume="200" title="High boost" aria-label="Set volume to 200%">200%</button>
+      <button class="preset-btn extreme" data-volume="300" title="Extreme boost" aria-label="Set volume to 300%">300%</button>
+      <button class="preset-btn ultra" data-volume="500" title="Maximum boost" aria-label="Set volume to 500%">500%</button>
+    </div>
+
+    <!-- Native mode status message (full width, below presets) -->
+    <div class="native-mode-status hidden" id="nativeModeStatus" role="status" aria-live="polite"></div>
+
+    <div class="balance-container full-mode-only" role="group" aria-label="Audio balance and channel controls">
+      <div class="balance-header">
+        <button class="balance-mode-btn active" id="stereoToggle" title="Stereo (separate L+R channels)" aria-label="Stereo mode" aria-pressed="true">S</button>
+        <button class="balance-mode-btn" id="monoToggle" title="Mono (merge L+R channels)" aria-label="Mono mode" aria-pressed="false">M</button>
+        <span class="balance-title">Balance</span>
+        <button class="balance-mode-btn" id="swapToggle" title="Swap left and right channels" aria-label="Swap left and right channels" aria-pressed="false">⇄</button>
+        <button class="balance-reset-btn" id="balanceReset" title="Reset to center" aria-label="Reset balance to center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="2" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+      <div class="balance-slider-row">
+        <span class="balance-label" id="balanceLabelLeft" aria-hidden="true">L</span>
+        <input type="range" id="balanceSlider" min="-100" max="100" value="0" class="balance-slider" title="Drag to shift audio left or right" aria-label="Audio balance, left to right" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0">
+        <span class="balance-label" id="balanceLabelRight" aria-hidden="true">R</span>
+      </div>
+    </div>
+
+    <div class="enhancements-section full-mode-only" role="group" aria-label="Audio enhancements">
+      <div class="section-header">Enhancements</div>
+      <div class="audio-effects">
+        <!-- Divider below header -->
+        <div class="effects-divider"></div>
+        <!-- Bass: Preset buttons (default) -->
+        <div class="effect-row eq-presets-mode" role="group" aria-label="Bass presets">
+          <span class="effect-label" title="Boost or cut low frequencies">Bass</span>
+          <div class="effect-buttons combined">
+            <button class="effect-btn cut high" data-effect="bass" data-level="cut-high" id="bassCutHigh" title="Strong bass cut (-24 dB)" aria-label="Bass cut high">-24</button>
+            <button class="effect-btn cut medium" data-effect="bass" data-level="cut-medium" id="bassCutMed" title="Medium bass cut (-12 dB)" aria-label="Bass cut medium">-12</button>
+            <button class="effect-btn cut low" data-effect="bass" data-level="cut-low" id="bassCutLow" title="Light bass cut (-6 dB)" aria-label="Bass cut low">-6</button>
+            <button class="effect-btn" data-effect="bass" data-level="off" title="No bass adjustment" aria-label="Bass off">Off</button>
+            <button class="effect-btn low" data-effect="bass" data-level="low" id="bassLow" title="Light bass boost (+6 dB)" aria-label="Bass boost low">+6</button>
+            <button class="effect-btn medium" data-effect="bass" data-level="medium" id="bassMed" title="Medium bass boost (+12 dB)" aria-label="Bass boost medium">+12</button>
+            <button class="effect-btn high" data-effect="bass" data-level="high" id="bassHigh" title="Strong bass boost (+24 dB)" aria-label="Bass boost high">+24</button>
+          </div>
+        </div>
+        <!-- Bass: Slider mode (hidden by default) -->
+        <div class="effect-row eq-slider-mode hidden" role="group" aria-label="Bass slider">
+          <span class="effect-label" title="Boost or cut low frequencies">Bass</span>
+          <div class="eq-slider-container">
+            <input type="range" id="bassSlider" class="eq-slider" min="-24" max="24" value="0" title="Adjust bass: -24 to +24 dB" aria-label="Bass level">
+            <span class="eq-slider-value" id="bassSliderValue">0 dB</span>
+          </div>
+          <button class="eq-reset-btn" id="bassReset" title="Reset bass" aria-label="Reset bass to 0 dB">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+        <!-- Treble: Preset buttons (default) -->
+        <div class="effect-row eq-presets-mode" role="group" aria-label="Treble presets">
+          <span class="effect-label" title="Boost or cut high frequencies">Treble</span>
+          <div class="effect-buttons combined">
+            <button class="effect-btn cut high" data-effect="treble" data-level="cut-high" id="trebleCutHigh" title="Strong treble cut (-24 dB)" aria-label="Treble cut high">-24</button>
+            <button class="effect-btn cut medium" data-effect="treble" data-level="cut-medium" id="trebleCutMed" title="Medium treble cut (-12 dB)" aria-label="Treble cut medium">-12</button>
+            <button class="effect-btn cut low" data-effect="treble" data-level="cut-low" id="trebleCutLow" title="Light treble cut (-6 dB)" aria-label="Treble cut low">-6</button>
+            <button class="effect-btn" data-effect="treble" data-level="off" title="No treble adjustment" aria-label="Treble off">Off</button>
+            <button class="effect-btn low" data-effect="treble" data-level="low" id="trebleLow" title="Light treble boost (+6 dB)" aria-label="Treble boost low">+6</button>
+            <button class="effect-btn medium" data-effect="treble" data-level="medium" id="trebleMed" title="Medium treble boost (+12 dB)" aria-label="Treble boost medium">+12</button>
+            <button class="effect-btn high" data-effect="treble" data-level="high" id="trebleHigh" title="Strong treble boost (+24 dB)" aria-label="Treble boost high">+24</button>
+          </div>
+        </div>
+        <!-- Treble: Slider mode (hidden by default) -->
+        <div class="effect-row eq-slider-mode hidden" role="group" aria-label="Treble slider">
+          <span class="effect-label" title="Boost or cut high frequencies">Treble</span>
+          <div class="eq-slider-container">
+            <input type="range" id="trebleSlider" class="eq-slider" min="-24" max="24" value="0" title="Adjust treble: -24 to +24 dB" aria-label="Treble level">
+            <span class="eq-slider-value" id="trebleSliderValue">0 dB</span>
+          </div>
+          <button class="eq-reset-btn" id="trebleReset" title="Reset treble" aria-label="Reset treble to 0 dB">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+        <!-- Divider between EQ and Voice -->
+        <div class="effects-divider"></div>
+        <!-- Voice: Preset buttons (default) -->
+        <div class="effect-row eq-presets-mode" role="group" aria-label="Voice boost presets">
+          <span class="effect-label" title="Enhances vocal frequencies for clearer speech">Voice</span>
+          <div class="effect-buttons">
+            <button class="effect-btn" data-effect="voice" data-level="off" title="No voice enhancement" aria-label="Voice boost off">Off</button>
+            <button class="effect-btn low" data-effect="voice" data-level="low" id="voiceLow" title="Subtle voice clarity (+4 dB)" aria-label="Voice boost low">+4dB</button>
+            <button class="effect-btn medium" data-effect="voice" data-level="medium" id="voiceMed" title="Moderate voice boost (+10 dB)" aria-label="Voice boost medium">+10dB</button>
+            <button class="effect-btn high" data-effect="voice" data-level="high" id="voiceHigh" title="Strong voice boost (+18 dB)" aria-label="Voice boost high">+18dB</button>
+          </div>
+        </div>
+        <!-- Voice: Slider mode (hidden by default) -->
+        <div class="effect-row eq-slider-mode hidden" role="group" aria-label="Voice slider">
+          <span class="effect-label" title="Enhances vocal frequencies for clearer speech">Voice</span>
+          <div class="eq-slider-container">
+            <input type="range" id="voiceSlider" class="eq-slider voice-slider" min="0" max="18" value="0" title="Adjust voice clarity: 0 to +18 dB" aria-label="Voice level">
+            <span class="eq-slider-value" id="voiceSliderValue">0 dB</span>
+          </div>
+          <button class="eq-reset-btn" id="voiceReset" title="Reset voice" aria-label="Reset voice to 0 dB">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+        <!-- Divider between EQ and Compressor -->
+        <div class="effects-divider"></div>
+        <!-- Compressor -->
+        <div class="effect-row" id="compressorRow" role="group" aria-label="Dynamic range presets">
+          <span class="effect-label" title="Reduces volume differences between quiet and loud sounds">Range</span>
+          <div class="effect-buttons">
+            <button class="effect-btn" data-effect="compressor" data-level="off" title="No dynamic range compression" aria-label="Compressor off">Off</button>
+            <button class="effect-btn low" data-effect="compressor" data-level="podcast" title="Light compression for clear speech and dialog" aria-label="Podcast compression preset">Podcast</button>
+            <button class="effect-btn medium" data-effect="compressor" data-level="movie" title="Medium compression for balanced movie audio" aria-label="Movie compression preset">Movie</button>
+            <button class="effect-btn high" data-effect="compressor" data-level="maximum" title="Heavy compression for maximum volume consistency" aria-label="Maximum compression preset">Max</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="device-selector full-mode-only" role="group" aria-label="Audio output device selection">
+      <div class="device-label">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M3 18V12C3 9.61305 3.94821 7.32387 5.63604 5.63604C7.32387 3.94821 9.61305 3 12 3C14.3869 3 16.6761 3.94821 18.364 5.63604C20.0518 7.32387 21 9.61305 21 12V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H18C17.4696 21 16.9609 20.7893 16.5858 20.4142C16.2107 20.0391 16 19.5304 16 19V16C16 15.4696 16.2107 14.9609 16.5858 14.5858C16.9609 14.2107 17.4696 14 18 14H21V19ZM3 19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H6C6.53043 21 7.03914 20.7893 7.41421 20.4142C7.78929 20.0391 8 19.5304 8 19V16C8 15.4696 7.78929 14.9609 7.41421 14.5858C7.03914 14.2107 6.53043 14 6 14H3V19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Output Device</span>
+        <button id="refreshDevices" class="refresh-btn" title="Refresh device list (requires permission)" aria-label="Refresh audio device list">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M1 4V10H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M23 20V14H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14L18.36 18.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <select id="deviceSelect" class="device-select" title="Route this tab's audio to a specific device" aria-label="Select audio output device">
+        <option value="">Default (System Audio)</option>
+      </select>
+    </div>
+
+    <div class="add-rule-section full-mode-only" role="group" aria-label="Site rule creation">
+      <div class="add-rule-row">
+        <label class="domain-checkbox" title="Apply rule to all pages on this website">
+          <input type="checkbox" id="ruleDomainCheckbox" aria-label="Apply rule to entire domain">
+          <span>Entire domain</span>
+        </label>
+        <button id="addSiteRuleBtn" class="add-rule-btn" title="Create a site rule with current settings" aria-label="Add site rule with current settings">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Add Site Rule
+        </button>
+      </div>
+      <div id="ruleStatus" class="rule-status" role="status" aria-live="polite"></div>
+    </div>
+
+    <!-- Global status message area for error feedback -->
+    <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
+
+    <!-- Cleanup button for old rules (hidden by default, shown when storage quota warning) -->
+    <button id="cleanupRulesBtn" class="cleanup-rules-btn hidden" title="Remove site rules unused for 90+ days" aria-label="Clean up old site rules">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Clean Up Old Rules
+    </button>
+
+    <!-- Tab Capture button for Chrome (hidden by default, shown when audio not accessible) -->
+    <button id="enableTabCaptureBtn" class="enable-tabcapture-btn hidden" title="Enable Tab Capture for this site" aria-label="Enable Tab Capture">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Enable Tab Capture
+    </button>
+
+    <!-- Bypass Mode button for Firefox (hidden by default, shown when audio not accessible) -->
+    <button id="enableNativeModeBtn" class="enable-native-mode-btn hidden" title="Enable Bypass Mode for this site" aria-label="Enable Bypass Mode">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Enable Bypass Mode
+    </button>
+
+  </div>
+
+  <!-- Shared utilities - must load first -->
+  <script src="../shared/browser-api.js"></script>
+  <script src="../shared/constants.js"></script>
+  <script src="../shared/validation.js"></script>
+  <!-- Modular popup scripts - load order matters -->
+  <script src="popup-core.js"></script>
+  <script src="popup-effects.js"></script>
+  <script src="popup-devices.js"></script>
+  <script src="popup-volume.js"></script>
+  <script src="popup-visualizer.js"></script>
+  <script src="popup-tabs.js"></script>
+</body>
+</html>

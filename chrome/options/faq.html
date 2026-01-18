@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Per-Tab Audio Control - FAQ</title>
+  <link rel="stylesheet" href="options-base.css">
+  <link rel="stylesheet" href="options-sections.css">
+  <link rel="stylesheet" href="options-visualizer.css">
+  <link rel="stylesheet" href="options-info.css">
+  <link rel="stylesheet" href="options-forms.css">
+  <link rel="stylesheet" href="options-rules.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo" aria-hidden="true" title="Per-Tab Audio Control">
+        <!-- Dark mode logo - A top-left, B top-right, C bottom-left, speaker bottom-right -->
+        <svg class="logo-dark" width="56" height="56" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="#0f172a"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#5a7a9a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#5a7a9a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#d4c78a"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#c9a0a0" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0c9a8" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0b8c9" text-anchor="middle">C</text>
+          <path d="M60 66 L60 74 L64 74 L72 80 L72 60 L64 66 Z" fill="#0f172a"/>
+          <path d="M76 65 Q80 70 76 75" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M80 62 Q86 70 80 78" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <!-- Light mode logo - A top-left, B top-right, C bottom-left, speaker bottom-right -->
+        <svg class="logo-light" width="56" height="56" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
+          <path d="M60 66 L60 74 L64 74 L72 80 L72 60 L64 66 Z" fill="#faf5ef"/>
+          <path d="M76 65 Q80 70 76 75" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M80 62 Q86 70 80 78" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <h1>FAQ</h1>
+      <p class="header-tagline">The audio controls browsers forgot to include</p>
+      <a href="options.html" class="header-btn" title="Back to Settings" aria-label="Back to Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+      <button class="header-btn" id="expandAllToggle" title="Expand all sections" aria-label="Expand all sections" aria-expanded="false">
+        <svg class="icon-expand" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="6 4 12 10 18 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="icon-collapse" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polyline points="18 15 12 9 6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="18 20 12 14 6 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="header-btn" id="themeToggle" title="Toggle morning/bedtime" aria-label="Toggle morning/bedtime">
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- About Branding -->
+    <div class="about-header">
+      <div class="about-logo">
+        <!-- Dark mode logo - A top-left, B top-right, C bottom-left, moon bottom-right -->
+        <svg class="logo-dark" width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations logo">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="#0f172a"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#5a7a9a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#5a7a9a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#d4c78a"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#c9a0a0" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0c9a8" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0b8c9" text-anchor="middle">C</text>
+          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#0f172a"/>
+        </svg>
+        <!-- Light mode logo - A top-left, B top-right, C bottom-left, moon bottom-right -->
+        <svg class="logo-light" width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations logo">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a9a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
+          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#faf5ef"/>
+        </svg>
+      </div>
+      <div class="about-content">
+        <div class="about-brand"><span class="brand-a">A</span>fter <span class="brand-b">B</span>edtime <span class="brand-c">C</span>reations</div>
+        <div class="about-tagline">Privacy-focused software, built late.</div>
+      </div>
+      <div class="about-links">
+        <a href="https://afterbedtimecreations.com" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="Website">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </a>
+        <a href="https://github.com/AfterBTCreate" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="GitHub">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </a>
+        <a href="https://x.com/AfterBTCreate" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="X (Twitter)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+        </a>
+        <a href="https://discord.gg/NvHBdRUh" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="Discord">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+          </svg>
+        </a>
+        <a href="https://patreon.com/afterbedtimecreations" target="_blank" rel="noopener noreferrer" class="about-link support-link" title="Support development">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span>Support</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Q1: Volume limited -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why can't I boost volume above 100%?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">If volume is capped at 100%, the site is in <strong>Bypass mode</strong>.</p>
+        <div class="info-box">
+          <h4>What's happening</h4>
+          <p>Bypass mode uses the browser's native volume control instead of audio processing, which limits volume to 0-100%. This happens when:</p>
+          <ul class="feature-list">
+            <li>You previously enabled Bypass mode on this domain</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>How to fix</h4>
+          <ol class="chain-list">
+            <li>Look for a red ⊘ button in the popup header (indicates Bypass mode is active)</li>
+            <li>Click the ⊘ button to switch back to your previous audio mode</li>
+            <li>The page will auto-refresh and 0-500% volume will be available</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q2: No sound -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why is there no sound on this site?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Some websites don't work well with audio processing. Try Bypass mode.</p>
+        <div class="info-box">
+          <h4>Why this happens</h4>
+          <p>The extension processes audio to enable boost and effects. Some sites have audio that's incompatible with this processing, causing:</p>
+          <ul class="feature-list">
+            <li>No sound at all</li>
+            <li>Audio pops, clicks, or distortion</li>
+            <li>Audio/video sync issues</li>
+          </ul>
+          <p style="margin-top: 8px;">This can occur in any audio mode, including Tab Capture on Chrome.</p>
+        </div>
+        <div class="info-box">
+          <h4>How to fix</h4>
+          <ol class="chain-list">
+            <li>Open the popup and click the ⊘ button in the header</li>
+            <li>The page will auto-refresh immediately</li>
+            <li>Audio should now work (limited to 0-100% volume)</li>
+          </ol>
+          <p style="margin-top: 8px;">Bypass mode bypasses all audio processing for maximum compatibility.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q3: Microphone permission -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why does the extension need microphone permission?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">The microphone permission is required to list audio output devices. <strong>The extension never records audio.</strong></p>
+        <div class="info-box">
+          <h4>Why this is necessary</h4>
+          <p>Browsers require microphone permission to access the list of audio devices (speakers, headphones, etc.). This is a browser security requirement, not a choice by the extension.</p>
+          <ul class="feature-list">
+            <li>Without permission: Only "Default" device available</li>
+            <li>With permission: All your audio devices appear in the dropdown</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Privacy note</h4>
+          <p>The extension only calls <code>navigator.mediaDevices.enumerateDevices()</code> to get device names. No audio streams are ever created, recorded, or transmitted.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q4: Multiple prompts -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why am I seeing multiple permission prompts?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Some websites use iframes that each request permission separately.</p>
+        <div class="info-box">
+          <h4>Why this happens</h4>
+          <ul class="feature-list">
+            <li>The site loads games/widgets in separate embedded frames (iframes)</li>
+            <li>Each iframe is treated as a separate context by the browser</li>
+            <li>Each context needs its own permission grant</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>What to do</h4>
+          <p>You can safely accept these prompts. The extension only uses the permission to list output devices for the device switcher dropdown.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q5: Visualizer not working -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why isn't the visualizer working?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Some sites create audio in ways that aren't accessible to the visualizer. This includes sites using Web Audio API directly, cross-origin restrictions, or certain security policies.</p>
+        <div class="info-box">
+          <h4>What you'll see</h4>
+          <ul class="feature-list">
+            <li>After ~2-3 seconds of no audio data, the visualizer auto-disables</li>
+            <li>A "Visualizer ⊘" indicator appears in the Now Playing area</li>
+            <li>On Chrome: A status message and "Enable Tab Capture" button appear</li>
+            <li>On Firefox: A status message and "Enable Off Mode" button appear</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Switching to Tab Capture (Chrome only)</h4>
+          <p>If you're using Web Audio or Bypass mode and experience issues, you can switch to Tab Capture:</p>
+          <ul class="feature-list">
+            <li>Click the "Enable Tab Capture" button at the bottom of the popup</li>
+            <li>Tab Capture captures audio at the browser level</li>
+            <li>Works regardless of how the site creates audio</li>
+            <li>Preference saved per-site for future visits</li>
+            <li>Once enabled, Tab Capture persists even when the popup closes</li>
+            <li>You can also use the mode toggle in the popup header</li>
+            <li>Saved sites can be viewed in Settings → Audio Modes → Site Overrides</li>
+          </ul>
+          <p style="margin-top: 8px;"><strong>Note:</strong> Tab Capture is the default mode on Chrome. This section applies when you've manually switched to Web Audio or Bypass mode. Firefox does not support Tab Capture.</p>
+        </div>
+        <div class="info-box">
+          <h4>Visualizer strobing or flickering?</h4>
+          <p>If the visualizer appears to strobe or flicker erratically:</p>
+          <ul class="feature-list">
+            <li><strong>Close and reopen the popup</strong> — this usually resolves the issue immediately</li>
+            <li>This can occasionally happen when switching audio modes or reconnecting to Tab Capture</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Good news</h4>
+          <p>Visualizer issues are purely cosmetic. <strong>All audio controls still work normally</strong> — volume, effects, balance, and device switching are unaffected.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q6: Volume different on device switch -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why does volume change when I switch devices?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Each audio device has its own volume level in your operating system.</p>
+        <div class="info-box">
+          <h4>Why this happens</h4>
+          <ul class="feature-list">
+            <li>Your default device's volume is what you've adjusted in system settings</li>
+            <li>Other devices often sit at 100% OS volume (never adjusted)</li>
+            <li>External devices (Bluetooth, USB) may have their own hardware volume</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>How to fix</h4>
+          <p>Adjust the device's volume in your OS sound settings, or use the extension's volume slider to compensate.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q7: Volume difference Tab Capture vs Native -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why does Bypass mode sound louder than Tab Capture at the same volume?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">This is expected behavior due to how audio is processed differently in each mode.</p>
+        <div class="info-box">
+          <h4>Tab Capture mode (100%)</h4>
+          <p>Audio flows through a processing pipeline:</p>
+          <ul class="feature-list">
+            <li>Tab audio is captured at the browser level</li>
+            <li>Routed through Web Audio API (MediaStreamSource → GainNode → Limiter → Output)</li>
+            <li>Even at 100% volume (gain = 1.0), this routing introduces slight signal attenuation</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Bypass mode (100%)</h4>
+          <p>Audio goes directly to speakers:</p>
+          <ul class="feature-list">
+            <li>Uses the browser's native <code>element.volume</code> property</li>
+            <li>No AudioContext routing or processing</li>
+            <li>Direct path = louder perceived volume</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Site variations</h4>
+          <p>The difference varies by site:</p>
+          <ul class="feature-list">
+            <li><strong>YouTube:</strong> More noticeable — YouTube uses Web Audio API internally. Tab Capture captures their processed output, while Bypass mode controls their input gain.</li>
+            <li><strong>Spotify:</strong> Less noticeable — Uses more direct audio playback.</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Tip</h4>
+          <p>If switching modes, you may need to adjust the volume slider slightly to match your preferred loudness level.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q8: Why click extension for each tab (Chrome only) -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why do I need to click the extension for each tab? (Chrome)</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Chrome requires a "user gesture" before Tab Capture can access a tab's audio. This is a browser security feature that applies to Chrome only.</p>
+        <div class="info-box">
+          <h4>Why this requirement exists</h4>
+          <p>Chrome prevents extensions from silently capturing audio without your knowledge. By requiring you to click the extension icon, Chrome ensures you've consciously granted permission.</p>
+        </div>
+        <div class="info-box">
+          <h4>How it works</h4>
+          <ul class="feature-list">
+            <li>Opening the popup while a tab is active grants Tab Capture permission for that tab</li>
+            <li>Once activated, Tab Capture stays active on that tab until you close it</li>
+            <li>You can switch to other tabs freely — Tab Capture keeps running in the background</li>
+            <li>Your volume, bass, treble, and other settings persist on that tab</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Tip</h4>
+          <p>You only need to open the popup once per tab. After that, Tab Capture remains active even when the popup is closed.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q9: What syncs -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>What settings sync across my devices?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Most settings sync automatically when signed into your browser account.</p>
+        <div class="info-box">
+          <h4>Synced settings</h4>
+          <ul class="feature-list">
+            <li>All preset values (volume, bass, treble, voice, volume steps)</li>
+            <li>Site rules</li>
+            <li>Audio mode overrides (Tab Capture, Web Audio, and Bypass mode sites)</li>
+            <li>Refresh behavior setting</li>
+            <li>Theme, visualizer style, EQ mode, Basic/Advanced mode</li>
+            <li>Header layout customization</li>
+            <li>UI state (expanded/collapsed sections)</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Local only</h4>
+          <ul class="feature-list">
+            <li>Default audio device (different hardware per device)</li>
+            <li>Current tab volumes (session-specific)</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Note</h4>
+          <p>Sync only works within the same browser. Chrome syncs to Chrome, Firefox to Firefox, etc. Cross-browser sync is not possible.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q10: Reset everything -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>How do I reset everything to defaults?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">There are several ways to reset settings, depending on what you need.</p>
+        <div class="info-box">
+          <h4>Popup reset controls</h4>
+          <ul class="feature-list">
+            <li><strong>Reset current tab</strong> — Click the ↺ button in the header area. Resets volume, balance, channel mode, all effects, and output device to defaults.</li>
+            <li><strong>Reset balance</strong> — Click the ⟲ button next to the balance slider</li>
+            <li><strong>Reset individual effects</strong> — Click the ⟲ button next to each effect slider (bass, treble, voice)</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Settings page reset controls</h4>
+          <ul class="feature-list">
+            <li><strong>Reset individual sections</strong> — Use "Reset to Defaults" buttons in each Settings section</li>
+            <li><strong>Reset everything</strong> — Use "Reset All Settings" in the Data Management section</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>What "Reset All Settings" clears</h4>
+          <ul class="feature-list">
+            <li>All preset values back to defaults</li>
+            <li>All site rules deleted</li>
+            <li>All audio mode overrides cleared (Tab Capture, Web Audio, Bypass mode sites)</li>
+            <li>Refresh behavior reset to default</li>
+            <li>Theme, visualizer, EQ mode, Basic/Advanced mode reset to defaults</li>
+            <li>Header layout reset to default</li>
+            <li>Default audio device setting cleared</li>
+          </ul>
+          <p style="margin-top: 8px;"><strong>Note:</strong> Keyboard shortcuts and microphone permissions are managed by your browser. See Settings → Browser Settings to manage these.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Shared utilities - must load first -->
+  <script src="../shared/browser-api.js"></script>
+  <script src="faq.js"></script>
+</body>
+</html>
