@@ -4,7 +4,7 @@ Take complete control of audio in your browser. Boost quiet videos, fine-tune le
 
 ## Features
 
-- **Individual volume control** - Adjust each tab independently (0-600%)
+- **Individual volume control** - Adjust each tab independently (0-500%)
 - **Per-site memory** - Automatically remembers your volume preferences
 - **Keyboard shortcuts** - Ctrl+Shift+M to mute, Ctrl+Shift+Up/Down for volume
 - **Audio normalization** - Built-in compressor and limiter
