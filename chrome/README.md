@@ -5,8 +5,8 @@ Take complete control of audio in your browser. Boost quiet videos, fine-tune le
 ## Features
 
 - **Individual volume control** - Adjust each tab independently (0-500%)
-- **Per-site memory** - Automatically remembers your volume preferences
-- **Keyboard shortcuts** - Ctrl+Shift+M to mute, Ctrl+Shift+Up/Down for volume
+- **Site rules** - Automatically remembers your volume preferences per website
+- **Keyboard shortcuts** - Alt+Shift+M to mute, Alt+Shift+Up/Down for volume
 - **Audio normalization** - Built-in compressor and limiter
 - **Real-time visualizer** - See audio levels as you adjust
 - **Output device selection** - Route audio to different devices per tab
@@ -33,9 +33,16 @@ Coming soon
 
 | Permission | Why It's Needed |
 |------------|-----------------|
-| `tabs` | Detect which tab is playing audio |
-| `storage` | Save your volume preferences locally |
-| `offscreen` | Audio processing in background |
+| `tabs` | Identify which tab is playing audio and display tab information |
+| `activeTab` | Control audio on the current tab when you interact with the extension |
+| `storage` | Save your preferences locally |
+| `scripting` | Inject audio control scripts into web pages |
+| `tabCapture` | Capture and process audio for volume boost and equalizer features |
+| `offscreen` | Maintain audio processing in the background |
+| `contextMenus` | Add right-click menu options |
+| `<all_urls>` | Control audio on any website you visit |
+
+**Runtime permission:** Microphone access is requested only if you use the audio output device selector (to enumerate available devices - no audio is recorded).
 
 ## License
 
