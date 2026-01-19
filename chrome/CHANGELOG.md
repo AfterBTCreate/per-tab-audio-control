@@ -17,7 +17,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 ## [4.1.0] - Release - 2026-01-18
 
 ### Summary
-**First public release** - submitted to Chrome Web Store.
+**First public release** - published to GitHub and submitted to Chrome Web Store.
 
 ### Added
 - **Video.js Support**: Play/pause button now works on sites using the Video.js player library
