@@ -14,6 +14,20 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [4.1.2] - Release - 2026-01-19
+
+### Fixed
+- **Site Rules Not Applying (Complete Fix)**: Clear stale domain tracking data on extension update so Site Rules are re-evaluated. The previous fix (4.1.1) only prevented future storage of unmatched domains; this fix also clears existing stale data.
+
+---
+
+## [4.1.1] - Release - 2026-01-19
+
+### Fixed
+- **Site Rules Not Applying**: Fixed bug where Site Rules wouldn't apply if you visited a domain before creating a rule. The domain tracking was storing visited domains regardless of whether a rule matched, preventing newly-created rules from ever being applied.
+
+---
+
 ## [4.1.0] - Release - 2026-01-18
 
 ### Summary

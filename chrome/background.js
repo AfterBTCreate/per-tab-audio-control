@@ -93,44 +93,65 @@ console.log('[TabVolume] Service worker starting - version', browserAPI.runtime.
 
 // Check if a URL matches any site volume rule
 async function getMatchingSiteRule(url) {
+  log('getMatchingSiteRule called with URL:', url);
+
   if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://') ||
       url.startsWith('moz-extension://') || url.startsWith('about:')) {
+    log('getMatchingSiteRule: Skipping restricted URL');
     return null;
   }
 
   const result = await browserAPI.storage.sync.get(['siteVolumeRules']);
   const rules = result.siteVolumeRules || [];
+  log('getMatchingSiteRule: Found', rules.length, 'rules:', rules);
 
   if (rules.length === 0) {
+    log('getMatchingSiteRule: No rules found');
     return null;
   }
 
   try {
     const hostname = getValidatedHostname(url);
+    log('getMatchingSiteRule: Extracted hostname:', hostname);
     if (!hostname) {
+      log('getMatchingSiteRule: Invalid hostname, returning null');
       return null;
     }
 
     for (let i = 0; i < rules.length; i++) {
       const rule = rules[i];
+      log('getMatchingSiteRule: Checking rule', i, ':', rule.pattern, 'isDomain:', rule.isDomain, 'volume:', rule.volume);
+
       // Sanitize rule pattern for security
       const sanitizedPattern = rule.isDomain ? sanitizeHostname(rule.pattern) : rule.pattern;
-      if (!sanitizedPattern) continue;
+      log('getMatchingSiteRule: Sanitized pattern:', sanitizedPattern);
+
+      if (!sanitizedPattern) {
+        log('getMatchingSiteRule: Pattern sanitization failed, skipping rule');
+        continue;
+      }
 
       let matched = false;
       if (rule.isDomain) {
         // Domain match: check if hostname matches or is subdomain
-        if (hostname === sanitizedPattern || hostname.endsWith('.' + sanitizedPattern)) {
+        const exactMatch = hostname === sanitizedPattern;
+        const subdomainMatch = hostname.endsWith('.' + sanitizedPattern);
+        log('getMatchingSiteRule: Domain check - exactMatch:', exactMatch, 'subdomainMatch:', subdomainMatch);
+        if (exactMatch || subdomainMatch) {
           matched = true;
         }
       } else {
         // Exact URL match
-        if (url === sanitizedPattern || url.replace(/\/$/, '') === sanitizedPattern.replace(/\/$/, '')) {
+        const exactMatch = url === sanitizedPattern;
+        const normalizedMatch = url.replace(/\/$/, '') === sanitizedPattern.replace(/\/$/, '');
+        log('getMatchingSiteRule: URL check - exactMatch:', exactMatch, 'normalizedMatch:', normalizedMatch);
+        if (exactMatch || normalizedMatch) {
           matched = true;
         }
       }
 
       if (matched) {
+        log('getMatchingSiteRule: MATCHED! Returning rule with volume:', rule.volume);
         // Update lastUsed timestamp (debounced - only if more than 1 hour since last update)
         const now = Date.now();
         const oneHour = 60 * 60 * 1000;
@@ -142,7 +163,9 @@ async function getMatchingSiteRule(url) {
         return rule;
       }
     }
+    log('getMatchingSiteRule: No rules matched');
   } catch (e) {
+    log('getMatchingSiteRule: Error during matching:', e.message);
     // Invalid URL, skip matching
   }
 
@@ -262,26 +285,34 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
 // Handle tab updates (navigation, refresh)
 browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete') {
+    log('Tab update complete for tabId:', tabId, 'URL:', tab.url);
     let volume = await getTabVolume(tabId);
+    log('Current stored volume for tab:', volume);
 
     // Check for site volume rules - only apply on first visit to a domain, not on navigation within site
     let ruleDeviceLabel = '';
     if (tab.url) {
       try {
         const currentDomain = getValidatedHostname(tab.url);
+        log('Current domain:', currentDomain);
         if (!currentDomain) {
           // Invalid URL, skip rule application
+          log('Invalid domain, skipping rule application');
           return;
         }
 
         const ruleAppliedKey = `tab_${tabId}_ruleAppliedDomain`;
         const ruleResult = await browserAPI.storage.local.get([ruleAppliedKey]);
         const lastAppliedDomain = ruleResult[ruleAppliedKey];
+        log('Last applied domain:', lastAppliedDomain, '| Current domain:', currentDomain, '| Same?', lastAppliedDomain === currentDomain);
 
         // Only apply rule if this is a new domain (not navigation within same site)
         if (lastAppliedDomain !== currentDomain) {
+          log('Domain changed, checking for matching rule...');
           const matchingRule = await getMatchingSiteRule(tab.url);
+          log('Matching rule result:', matchingRule);
           if (matchingRule) {
+            log('Applying rule! Volume:', matchingRule.volume);
             volume = matchingRule.volume;
             await setTabVolume(tabId, volume);
 
@@ -342,11 +373,16 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
               await browserAPI.storage.local.set({ [channelKey]: matchingRule.channelMode });
             }
 
+            // Remember this domain so we don't re-apply on navigation within site
+            log('Rule applied, saving domain to prevent re-application:', currentDomain);
+            await browserAPI.storage.local.set({ [ruleAppliedKey]: currentDomain });
           }
-          // Remember this domain so we don't re-apply on navigation within site
-          await browserAPI.storage.local.set({ [ruleAppliedKey]: currentDomain });
+          // If no rule matched, don't store domain - allows rules added later to apply
+        } else {
+          log('Domain unchanged, skipping rule check (already applied for this domain)');
         }
       } catch (e) {
+        log('Error during rule application:', e.message);
         // Invalid URL, skip rule application
       }
     }
@@ -1517,6 +1553,29 @@ async function cleanupStaleTabKeys() {
   }
 }
 
+// Clear ruleAppliedDomain keys on update so Site Rules are re-evaluated
+// This is needed because if a user visits a site before creating a rule,
+// the domain was stored and would prevent the rule from ever being applied
+async function clearRuleAppliedDomains() {
+  try {
+    const allStorage = await browserAPI.storage.local.get(null);
+    const keysToRemove = [];
+
+    for (const key of Object.keys(allStorage)) {
+      if (key.includes('_ruleAppliedDomain')) {
+        keysToRemove.push(key);
+      }
+    }
+
+    if (keysToRemove.length > 0) {
+      await browserAPI.storage.local.remove(keysToRemove);
+      console.log('[TabVolume] Cleared', keysToRemove.length, 'ruleAppliedDomain keys for rule re-evaluation');
+    }
+  } catch (e) {
+    console.error('[TabVolume] Error clearing ruleAppliedDomain keys:', e);
+  }
+}
+
 // Initialize on install/update
 browserAPI.runtime.onInstalled.addListener(async (details) => {
   // Chrome-only: Close offscreen document on update to ensure fresh code
@@ -1528,6 +1587,12 @@ browserAPI.runtime.onInstalled.addListener(async (details) => {
   // Fresh install: log it
   if (details.reason === 'install') {
     console.log('[TabVolume] Fresh install');
+  }
+
+  // Clear ruleAppliedDomain keys on update so Site Rules are re-evaluated
+  // This ensures newly created rules will apply on existing domains
+  if (details.reason === 'update') {
+    await clearRuleAppliedDomains();
   }
 
   // Migrate old autoModeDomains to new per-default storage structure
