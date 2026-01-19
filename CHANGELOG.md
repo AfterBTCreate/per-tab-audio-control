@@ -43,7 +43,6 @@ This project uses [Semantic Versioning](https://semver.org/):
 Production-ready milestone with Night Sky theme branding and improved code quality.
 
 ### Changed
-- **Theme**: Applied Night Sky theme to match After Bedtime Creations website
 - **Dark Mode**: Night Sky gradient background with soft blue-gray borders
 - **Light Mode**: Warm Morning theme (cream tones instead of harsh white)
 - **Logo Colors**: Updated ABTC letter colors to muted pastels matching new theme
