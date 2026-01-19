@@ -23,8 +23,8 @@ Your audio settings stay on your device. This extension makes zero external netw
 
 ## Installation
 
-### Chrome Web Store
-Coming soon
+### Chrome - Soon
+Submission pending additional bug fixes.
 
 ### Firefox
 The codebase is compatible with Firefox, however there are currently several issues to work through. Firefox support is being developed as time allows.
