@@ -66,3 +66,5 @@ Privacy-focused software, built late.
 
 - Website: [afterbedtimecreations.com](https://afterbedtimecreations.com)
 - GitHub: [@AfterBTCreate](https://github.com/AfterBTCreate)
+- X: [@AfterBTCreate](https://x.com/AfterBTCreate)
+- Patreon: [patreon.com/afterbedtimecreations](https://patreon.com/afterbedtimecreations)
