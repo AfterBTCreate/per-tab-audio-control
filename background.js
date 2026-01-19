@@ -15,8 +15,6 @@ const DEFAULT_VOLUME = 100;
 // Volume step for keyboard shortcuts (loaded from storage)
 let keyboardStep = 1;
 
-// Mute Others feature state
-let mutedByExtension = new Set(); // Tab IDs we muted
 
 // Load keyboard step from storage
 async function loadKeyboardStep() {
@@ -258,9 +256,6 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
 
   // Remove from tabs with media tracking
   tabsWithMedia.delete(tabId);
-
-  // Remove from muted tabs tracking
-  mutedByExtension.delete(tabId);
 
   // Notify offscreen to stop any visualizer capture for this tab (Chrome only)
   if (!isFirefox && chrome.offscreen) {
@@ -657,7 +652,7 @@ function isValidSender(sender) {
 const VALID_MESSAGE_TYPES = [
   'REQUEST_AUDIO_DEVICES', 'DEVICE_NOT_FOUND', 'GET_VOLUME', 'SET_VOLUME',
   'GET_TAB_ID', 'GET_TAB_INFO', 'GET_AUDIBLE_TABS',
-  'MUTE_OTHER_TABS', 'UNMUTE_MUTED_TABS', 'GET_MUTE_OTHERS_STATE',
+  'MUTE_OTHER_TABS', 'UNMUTE_OTHER_TABS',
   'HAS_MEDIA', 'CONTENT_READY', 'VOLUME_CHANGED',
   'START_TAB_CAPTURE_VISUALIZER', 'GET_TAB_CAPTURE_PREF', 'SET_TAB_CAPTURE_PREF',
   // Persistent visualizer Tab Capture (offscreen document)
@@ -838,15 +833,12 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // Mute Other Tabs - mute all tabs except current
+  // Mute Other Tabs - mute all tabs except current (one-way, no restore tracking)
   if (request.type === 'MUTE_OTHER_TABS') {
     (async () => {
       try {
         const currentTabId = request.currentTabId;
         const tabs = await browserAPI.tabs.query({});
-
-        // Clear previous state
-        mutedByExtension.clear();
 
         // Mute all other tabs that aren't already muted
         let mutedCount = 0;
@@ -860,10 +852,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           try {
             // Browser-level mute
             await browserAPI.tabs.update(tab.id, { muted: true });
-            mutedByExtension.add(tab.id);
             mutedCount++;
 
-            // Also mute media elements directly (for sites like Twitch that bypass browser mute)
+            // Also pause media directly (for sites like Spotify that use Web Audio API)
             try {
               await browserAPI.tabs.sendMessage(tab.id, { type: 'MUTE_MEDIA' });
             } catch (msgErr) {
@@ -884,25 +875,29 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // Unmute tabs that we muted (restore)
-  if (request.type === 'UNMUTE_MUTED_TABS') {
+  // Unmute Other Tabs - unmute all muted tabs except current
+  if (request.type === 'UNMUTE_OTHER_TABS') {
     (async () => {
       try {
-        if (mutedByExtension.size === 0) {
-          sendResponse({ success: false, reason: 'Nothing to restore' });
-          return;
-        }
+        const currentTabId = request.currentTabId;
+        const tabs = await browserAPI.tabs.query({});
 
         let unmutedCount = 0;
-        for (const tabId of mutedByExtension) {
+        for (const tab of tabs) {
+          if (tab.id === currentTabId) {
+            continue;
+          }
+          if (!tab.mutedInfo?.muted) {
+            continue;
+          }
           try {
             // Browser-level unmute
-            await browserAPI.tabs.update(tabId, { muted: false });
+            await browserAPI.tabs.update(tab.id, { muted: false });
             unmutedCount++;
 
             // Also unmute media elements directly
             try {
-              await browserAPI.tabs.sendMessage(tabId, { type: 'UNMUTE_MEDIA' });
+              await browserAPI.tabs.sendMessage(tab.id, { type: 'UNMUTE_MEDIA' });
             } catch (msgErr) {
               // Content script might not be loaded on this tab - that's OK
             }
@@ -910,9 +905,6 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // Tab might have been closed
           }
         }
-
-        // Clear state
-        mutedByExtension.clear();
 
         console.log('[TabVolume] Unmuted', unmutedCount, 'tabs');
         sendResponse({ success: true, unmutedCount });
@@ -922,16 +914,6 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     })();
     return true;
-  }
-
-  // Get current mute state for popup
-  if (request.type === 'GET_MUTE_OTHERS_STATE') {
-    sendResponse({
-      success: true,
-      canRestore: mutedByExtension.size > 0,
-      mutedCount: mutedByExtension.size
-    });
-    return false;
   }
 
   // Track tabs that have media elements (for showing paused media in tab list)

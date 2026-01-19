@@ -14,6 +14,16 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [4.1.3] - Release - 2026-01-19
+
+### Changed
+- **Mute Others Simplified**: "Mute Others" button now only mutes (no toggle/restore). Click to mute all other tabs; use context menu "Unmute Other Tabs" to restore if needed.
+
+### Fixed
+- **Spotify Mute Others**: Fixed issue where Mute Others would toggle play/pause on Spotify. Now only pauses (never plays).
+
+---
+
 ## [4.1.2] - Release - 2026-01-19
 
 ### Fixed
