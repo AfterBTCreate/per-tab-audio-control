@@ -1,0 +1,314 @@
+/* ==================== Sections ==================== */
+/* Section containers, subsections, FAQ, collapsibles */
+
+/* Sections */
+.section {
+  background: #0f1621;
+  border: 1px solid #5a7a9a;
+  border-radius: 12px;
+  padding: 28px;
+}
+
+.section h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #b8d4e8;
+}
+
+/* Subsections within a section */
+.subsection {
+  padding-top: 20px;
+  border-top: 1px solid #5a7a9a;
+}
+
+.subsection:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Disabled/greyed out subsection (e.g., Tab Capture sites when Tab Capture is default) */
+.subsection.disabled-section {
+  opacity: 0.4;
+  pointer-events: none;
+  position: relative;
+}
+
+.subsection.disabled-section::after {
+  content: 'Not used when Tab Capture is default mode';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #888;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.subsection.disabled-section:hover::after {
+  opacity: 1;
+}
+
+/* EQ preset sections are always visible - values are used for both popup preset buttons and context menu */
+
+.subsection h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #f0f0f0;
+}
+
+.subsection-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  padding-top: 20px;
+  border-top: 1px solid #5a7a9a;
+  color: #f0f0f0;
+}
+
+.subsection-title:first-of-type {
+  padding-top: 0;
+  border-top: none;
+}
+
+.section-note {
+  font-size: 13px;
+  color: #7a8fa5;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+.section-desc {
+  font-size: 15px;
+  color: #b8d4e8;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+/* Collapsible FAQ Subsections */
+.faq-subsection {
+  border-top: 1px solid #5a7a9a;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.faq-subsection:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 12px;
+}
+
+.faq-subsection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f0f0f0;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.faq-subsection-header:hover {
+  color: #ffffff;
+}
+
+.faq-subsection-header .collapse-icon {
+  transition: transform 0.2s ease;
+  color: #7a8fa5;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+
+.faq-subsection-header:hover .collapse-icon {
+  color: #ffffff;
+}
+
+.faq-subsection.expanded .faq-subsection-header .collapse-icon {
+  transform: rotate(0deg);
+}
+
+.faq-subsection-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.faq-subsection.expanded .faq-subsection-content {
+  max-height: 3000px;
+  opacity: 1;
+  pointer-events: auto;
+  padding-top: 8px;
+}
+
+/* FAQ Expand All Button */
+.faq-expand-all {
+  background: transparent;
+  border: 1px solid #5a7a9a;
+  border-radius: 6px;
+  color: #7a8fa5;
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.faq-expand-all:hover {
+  background: #1a2744;
+  color: #f0f0f0;
+  border-color: #7a9ab8;
+}
+
+/* Collapsible Sections */
+.section.collapsible {
+  transition: background 0.15s ease;
+}
+
+.section.collapsible:hover,
+.section.collapsible.expanded {
+  background: #1a2744;
+}
+
+.section.collapsible .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  margin-bottom: 10px;
+  user-select: none;
+}
+
+.section.collapsible .collapse-icon {
+  transition: transform 0.2s ease, color 0.15s ease;
+  color: #7a8fa5;
+  flex-shrink: 0;
+}
+
+.section.collapsible:hover .collapse-icon {
+  color: #b8d4e8;
+}
+
+.section.collapsible .collapse-icon {
+  transform: rotate(-90deg);
+}
+
+.section.collapsible.expanded .collapse-icon {
+  transform: rotate(0deg);
+}
+
+/* Start collapsed by default to prevent flash */
+.section.collapsible .section-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.section.collapsible.expanded .section-content {
+  max-height: 15000px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Compact padding when collapsed */
+.section.collapsible {
+  padding: 16px 28px;
+}
+
+.section.collapsible .section-header {
+  margin-bottom: 0;
+}
+
+.section.collapsible.expanded {
+  padding: 28px;
+}
+
+.section.collapsible.expanded .section-header {
+  margin-bottom: 10px;
+}
+
+/* ==================== Light Mode: Sections (Morning Theme) ==================== */
+
+body.light-mode .section {
+  background: #faf5ef;
+  border-color: #d4c4b0;
+}
+
+body.light-mode .section h2 {
+  color: #8b7355;
+}
+
+body.light-mode .section-desc {
+  color: #6b5d52;
+}
+
+body.light-mode .subsection {
+  border-color: #d4c4b0;
+}
+
+body.light-mode .subsection h3 {
+  color: #2d2520;
+}
+
+body.light-mode .subsection-title {
+  color: #2d2520;
+  border-color: #d4c4b0;
+}
+
+body.light-mode .section.collapsible:hover,
+body.light-mode .section.collapsible.expanded {
+  background: #f5ede3;
+}
+
+body.light-mode .section.collapsible .collapse-icon {
+  color: #8b7a6a;
+}
+
+body.light-mode .section.collapsible:hover .collapse-icon {
+  color: #6b5d52;
+}
+
+/* Light mode FAQ */
+body.light-mode .faq-expand-all {
+  border-color: #d4c4b0;
+  color: #6b5d52;
+}
+
+body.light-mode .faq-expand-all:hover {
+  background: #f5ede3;
+  color: #2d2520;
+  border-color: #c4b4a0;
+}
+
+body.light-mode .faq-subsection {
+  border-top-color: #d4c4b0;
+}
+
+body.light-mode .faq-subsection-header {
+  color: #2d2520;
+}
+
+body.light-mode .faq-subsection-header:hover {
+  color: #1a1510;
+}
+
+body.light-mode .faq-subsection-header .collapse-icon {
+  color: #8b7a6a;
+}
+
+body.light-mode .faq-subsection-header:hover .collapse-icon {
+  color: #2d2520;
+}

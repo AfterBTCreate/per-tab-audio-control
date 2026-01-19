@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Per-Tab Audio Control - Settings</title>
+  <!-- Modular CSS - load order: base → sections → components → forms → rules -->
+  <link rel="stylesheet" href="options-base.css">
+  <link rel="stylesheet" href="options-sections.css">
+  <link rel="stylesheet" href="options-visualizer.css">
+  <link rel="stylesheet" href="options-info.css">
+  <link rel="stylesheet" href="options-forms.css">
+  <link rel="stylesheet" href="options-rules.css">
+  <link rel="stylesheet" href="options-header-layout.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo" aria-hidden="true" title="Per-Tab Audio Control">
+        <!-- Dark mode logo - A top-left, B top-right, C bottom-left, speaker bottom-right -->
+        <svg class="logo-dark" width="56" height="56" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="#0f172a"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#5a7a9a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#5a7a9a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#d4c78a"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#c9a0a0" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0c9a8" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0b8c9" text-anchor="middle">C</text>
+          <path d="M60 66 L60 74 L64 74 L72 80 L72 60 L64 66 Z" fill="#0f172a"/>
+          <path d="M76 65 Q80 70 76 75" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M80 62 Q86 70 80 78" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <!-- Light mode logo - A top-left, B top-right, C bottom-left, speaker bottom-right -->
+        <svg class="logo-light" width="56" height="56" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
+          <path d="M60 66 L60 74 L64 74 L72 80 L72 60 L64 66 Z" fill="#faf5ef"/>
+          <path d="M76 65 Q80 70 76 75" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M80 62 Q86 70 80 78" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <h1>Settings</h1>
+      <p class="header-tagline">The audio controls browsers forgot to include</p>
+      <button class="header-btn" id="expandAllToggle" title="Expand all sections" aria-label="Expand all sections" aria-expanded="false">
+        <svg class="icon-expand" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="6 4 12 10 18 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="icon-collapse" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polyline points="18 15 12 9 6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="18 20 12 14 6 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="header-btn" id="themeToggle" title="Toggle morning/bedtime" aria-label="Toggle morning/bedtime">
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- About Branding -->
+    <div class="about-header">
+      <div class="about-logo">
+        <!-- Dark mode logo - A top-left, B top-right, C bottom-left, moon bottom-right -->
+        <svg class="logo-dark" width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations logo">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="#0f172a"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#5a7a9a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#5a7a9a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#d4c78a"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#c9a0a0" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0c9a8" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0b8c9" text-anchor="middle">C</text>
+          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#0f172a"/>
+        </svg>
+        <!-- Light mode logo - A top-left, B top-right, C bottom-left, moon bottom-right -->
+        <svg class="logo-light" width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations logo">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
+          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#faf5ef"/>
+        </svg>
+      </div>
+      <div class="about-content">
+        <div class="about-brand"><span class="brand-a">A</span>fter <span class="brand-b">B</span>edtime <span class="brand-c">C</span>reations</div>
+        <div class="about-tagline">Privacy-focused software, built late.</div>
+      </div>
+      <div class="about-links">
+        <a href="https://afterbedtimecreations.com" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="Website">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </a>
+        <a href="https://github.com/AfterBTCreate" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="GitHub">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </a>
+        <a href="https://x.com/AfterBTCreate" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="X (Twitter)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+        </a>
+        <a href="https://discord.gg/NvHBdRUh" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="Discord">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/>
+          </svg>
+        </a>
+        <a href="https://patreon.com/afterbedtimecreations" target="_blank" rel="noopener noreferrer" class="about-link support-link" title="Support development">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span>Support</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Restore notification banner (shown after backup restore) -->
+    <div id="restoreBanner" class="restore-banner" role="status" aria-live="polite" hidden></div>
+
+    <section class="section collapsible" data-section="audioModes" role="region" aria-labelledby="audioModesHeader">
+      <h2 class="section-header" id="audioModesHeader" role="button" aria-expanded="false" tabindex="0">
+        <span>Audio Modes</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h2>
+      <div class="section-content">
+        <p class="section-desc">The extension uses different methods to control audio depending on the site. When the default method doesn't work, you can switch to an alternative mode.</p>
+
+        <div class="info-box">
+          <h4>Audio Processing Methods</h4>
+          <ul class="feature-list">
+            <li><strong>Tab Capture:</strong> Captures audio at the browser level. Most reliable method with full features. Requires opening popup on each tab. <em>Chrome only, recommended.</em></li>
+            <li><strong>Web Audio:</strong> Hooks into page audio directly. Same features but may not work on all sites.</li>
+            <li><strong>Bypass:</strong> Disables audio processing. 0-100% volume only. Use when other methods cause issues.</li>
+          </ul>
+        </div>
+
+        <!-- Default Mode Selection -->
+        <div class="subsection" id="defaultModeSubsection">
+          <h3>Default Mode</h3>
+          <p class="section-desc">Choose which audio processing method the extension uses by default for all tabs.</p>
+
+          <div class="mode-buttons" role="radiogroup" aria-label="Default audio mode selection">
+            <label class="mode-button chrome-only-option">
+              <input type="radio" name="defaultAudioMode" value="tabcapture">
+              <span class="mode-button-label">Tab Capture</span>
+            </label>
+            <label class="mode-button">
+              <input type="radio" name="defaultAudioMode" value="auto">
+              <span class="mode-button-label">Web Audio</span>
+            </label>
+            <label class="mode-button">
+              <input type="radio" name="defaultAudioMode" value="native">
+              <span class="mode-button-label">Bypass</span>
+            </label>
+          </div>
+          <p class="setting-hint" id="defaultModeHint">
+            <span id="defaultModeDesc">Tab Capture provides the most reliable audio control across all websites.</span>
+          </p>
+
+          <div id="defaultModeStatus" class="status"></div>
+        </div>
+
+        <!-- Site Overrides -->
+        <div class="subsection">
+          <h3>Site Overrides</h3>
+          <p class="section-desc">Sites listed here use a different audio mode than your default. Changing a site's mode in the popup automatically adds it here.</p>
+
+          <div id="siteOverridesList" class="rules-list">
+            <div class="rules-list-header">
+              <span>Sites with Mode Overrides</span>
+              <button id="clearAllOverridesBtn" class="clear-all-btn" title="Remove all overrides" aria-label="Remove all site overrides" style="display: none;">Clear All</button>
+            </div>
+            <div id="siteOverridesContent">
+              <!-- Unified site list will be populated here -->
+            </div>
+          </div>
+
+          <div id="siteOverridesStatus" class="status"></div>
+        </div>
+
+        <!-- Refresh Behavior Setting -->
+        <div class="subsection">
+          <h3>Refresh Behavior</h3>
+          <p class="section-desc">Choose what happens when you switch a site to Web Audio or Bypass mode using the popup.</p>
+
+          <div class="setting-row">
+            <div class="setting-options" role="radiogroup" aria-label="Bypass mode refresh behavior">
+              <label class="setting-option">
+                <input type="radio" name="nativeModeRefresh" value="current" checked>
+                <div class="setting-option-content">
+                  <span class="setting-option-label">Refresh current tab only (Recommended)</span>
+                  <span class="setting-option-desc">Only the selected tab refreshes; preserves unsaved work on other tabs</span>
+                </div>
+              </label>
+              <label class="setting-option">
+                <input type="radio" name="nativeModeRefresh" value="all">
+                <div class="setting-option-content">
+                  <span class="setting-option-label">Refresh all tabs on domain</span>
+                  <span class="setting-option-desc">All tabs update immediately; no need to manually refresh when switching tabs</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div id="nativeModeRefreshStatus" class="status"></div>
+        </div>
+
+        <!-- Default Output Device -->
+        <div class="subsection" id="defaultAudioDeviceSection">
+          <h3>Default Output Device</h3>
+          <p class="section-desc">Select the audio output device to use for all new tabs.</p>
+
+          <!-- Permission required prompt (shown when no permission) -->
+          <div class="permission-prompt" id="devicePermissionPrompt">
+            <p class="permission-notice">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Microphone permission is required to access audio output devices.
+            </p>
+            <button type="button" id="grantDevicePermission" class="btn primary" title="Grant permission to access audio devices">
+              Grant Permission
+            </button>
+          </div>
+
+          <!-- Device selector (shown when permission granted) -->
+          <div class="default-device-selector" id="defaultDeviceSelector" style="display: none;">
+            <div class="rule-input-row">
+              <select id="defaultDeviceSelect" class="device-select" aria-label="Select default audio output device">
+                <option value="">Default (System Audio)</option>
+              </select>
+              <button type="button" id="refreshDefaultDevices" class="refresh-btn" title="Refresh devices" aria-label="Refresh audio device list">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 4V10H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M23 20V14H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14L18.36 18.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="defaultDeviceStatus" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section collapsible" data-section="headerLayout" role="region" aria-labelledby="headerLayoutHeader">
+      <h2 class="section-header" id="headerLayoutHeader" role="button" aria-expanded="false" tabindex="0">
+        <span>Header Layout</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h2>
+      <div class="section-content">
+        <p class="section-desc">Customize the popup header layout. Drag icons to reorder. A blue indicator shows where the item will be placed.</p>
+
+        <!-- Visual Drag-and-Drop Preview -->
+        <div class="header-layout-label">Header Preview (drag to reorder)</div>
+        <div class="header-layout-preview" id="headerLayoutPreview">
+          <!-- Icons will be populated by JS -->
+        </div>
+
+        <!-- Controls Section -->
+        <div class="header-layout-controls">
+          <!-- Visibility Toggles -->
+          <div class="visibility-section">
+            <h4>Show/Hide Icons</h4>
+            <div class="visibility-toggles">
+              <div class="visibility-toggle">
+                <input type="checkbox" id="vis-muteOthers" data-item-id="muteOthers" checked>
+                <label for="vis-muteOthers">Mute Others</label>
+              </div>
+              <div class="visibility-toggle">
+                <input type="checkbox" id="vis-shortcuts" data-item-id="shortcuts" checked>
+                <label for="vis-shortcuts">Shortcuts</label>
+              </div>
+              <div class="visibility-toggle">
+                <input type="checkbox" id="vis-theme" data-item-id="theme" checked>
+                <label for="vis-theme">Theme</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spacer Controls -->
+          <div class="spacer-section">
+            <h4>Spacers</h4>
+            <div class="spacer-controls">
+              <button type="button" class="spacer-btn" data-count="0" title="No spacers">0</button>
+              <button type="button" class="spacer-btn" data-count="1" title="1 spacer">1</button>
+              <button type="button" class="spacer-btn" data-count="2" title="2 spacers">2</button>
+              <button type="button" class="spacer-btn" data-count="3" title="3 spacers">3</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-layout-buttons">
+          <button id="resetHeaderLayoutBtn" class="btn secondary" title="Reset header layout to default order">Reset to Default</button>
+        </div>
+
+        <p class="header-layout-hint">Tip: ABC Logo is locked to the left. Hidden icons appear faded. Required icons (Audio Mode, Bypass, Basic/Advanced Toggle, Settings, Volume) cannot be hidden.</p>
+
+        <div id="headerLayoutStatus" class="status"></div>
+      </div>
+    </section>
+
+    <section class="section collapsible" data-section="visualizer" role="region" aria-labelledby="visualizerHeader">
+      <h2 class="section-header" id="visualizerHeader" role="button" aria-expanded="false" tabindex="0">
+        <span>Visualizer</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h2>
+      <div class="section-content">
+        <p class="section-desc">Select the default visualizer style for the Now Playing area. <strong>Click and hold</strong> the visualizer in the popup to cycle through styles.</p>
+
+        <div class="visualizer-options" role="radiogroup" aria-label="Visualizer style selection">
+          <label class="visualizer-option">
+            <input type="radio" name="visualizerType" value="bars" aria-label="Bars visualizer style">
+            <div class="visualizer-option-content">
+              <span class="visualizer-option-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="4" y="14" width="3" height="6" rx="1"/>
+                  <rect x="10" y="8" width="3" height="12" rx="1"/>
+                  <rect x="16" y="11" width="3" height="9" rx="1"/>
+                </svg>
+              </span>
+              <span class="visualizer-option-label">Bars</span>
+            </div>
+          </label>
+
+          <label class="visualizer-option">
+            <input type="radio" name="visualizerType" value="waveform" aria-label="Waveform visualizer style">
+            <div class="visualizer-option-content">
+              <span class="visualizer-option-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12 Q6 6, 8 12 T14 12 T20 12 T22 12"/>
+                </svg>
+              </span>
+              <span class="visualizer-option-label">Waveform</span>
+            </div>
+          </label>
+
+          <label class="visualizer-option">
+            <input type="radio" name="visualizerType" value="mirrored" aria-label="Mirrored bars visualizer style">
+            <div class="visualizer-option-content">
+              <span class="visualizer-option-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="4" y="10" width="3" height="4" rx="0.5"/>
+                  <rect x="10" y="6" width="3" height="12" rx="0.5"/>
+                  <rect x="16" y="8" width="3" height="8" rx="0.5"/>
+                </svg>
+              </span>
+              <span class="visualizer-option-label">Mirrored</span>
+            </div>
+          </label>
+
+          <label class="visualizer-option">
+            <input type="radio" name="visualizerType" value="curve" aria-label="Curve visualizer style">
+            <div class="visualizer-option-content">
+              <span class="visualizer-option-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 20 Q6 10, 12 14 T22 8" fill="none"/>
+                </svg>
+              </span>
+              <span class="visualizer-option-label">Curve</span>
+            </div>
+          </label>
+
+          <label class="visualizer-option">
+            <input type="radio" name="visualizerType" value="dots" aria-label="Dots visualizer style">
+            <div class="visualizer-option-content">
+              <span class="visualizer-option-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="5" cy="16" r="2.5"/>
+                  <circle cx="12" cy="10" r="3"/>
+                  <circle cx="19" cy="14" r="2"/>
+                </svg>
+              </span>
+              <span class="visualizer-option-label">Dots</span>
+            </div>
+          </label>
+          <label class="visualizer-option">
+            <input type="radio" name="visualizerType" value="off" aria-label="Visualizer off">
+            <div class="visualizer-option-content">
+              <span class="visualizer-option-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="4" y1="4" x2="20" y2="20"/>
+                  <line x1="20" y1="4" x2="4" y2="20"/>
+                </svg>
+              </span>
+              <span class="visualizer-option-label">Off</span>
+            </div>
+          </label>
+        </div>
+
+        <div id="visualizerStatus" class="status"></div>
+      </div>
+    </section>
+
+    <section class="section collapsible" data-section="presets" role="region" aria-labelledby="presetsHeader">
+      <h2 class="section-header" id="presetsHeader" role="button" aria-expanded="false" tabindex="0">
+        <span>Sliders &amp; Presets</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h2>
+      <div class="section-content">
+        <p class="section-desc">Customize preset values for the popup and context menu.</p>
+
+        <!-- EQ Controls UI Mode -->
+        <div class="subsection">
+          <h3>Voice, Bass &amp; Treble Controls</h3>
+          <p class="section-desc">Choose between preset buttons or sliders for more granular control.</p>
+
+          <div class="setting-row">
+            <div class="setting-options" role="radiogroup" aria-label="EQ control style">
+              <label class="setting-option">
+                <input type="radio" name="eqControlMode" value="sliders" checked>
+                <div class="setting-option-content">
+                  <span class="setting-option-label">Sliders (Recommended)</span>
+                  <span class="setting-option-desc">Fine-grained control: Voice 0-18 dB, Bass/Treble -24 to +24 dB</span>
+                </div>
+              </label>
+              <label class="setting-option">
+                <input type="radio" name="eqControlMode" value="presets">
+                <div class="setting-option-content">
+                  <span class="setting-option-label">Preset Buttons</span>
+                  <span class="setting-option-desc">Quick access to preset levels (Off, Low, Medium, High)</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div id="eqControlModeStatus" class="status"></div>
+        </div>
+
+        <!-- Volume Presets -->
+        <div class="subsection">
+          <h3>Volume</h3>
+          <p class="section-desc">Values must be unique and in ascending order (Preset 1 &lt; Preset 2 &lt; Preset 3 &lt; Preset 4 &lt; Preset 5).</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="preset1">Preset 1</label>
+              <div class="input-group">
+                <input type="number" id="preset1" min="1" max="500" value="25">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="preset2">Preset 2</label>
+              <div class="input-group">
+                <input type="number" id="preset2" min="1" max="500" value="100">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="preset3">Preset 3</label>
+              <div class="input-group">
+                <input type="number" id="preset3" min="1" max="500" value="200">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="preset4">Preset 4</label>
+              <div class="input-group">
+                <input type="number" id="preset4" min="1" max="500" value="300">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="preset5">Preset 5</label>
+              <div class="input-group">
+                <input type="number" id="preset5" min="1" max="500" value="500">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetBtn" class="btn secondary" title="Reset volume presets to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="status" class="status"></div>
+        </div>
+
+        <!-- Voice Boost Presets -->
+        <div class="subsection eq-presets-only">
+          <h3>Voice Boost</h3>
+          <p class="section-desc">Each level has its own range to maintain Low &lt; Medium &lt; High.</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="voiceLow">Low (1-6)</label>
+              <div class="input-group level-low">
+                <span class="prefix">+</span>
+                <input type="number" id="voiceLow" min="1" max="6" value="4">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="voiceMed">Medium (7-12)</label>
+              <div class="input-group level-medium">
+                <span class="prefix">+</span>
+                <input type="number" id="voiceMed" min="7" max="12" value="10">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="voiceHigh">High (13-18)</label>
+              <div class="input-group level-high">
+                <span class="prefix">+</span>
+                <input type="number" id="voiceHigh" min="13" max="18" value="18">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetVoiceBtn" class="btn secondary" title="Reset voice boost presets to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="voiceStatus" class="status"></div>
+        </div>
+
+        <!-- Bass Boost Presets -->
+        <div class="subsection eq-presets-only">
+          <h3>Bass Boost</h3>
+          <p class="section-desc">Each level has its own range to maintain Low &lt; Medium &lt; High.</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="bassLow">Low (1-8)</label>
+              <div class="input-group level-low">
+                <span class="prefix">+</span>
+                <input type="number" id="bassLow" min="1" max="8" value="6">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="bassMed">Medium (9-16)</label>
+              <div class="input-group level-medium">
+                <span class="prefix">+</span>
+                <input type="number" id="bassMed" min="9" max="16" value="12">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="bassHigh">High (17-24)</label>
+              <div class="input-group level-high">
+                <span class="prefix">+</span>
+                <input type="number" id="bassHigh" min="17" max="24" value="24">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetBassBtn" class="btn secondary" title="Reset bass boost presets to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="bassStatus" class="status"></div>
+        </div>
+
+        <!-- Bass Cut Presets -->
+        <div class="subsection eq-presets-only">
+          <h3>Bass Cut</h3>
+          <p class="section-desc">Each level has its own range to maintain Low &lt; Medium &lt; High.</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="bassCutLow">Low (1-8)</label>
+              <div class="input-group cut-low">
+                <span class="prefix">-</span>
+                <input type="number" id="bassCutLow" min="1" max="8" value="6">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="bassCutMed">Medium (9-16)</label>
+              <div class="input-group cut-medium">
+                <span class="prefix">-</span>
+                <input type="number" id="bassCutMed" min="9" max="16" value="12">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="bassCutHigh">High (17-24)</label>
+              <div class="input-group cut-high">
+                <span class="prefix">-</span>
+                <input type="number" id="bassCutHigh" min="17" max="24" value="24">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetBassCutBtn" class="btn secondary" title="Reset bass cut presets to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="bassCutStatus" class="status"></div>
+        </div>
+
+        <!-- Treble Boost Presets -->
+        <div class="subsection eq-presets-only">
+          <h3>Treble Boost</h3>
+          <p class="section-desc">Each level has its own range to maintain Low &lt; Medium &lt; High.</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="trebleLow">Low (1-8)</label>
+              <div class="input-group level-low">
+                <span class="prefix">+</span>
+                <input type="number" id="trebleLow" min="1" max="8" value="6">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="trebleMed">Medium (9-16)</label>
+              <div class="input-group level-medium">
+                <span class="prefix">+</span>
+                <input type="number" id="trebleMed" min="9" max="16" value="12">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="trebleHigh">High (17-24)</label>
+              <div class="input-group level-high">
+                <span class="prefix">+</span>
+                <input type="number" id="trebleHigh" min="17" max="24" value="24">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetTrebleBtn" class="btn secondary" title="Reset treble boost presets to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="trebleStatus" class="status"></div>
+        </div>
+
+        <!-- Treble Cut Presets -->
+        <div class="subsection eq-presets-only">
+          <h3>Treble Cut</h3>
+          <p class="section-desc">Each level has its own range to maintain Low &lt; Medium &lt; High.</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="trebleCutLow">Low (1-8)</label>
+              <div class="input-group cut-low">
+                <span class="prefix">-</span>
+                <input type="number" id="trebleCutLow" min="1" max="8" value="6">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="trebleCutMed">Medium (9-16)</label>
+              <div class="input-group cut-medium">
+                <span class="prefix">-</span>
+                <input type="number" id="trebleCutMed" min="9" max="16" value="12">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="trebleCutHigh">High (17-24)</label>
+              <div class="input-group cut-high">
+                <span class="prefix">-</span>
+                <input type="number" id="trebleCutHigh" min="17" max="24" value="24">
+                <span class="suffix">dB</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetTrebleCutBtn" class="btn secondary" title="Reset treble cut presets to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="trebleCutStatus" class="status"></div>
+        </div>
+
+        <!-- Volume Steps -->
+        <div class="subsection">
+          <h3>Volume Steps</h3>
+          <p class="section-desc">Customize how much volume changes per action (1-20%)</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="stepScroll">Scroll Wheel</label>
+              <div class="input-group">
+                <input type="number" id="stepScroll" min="1" max="20" value="5">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="stepKeyboard">Keyboard Shortcuts</label>
+              <div class="input-group">
+                <input type="number" id="stepKeyboard" min="1" max="20" value="1">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="stepButtons">+/- Buttons</label>
+              <div class="input-group">
+                <input type="number" id="stepButtons" min="1" max="20" value="1">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetStepsBtn" class="btn secondary" title="Reset volume steps to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="stepsStatus" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section collapsible" data-section="siteRules" role="region" aria-labelledby="siteRulesHeader">
+      <h2 class="section-header" id="siteRulesHeader" role="button" aria-expanded="false" tabindex="0">
+        <span>Site Rules</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h2>
+      <div class="section-content">
+        <p class="section-desc">Set default volume levels, balance, audio effects, and output devices for specific websites. Rules are applied automatically when you first visit matching sites.</p>
+
+        <div class="rule-instructions">
+          <p class="instruction-title">To create a site rule:</p>
+          <ol class="instruction-steps">
+            <li>Visit the website you want to create a rule for</li>
+            <li>Open the extension popup and adjust volume, balance, bass/treble/voice boost, and output device</li>
+            <li>Check "Entire domain" if you want the rule to apply to all pages on the site</li>
+            <li>Click "Add Site Rule" to save your settings</li>
+          </ol>
+        </div>
+
+        <p class="device-note">Note: Device selection will fall back to your system default device if the site doesn't support it.</p>
+
+        <!-- Storage quota display -->
+        <div class="storage-quota-display" id="storageQuotaDisplay">
+          <div class="quota-info">
+            <span class="quota-label">Storage:</span>
+            <span class="quota-value" id="quotaValue">Loading...</span>
+            <div class="quota-bar">
+              <div class="quota-fill" id="quotaFill"></div>
+            </div>
+          </div>
+          <button id="cleanupOldRulesBtn" class="cleanup-old-rules-btn" title="Remove site rules unused for 90+ days">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Clean Up Old Rules
+          </button>
+        </div>
+
+        <div id="rulesList" class="rules-list">
+          <div class="rules-list-header">
+            <span>Active Rules</span>
+            <button id="clearAllRulesBtn" class="clear-all-btn" title="Delete all site rules" aria-label="Delete all site rules" style="display: none;">Clear All</button>
+          </div>
+          <div id="rulesListContent">
+            <!-- Rules will be populated here -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section collapsible" data-section="browserSettings" role="region" aria-labelledby="browserSettingsHeader">
+      <h2 class="section-header" id="browserSettingsHeader" role="button" aria-expanded="false" tabindex="0">
+        <span>Browser Settings</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h2>
+      <div class="section-content">
+        <p class="section-desc">These settings are managed by your browser and cannot be changed directly by the extension.</p>
+
+        <!-- Keyboard Shortcuts Subsection -->
+        <div class="subsection">
+          <h3>Keyboard Shortcuts</h3>
+          <p class="section-desc">These shortcuts work globally without opening the extension popup.</p>
+
+          <div class="shortcuts-display">
+            <div class="shortcut-row">
+              <span class="shortcut-label">Volume Up</span>
+              <span class="shortcut-key" id="shortcutVolumeUp">Loading...</span>
+            </div>
+            <div class="shortcut-row">
+              <span class="shortcut-label">Volume Down</span>
+              <span class="shortcut-key" id="shortcutVolumeDown">Loading...</span>
+            </div>
+            <div class="shortcut-row">
+              <span class="shortcut-label">Toggle Mute</span>
+              <span class="shortcut-key" id="shortcutToggleMute">Loading...</span>
+            </div>
+          </div>
+
+          <p class="section-desc" style="margin-top: 16px;">Keyboard shortcuts can only be changed through your browser's extension settings.</p>
+
+          <div class="button-row">
+            <a href="#" id="openShortcutsChrome" class="btn primary" title="Copy keyboard shortcuts settings URL">Copy URL</a>
+            <a href="#" id="openShortcutsFirefox" class="btn primary" title="Copy keyboard shortcuts settings URL">Copy URL</a>
+          </div>
+          <div id="shortcutsStatus" class="status"></div>
+        </div>
+
+        <!-- Microphone Permissions Subsection -->
+        <div class="subsection">
+          <h3>Microphone Permissions</h3>
+          <p class="section-desc">Manage the microphone permission used to enumerate audio output devices. Use these steps to revoke permission or unblock if previously denied:</p>
+
+          <div class="permission-steps" id="micPermissionChrome">
+            <div class="steps-list">
+              <div class="step-item">1. Click the button below to copy the settings URL</div>
+              <div class="step-item">2. Paste it in your browser's address bar</div>
+              <div class="step-item">3. Find "Per-Tab Audio Control" in the "Allowed" or "Blocked" list</div>
+              <div class="step-item">4. Click the trash icon or "Remove" to reset permission</div>
+            </div>
+            <p class="hint">The URL varies by browser (Chrome, Edge, Brave, Vivaldi, etc.) but the button will copy the correct one for your browser.</p>
+          </div>
+
+          <div class="permission-steps" id="micPermissionFirefox">
+            <div class="steps-list">
+              <div class="step-item">1. Click the button below to copy the settings URL</div>
+              <div class="step-item">2. Paste it in your browser's address bar</div>
+              <div class="step-item">3. Scroll to "Permissions" section</div>
+              <div class="step-item">4. Click "Settings..." next to Microphone</div>
+              <div class="step-item">5. Find the extension and remove or change its permission</div>
+            </div>
+            <p class="hint">Or manually navigate to: <code>about:preferences#privacy</code></p>
+          </div>
+
+          <div class="button-row">
+            <a href="#" id="openMicSettingsChrome" class="btn primary" title="Copy microphone permissions settings URL">Copy URL</a>
+            <a href="#" id="openMicSettingsFirefox" class="btn primary" title="Copy microphone permissions settings URL">Copy URL</a>
+          </div>
+          <div id="micSettingsStatus" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section collapsible reset-section" data-section="dataManagement" role="region" aria-labelledby="dataManagementHeader">
+      <h2 class="section-header" id="dataManagementHeader" role="button" aria-expanded="false" tabindex="0">
+        <span>Data Management</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h2>
+      <div class="section-content">
+        <p class="section-desc">Backup your data, restore from a previous backup, or reset all settings to default values.</p>
+        <div class="button-row">
+          <button id="backupDataBtn" class="btn primary" title="Download all settings as CSV file">Backup All Data</button>
+          <button id="restoreDataBtn" class="btn primary" title="Import settings from a backup file">Restore from Backup</button>
+          <input type="file" id="restoreFileInput" accept=".csv" style="display: none;" aria-hidden="true">
+          <button id="resetAllBtn" class="btn danger" title="Reset all settings to factory defaults">Reset All Settings</button>
+        </div>
+        <div id="resetStatus" class="status"></div>
+        <div class="info-box" style="margin-top: 12px;">
+          <h4>About Backups</h4>
+          <p>Backups are saved as CSV files containing your presets, site rules, theme, header layout, and default device settings. Use "Restore from Backup" to import a previously saved backup file.</p>
+          <p style="margin-top: 8px;"><strong>Tip:</strong> This is useful for users who don't use browser sync or want to transfer settings between different browsers.</p>
+        </div>
+        <p class="reset-note">Note: Keyboard shortcuts and microphone permissions cannot be reset by extensions. See the "Browser Settings" section above to manage these.</p>
+      </div>
+    </section>
+
+    <!-- Help Links -->
+    <div class="help-links">
+      <a href="guide.html" class="faq-link-card" aria-label="User Guide - comprehensive documentation">
+        <div class="faq-link-icon" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <div class="faq-link-content">
+          <h2>User Guide</h2>
+          <p>Comprehensive documentation for all features</p>
+        </div>
+        <div class="faq-link-arrow" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      </a>
+      <a href="faq.html" class="faq-link-card" aria-label="FAQ - answers to common questions">
+        <div class="faq-link-icon" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <div class="faq-link-content">
+          <h2>FAQ</h2>
+          <p>Answers to common questions and troubleshooting</p>
+        </div>
+        <div class="faq-link-arrow" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Shared utilities - must load first -->
+  <script src="../shared/browser-api.js"></script>
+  <script src="../shared/constants.js"></script>
+  <script src="../shared/validation.js"></script>
+  <!-- Modular JS - load order: constants → utils → presets → rules → backup → devices → header-layout → ui -->
+  <script src="options-constants.js"></script>
+  <script src="options-utils.js"></script>
+  <script src="options-presets.js"></script>
+  <script src="options-rules.js"></script>
+  <script src="options-backup.js"></script>
+  <script src="options-devices.js"></script>
+  <script src="options-header-layout.js"></script>
+  <script src="options-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Per-Tab Audio Control - User Guide</title>
+  <link rel="stylesheet" href="options-base.css">
+  <link rel="stylesheet" href="options-sections.css">
+  <link rel="stylesheet" href="options-visualizer.css">
+  <link rel="stylesheet" href="options-info.css">
+  <link rel="stylesheet" href="options-forms.css">
+  <link rel="stylesheet" href="options-rules.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo" aria-hidden="true" title="Per-Tab Audio Control">
+        <!-- Dark mode logo - A top-left, B top-right, C bottom-left, speaker bottom-right -->
+        <svg class="logo-dark" width="56" height="56" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="#0f172a"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#5a7a9a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#5a7a9a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#d4c78a"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#c9a0a0" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0c9a8" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0b8c9" text-anchor="middle">C</text>
+          <path d="M60 66 L60 74 L64 74 L72 80 L72 60 L64 66 Z" fill="#0f172a"/>
+          <path d="M76 65 Q80 70 76 75" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M80 62 Q86 70 80 78" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <!-- Light mode logo - A top-left, B top-right, C bottom-left, speaker bottom-right -->
+        <svg class="logo-light" width="56" height="56" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
+          <path d="M60 66 L60 74 L64 74 L72 80 L72 60 L64 66 Z" fill="#faf5ef"/>
+          <path d="M76 65 Q80 70 76 75" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M80 62 Q86 70 80 78" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <h1>User Guide</h1>
+      <p class="header-tagline">The audio controls browsers forgot to include</p>
+      <a href="options.html" class="header-btn" title="Back to Settings" aria-label="Back to Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+      <button class="header-btn" id="expandAllToggle" title="Expand all sections" aria-label="Expand all sections" aria-expanded="false">
+        <svg class="icon-expand" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="6 4 12 10 18 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="icon-collapse" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polyline points="18 15 12 9 6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="18 20 12 14 6 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="header-btn" id="themeToggle" title="Toggle morning/bedtime" aria-label="Toggle morning/bedtime">
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- About Branding -->
+    <div class="about-header">
+      <div class="about-logo">
+        <!-- Dark mode logo - A top-left, B top-right, C bottom-left, moon bottom-right -->
+        <svg class="logo-dark" width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations logo">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="#0f172a"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#5a7a9a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#5a7a9a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#d4c78a"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#c9a0a0" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0c9a8" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a0b8c9" text-anchor="middle">C</text>
+          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#0f172a"/>
+        </svg>
+        <!-- Light mode logo - A top-left, B top-right, C bottom-left, moon bottom-right -->
+        <svg class="logo-light" width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations logo">
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
+          <text x="30" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Inter, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
+          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#faf5ef"/>
+        </svg>
+      </div>
+      <div class="about-content">
+        <div class="about-brand"><span class="brand-a">A</span>fter <span class="brand-b">B</span>edtime <span class="brand-c">C</span>reations</div>
+        <div class="about-tagline">Privacy-focused software, built late.</div>
+      </div>
+      <div class="about-links">
+        <a href="https://afterbedtimecreations.com" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="Website">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </a>
+        <a href="https://github.com/AfterBTCreate" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="GitHub">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </a>
+        <a href="https://x.com/AfterBTCreate" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="X (Twitter)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+        </a>
+        <a href="https://discord.gg/NvHBdRUh" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="Discord">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/>
+          </svg>
+        </a>
+        <a href="https://patreon.com/afterbedtimecreations" target="_blank" rel="noopener noreferrer" class="about-link support-link" title="Support development">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span>Support</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Popup Controls -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Popup Controls</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">The popup provides quick access to all audio controls for the current tab.</p>
+
+        <div class="info-box">
+          <h4>Header Buttons (Left to Right, Default Order)</h4>
+          <ul class="feature-list">
+            <li><strong>ABC Logo</strong> — After Bedtime Creations branding (always locked to far left)</li>
+            <li><strong>Audio Mode</strong> — Click to toggle between Tab Capture and Web Audio modes (Chrome only); shows capture icon when Tab Capture is active</li>
+            <li><strong>Bypass mode</strong> — Toggles Bypass mode on the current domain; useful when sites have audio compatibility issues (button turns red when in Bypass mode, provides 0-100% volume only)</li>
+            <li><strong>Mute Others</strong> — Mutes all other browser tabs; click again to unmute them; useful for focusing on one audio source; works on all sites including Spotify and other Web Audio API sites</li>
+            <li><strong>Basic/Advanced Toggle</strong> — Switches between Basic mode (volume control only) and Advanced mode (all features); single line icon (━) for Basic, three lines (☰) for Advanced</li>
+            <li><strong>Shortcuts</strong> — Shows a popover with your configured keyboard shortcuts for volume up, volume down, and mute toggle</li>
+            <li><strong>Theme</strong> — Switches between morning and bedtime; preference is saved and synced</li>
+            <li><strong>Settings</strong> — Opens the settings page in a new tab</li>
+            <li><strong>Volume Icon</strong> — Shows current volume state (muted, low, medium, high, boosted); animated waves indicate volume level</li>
+          </ul>
+          <p style="margin-top: 8px;"><em>Note: The order of header icons can be customized in Settings → Header Layout.</em></p>
+        </div>
+
+        <div class="info-box">
+          <h4>Tab Capture vs Web Audio Toggle (Chrome only)</h4>
+          <p>Click the Audio Mode button in the header to switch between audio processing modes:</p>
+          <ul class="feature-list">
+            <li><strong>Tab Capture</strong> — Captures audio at the browser level. Most reliable for all sites, enables visualizer on any site. <em>Recommended.</em></li>
+            <li><strong>Web Audio</strong> — Hooks into page audio directly. Same features but may not work on sites with CORS restrictions or Web Audio API.</li>
+          </ul>
+          <p style="margin-top: 8px;">Your preference is saved per-site. If a site doesn't work well with one mode, try the other. This toggle is not available in Firefox.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Volume Row Controls</h4>
+          <p>Below the visualizer, the volume row contains these controls (left to right):</p>
+          <ul class="feature-list">
+            <li><strong>− (Minus)</strong> — Decrease volume by your configured step (default 1%)</li>
+            <li><strong>Percentage Display</strong> — Shows current volume (0-500%)</li>
+            <li><strong>+ (Plus)</strong> — Increase volume by your configured step (default 1%)</li>
+            <li><strong>← (Left Arrow)</strong> — Switch to previous audio tab</li>
+            <li><strong>→ (Right Arrow)</strong> — Switch to next audio tab</li>
+            <li><strong>↺ (Reset)</strong> — Reset current tab to default settings</li>
+          </ul>
+          <p style="margin-top: 8px;"><em>Note: Tab navigation arrows only appear when multiple tabs have audio playing.</em></p>
+        </div>
+
+        <div class="info-box">
+          <h4>Reset Tab Button</h4>
+          <p>The reset button (↺) in the volume row resets all audio settings for the currently selected tab to their defaults:</p>
+          <ul class="feature-list">
+            <li><strong>Volume</strong> → 100%</li>
+            <li><strong>Balance</strong> → Center (0)</li>
+            <li><strong>Channel Mode</strong> → Stereo</li>
+            <li><strong>Compressor</strong> → Off</li>
+            <li><strong>Voice/Bass/Treble</strong> → Off</li>
+            <li><strong>Output Device</strong> → Default</li>
+          </ul>
+          <p style="margin-top: 8px;"><strong>In Bypass mode:</strong> Only resets volume to 100% (other settings are not available in Bypass mode).</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Extension Icon Badge</h4>
+          <p>The extension icon in your browser toolbar displays a badge showing the current volume percentage:</p>
+          <ul class="feature-list">
+            <li><strong style="background: #000; color: #fff; padding: 1px 4px; border-radius: 2px;">0% - 500%</strong> — Current volume level (black background, white text for maximum visibility)</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Header Layout Customization</h4>
+          <p>Customize the popup header in Settings → Header Layout:</p>
+          <ul class="feature-list">
+            <li><strong>Drag to reorder</strong> — Rearrange icons by dragging them to new positions</li>
+            <li><strong>Hide optional icons</strong> — Mute Others, Shortcuts, and Theme can be hidden</li>
+            <li><strong>Spacers</strong> — Use 0-3 spacers to create visual groupings between icons</li>
+          </ul>
+          <p style="margin-top: 8px;"><em>ABC Logo is always locked to the far left. Required icons (Audio Mode, Bypass, Basic/Advanced, Settings, Volume) cannot be hidden.</em></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Context Menu</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Right-click on any webpage to access quick audio controls without opening the popup.</p>
+
+        <div class="info-box">
+          <h4>Available Menu Items</h4>
+          <p>The context menu provides access to all major audio features:</p>
+          <ul class="feature-list">
+            <li><strong>Volume</strong> — Mute plus your five custom volume presets</li>
+            <li><strong>Balance</strong> — Presets for left, center, and right panning</li>
+            <li><strong>Channel Mode</strong> — Switch between Stereo, Mono, and Swap modes</li>
+            <li><strong>Bass Boost</strong> — Apply bass boost presets (Off, plus your custom Low/Medium/High values)</li>
+            <li><strong>Bass Cut</strong> — Apply bass cut presets (Off, plus your custom Low/Medium/High values)</li>
+            <li><strong>Treble Boost</strong> — Apply treble boost presets (Off, plus your custom Low/Medium/High values)</li>
+            <li><strong>Treble Cut</strong> — Apply treble cut presets (Off, plus your custom Low/Medium/High values)</li>
+            <li><strong>Voice Boost</strong> — Apply voice boost presets (Off, plus your custom Low/Medium/High values)</li>
+            <li><strong>Range</strong> — Enable dynamic range compression (Off, Light, Medium, Heavy)</li>
+            <li><strong>Pause/Play</strong> — Toggle media playback on the current tab</li>
+            <li><strong>Mute Other Tabs</strong> — Mute all other browser tabs</li>
+            <li><strong>Unmute Other Tabs</strong> — Unmute all other browser tabs</li>
+            <li><strong>Enable Bypass Mode</strong> — Disable audio processing, use native browser audio only</li>
+            <li><strong>Enable Tab Capture Mode</strong> — Use Tab Capture for this domain (Chrome only)</li>
+            <li><strong>Enable Web Audio Mode</strong> — Use Web Audio for this domain</li>
+            <li><strong>← Previous Audio Tab</strong> — Switch to the previous tab with audio</li>
+            <li><strong>→ Next Audio Tab</strong> — Switch to the next tab with audio</li>
+            <li><strong>Open Settings</strong> — Open this settings page</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Modes -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Audio Modes</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">The extension offers three audio processing modes. Switch between them using the header buttons or context menu.</p>
+
+        <div class="info-box">
+          <h4>Tab Capture (Chrome only)</h4>
+          <p>Captures audio at the browser level. <em>Default and recommended for Chrome.</em></p>
+          <ul class="feature-list">
+            <li>Volume range: 0-500% (with boost)</li>
+            <li>All effects: EQ, compressor, balance, device switching, visualizer</li>
+            <li>Works on all sites regardless of how they create audio</li>
+          </ul>
+          <p style="margin-top: 8px;"><strong>Note:</strong> Chrome requires you to interact with the extension before Tab Capture can access a tab's audio. Simply opening the popup while the tab is active is enough — Tab Capture activates automatically and stays active until you close the tab.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Web Audio</h4>
+          <p>Hooks into page audio directly via the Web Audio API. <em>Default for Firefox.</em></p>
+          <ul class="feature-list">
+            <li>Volume range: 0-500% (with boost)</li>
+            <li>All effects: EQ, compressor, balance, device switching, visualizer</li>
+            <li>May not work on sites with CORS restrictions or custom audio implementations</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Bypass Mode</h4>
+          <p>Uses the browser's native volume control with no audio processing.</p>
+          <ul class="feature-list">
+            <li>Volume range: 0-100% only (no boost)</li>
+            <li>No effects available</li>
+            <li>Maximum compatibility — works on all sites</li>
+          </ul>
+          <p style="margin-top: 8px;"><strong>Use Bypass mode when:</strong> Audio doesn't play, you hear glitches/distortion, or audio and video become out of sync.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Switching Modes</h4>
+          <ul class="feature-list">
+            <li><strong>Audio Mode button</strong> — Click in header to toggle Tab Capture ↔ Web Audio (Chrome only)</li>
+            <li><strong>Bypass button (⊘)</strong> — Click in header to enable Bypass mode (turns red when active)</li>
+            <li><strong>Context menu</strong> — Right-click and select Enable Tab Capture, Enable Web Audio, or Enable Bypass Mode</li>
+          </ul>
+          <p style="margin-top: 8px;">Your preference is saved per-site. The page refreshes when switching modes.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Now Playing & Visualizer -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Now Playing & Visualizer</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">The Now Playing area at the top of the popup shows the current audio tab with playback controls and a visualizer.</p>
+
+        <div class="info-box">
+          <h4>Tab Navigation</h4>
+          <p>When multiple tabs have audio, use the navigation controls to switch between them:</p>
+          <ul class="feature-list">
+            <li><strong>◀ Previous</strong> — Switch to the previous audio tab</li>
+            <li><strong>▶ Next</strong> — Switch to the next audio tab</li>
+          </ul>
+          <p style="margin-top: 8px;">The arrows and tab counter only appear when there are multiple tabs with audio. The counter (e.g., "2 of 5") shows your position in the list.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Playback Controls</h4>
+          <ul class="feature-list">
+            <li><strong>Play/Pause Button</strong> — Toggle media playback on the current tab</li>
+            <li><strong>Click Visualizer</strong> — Open the audio tab in your browser</li>
+            <li><strong>Click and Hold Visualizer</strong> — Cycle through visualizer styles</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Visualizer Styles</h4>
+          <p>Five visualization styles are available (plus Off):</p>
+          <ul class="feature-list">
+            <li><strong>Bars</strong> — Classic frequency bars</li>
+            <li><strong>Waveform</strong> — Audio waveform display</li>
+            <li><strong>Mirrored</strong> — Symmetrical frequency bars</li>
+            <li><strong>Curve</strong> — Smooth frequency curve</li>
+            <li><strong>Dots</strong> — Bouncing frequency dots</li>
+            <li><strong>Off</strong> — Disable visualization</li>
+          </ul>
+          <p style="margin-top: 8px;">Set your default style in the Visualizer settings section, or cycle through styles by clicking and holding the visualizer.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Visualizer Auto-Disable</h4>
+          <p>Some sites create audio in ways that aren't accessible to the visualizer (Web Audio API, cross-origin restrictions, etc.). The visualizer automatically detects this:</p>
+          <ul class="feature-list">
+            <li>After ~2-3 seconds of no audio data, the visualizer auto-disables</li>
+            <li>A "Visualizer ⊘" indicator appears in the Now Playing area</li>
+            <li>On Chrome: A status message and "Enable Tab Capture" button also appear</li>
+            <li>On Firefox: A status message and "Enable Bypass Mode" button also appear</li>
+            <li>All audio controls still work normally</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Switching to Tab Capture (Chrome only)</h4>
+          <p>If you're using Web Audio or Bypass mode and experience issues, you can switch to Tab Capture:</p>
+          <ul class="feature-list">
+            <li>Click the "Enable Tab Capture" button that appears at the bottom of the popup</li>
+            <li>Tab Capture captures audio at the browser level</li>
+            <li>Works regardless of how the site creates audio</li>
+            <li>Preference saved per-site for future visits</li>
+            <li>Once enabled, Tab Capture persists even when the popup closes</li>
+            <li>You can also use the mode toggle in the popup header to switch modes</li>
+            <li>Saved sites can be viewed in Settings → Audio Modes → Site Overrides</li>
+          </ul>
+          <p style="margin-top: 8px;"><strong>Note:</strong> Tab Capture is the default mode on Chrome. This section applies when you've manually switched to Web Audio or Bypass mode. Firefox does not support Tab Capture.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Switching to Bypass Mode (Firefox)</h4>
+          <p>On Firefox, if the extension cannot access audio on a site, you can switch to Bypass mode:</p>
+          <ul class="feature-list">
+            <li>Click the "Enable Bypass Mode" button that appears at the bottom of the popup</li>
+            <li>Bypass mode uses the browser's native audio handling</li>
+            <li>Volume control is limited to 0-100% (no boost capability)</li>
+            <li>EQ effects (bass, treble, voice boost) are not available</li>
+            <li>Preference saved per-site for future visits</li>
+            <li>You can also use the mode toggle in the popup header to switch modes</li>
+          </ul>
+          <p style="margin-top: 8px;"><strong>Note:</strong> Web Audio is the default mode on Firefox. Firefox does not support Tab Capture, so Bypass mode is the fallback when Web Audio cannot access audio.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Visualizer Troubleshooting</h4>
+          <p>If the visualizer appears to strobe or flicker erratically:</p>
+          <ul class="feature-list">
+            <li>Close and reopen the popup — this usually resolves the issue immediately</li>
+            <li>This can occasionally happen when switching audio modes or reconnecting to Tab Capture</li>
+            <li>The audio controls continue to work normally even if the visualizer glitches</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Volume Boost -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Volume Boost</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Volume boost allows you to amplify audio beyond the normal 100% level, up to 500%.</p>
+
+        <div class="info-box">
+          <h4>Audio Processing Chain</h4>
+          <p>Your audio passes through several stages to ensure quality and safety:</p>
+          <ol class="chain-list">
+            <li><strong>Source</strong> — Original audio from the webpage</li>
+            <li><strong>Bass/Treble/Voice Filters</strong> — EQ adjustments for frequency shaping</li>
+            <li><strong>Stereo Panner</strong> — Left/right balance control</li>
+            <li><strong>Channel Matrix</strong> — Mono mixing and channel swap</li>
+            <li><strong>Compressor</strong> — Dynamic range compression (if enabled)</li>
+            <li><strong>Gain Node</strong> — Volume amplification (0-500%)</li>
+            <li><strong>Limiter</strong> — Prevents clipping and protects your speakers</li>
+            <li><strong>Output</strong> — Final audio to your speakers/headphones</li>
+          </ol>
+        </div>
+
+        <div class="info-box">
+          <h4>The Limiter</h4>
+          <p>When volume exceeds 100%, audio peaks can clip and cause distortion. The built-in limiter acts as a safety net:</p>
+          <ul class="feature-list">
+            <li>Automatically catches audio peaks that would exceed safe levels</li>
+            <li>Prevents harsh distortion and speaker damage</li>
+            <li>Allows you to boost quiet content without worrying about sudden loud sounds</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Non-Linear Slider Design</h4>
+          <p>The volume slider uses a non-linear scale for optimal control:</p>
+          <ul class="feature-list">
+            <li><strong>Left half (0-50%)</strong> — Maps to 0-100% volume with fine control</li>
+            <li><strong>Center position</strong> — Always 100% (normal volume)</li>
+            <li><strong>Right half (50-100%)</strong> — Maps to 100-500% boost range</li>
+          </ul>
+          <p style="margin-top: 8px;"><strong>Why?</strong> Most volume adjustments happen in the normal range. The left half gives you precise control for everyday use, while the right half provides the full boost range when you need it.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance & Channel Mode -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Balance & Channel Mode</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Control how audio is distributed between your left and right speakers or headphone channels.</p>
+
+        <div class="info-box">
+          <h4>Channel Mode Buttons</h4>
+          <ul class="feature-list">
+            <li><strong>S (Stereo)</strong> — Default mode with separate left and right channels</li>
+            <li><strong>M (Mono)</strong> — Merges both channels into a single mono signal (useful for one earbud)</li>
+            <li><strong>⇄ (Swap)</strong> — Swaps left and right audio channels</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Balance Slider</h4>
+          <p>Adjusts the left/right audio balance. Useful for:</p>
+          <ul class="feature-list">
+            <li>Compensating for hearing differences between ears</li>
+            <li>Adjusting for off-center speaker placement</li>
+            <li>Isolating one channel to hear specific instruments</li>
+          </ul>
+          <p style="margin-top: 8px;"><strong>Tip:</strong> Use your mouse scroll wheel over the balance area to quickly adjust.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- EQ Effects -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>EQ Effects (Bass, Treble, Voice)</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Shape your audio by boosting or cutting specific frequency ranges.</p>
+
+        <div class="info-box">
+          <h4>Bass Boost/Cut</h4>
+          <p>Adjusts low frequencies (centered at 200Hz):</p>
+          <ul class="feature-list">
+            <li><strong>Boost</strong> — Music that sounds thin or lacks low-end punch</li>
+            <li><strong>Cut</strong> — Excessive rumble or boomy audio</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Treble Boost/Cut</h4>
+          <p>Adjusts high frequencies (centered at 6kHz):</p>
+          <ul class="feature-list">
+            <li><strong>Boost</strong> — Audio sounds muffled or lacks clarity</li>
+            <li><strong>Cut</strong> — Harsh, sibilant recordings that hurt your ears</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Voice Boost</h4>
+          <p>Enhances mid-range frequencies where human speech is most prominent. Use for:</p>
+          <ul class="feature-list">
+            <li>Movies with quiet dialogue and loud sound effects</li>
+            <li>Podcasts or interviews with soft-spoken guests</li>
+            <li>Video calls where participants are hard to hear</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Range (Compressor) -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Range (Compressor)</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">The audio compressor reduces the difference between loud and quiet sounds, making audio more consistent.</p>
+
+        <div class="compressor-info">
+          <div class="compressor-preset">
+            <span class="preset-name low">Podcast</span>
+            <span class="preset-desc">Light compression for spoken word content. Evens out volume differences between speakers without affecting audio quality.</span>
+          </div>
+          <div class="compressor-preset">
+            <span class="preset-name medium">Movie</span>
+            <span class="preset-desc">Medium compression for films and TV shows. Reduces the gap between quiet dialogue and loud action scenes.</span>
+          </div>
+          <div class="compressor-preset">
+            <span class="preset-name high">Maximum</span>
+            <span class="preset-desc">Heavy compression for late-night listening. Significantly reduces dynamic range so you don't need to adjust volume constantly.</span>
+          </div>
+        </div>
+
+        <p class="section-note"><strong>Note:</strong> Bass, Treble, and Voice Boost are automatically disabled when the compressor is active to prevent audio artifacts.</p>
+
+        <div class="info-box">
+          <h4>Automatic Loudness Compensation</h4>
+          <p>Compression increases perceived loudness. To maintain consistent volume, the extension automatically reduces gain:</p>
+          <ul class="feature-list">
+            <li><strong>Podcast</strong> — 0.80x gain (-1.9dB reduction)</li>
+            <li><strong>Movie</strong> — 0.65x gain (-3.7dB reduction)</li>
+            <li><strong>Maximum</strong> — 0.50x gain (-6dB reduction)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Device Switching -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Device Switching</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Route specific tabs to different audio outputs by selecting a device from the dropdown in the popup.</p>
+
+        <div class="info-box">
+          <h4>Use Cases</h4>
+          <ul class="feature-list">
+            <li><strong>Gaming + Music</strong> — Game audio to speakers, background music to headphones</li>
+            <li><strong>Streaming + Chat</strong> — Stream audio to capture device, Discord to headphones</li>
+            <li><strong>Work Calls</strong> — Video calls to headset, other tabs to speakers</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Device Switching Not Working?</h4>
+          <p>If devices appear but switching doesn't work, the website itself may need microphone permission:</p>
+          <ul class="feature-list">
+            <li>Click the lock/site info icon in your browser's address bar</li>
+            <li>Find Microphone in the permissions list</li>
+            <li>Change it from "Block" to "Allow"</li>
+            <li>Refresh the page</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Site Rules -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Site Rules</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Automatically apply your preferred settings whenever you visit specific websites.</p>
+
+        <div class="info-box">
+          <h4>What Site Rules Save</h4>
+          <p>When you create a site rule, it captures ALL your current settings:</p>
+          <ul class="feature-list">
+            <li>Volume level, balance, and channel mode</li>
+            <li>Audio effects (compressor, voice, bass, treble)</li>
+            <li>Output device selection</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>URL vs Domain Rules</h4>
+          <ul class="feature-list">
+            <li><strong>URL rule</strong> — Applies only to the exact page URL</li>
+            <li><strong>Domain rule</strong> — Applies to all pages on that website (check "Entire domain")</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Storage & Cleanup</h4>
+          <p>Site rules are stored in sync storage (~100KB limit). The extension tracks last-used dates:</p>
+          <ul class="feature-list">
+            <li>Storage meter shows usage in Settings</li>
+            <li>"Clean up old rules" removes rules unused for 90+ days</li>
+            <li>Warning at 80% full, blocked at 90%</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Browser Sync -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Browser Sync</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Your settings automatically sync across devices when signed into your browser account.</p>
+
+        <div class="info-box">
+          <h4>What Syncs</h4>
+          <ul class="feature-list">
+            <li>All preset values (volume, bass, treble, voice, volume steps)</li>
+            <li>Site rules</li>
+            <li>Audio mode overrides (Tab Capture, Web Audio, and Bypass mode sites)</li>
+            <li>Refresh behavior setting</li>
+            <li>Theme, visualizer style, EQ mode, Basic/Advanced mode</li>
+            <li>Header layout customization</li>
+            <li>UI state (expanded/collapsed sections)</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>What Stays Local</h4>
+          <ul class="feature-list">
+            <li>Default audio device (different hardware per device)</li>
+            <li>Current tab volumes (session-specific)</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Browser Compatibility</h4>
+          <p>Sync works with Chrome, Firefox, Brave, Vivaldi, and Edge when signed into their respective accounts.</p>
+          <p style="margin-top: 8px;"><strong>Important:</strong> Cross-browser sync is not possible — Chrome syncs to Chrome, Firefox to Firefox, etc.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Privacy & Security -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Privacy & Security</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">This extension is designed with security and privacy in mind.</p>
+
+        <div class="info-box">
+          <h4>Data Privacy</h4>
+          <ul class="feature-list">
+            <li><strong>No data collection</strong> — Settings stay in your browser only</li>
+            <li><strong>No analytics</strong> — No tracking or telemetry</li>
+            <li><strong>Local processing</strong> — All audio processing happens in your browser</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>About Permissions</h4>
+          <ul class="feature-list">
+            <li><strong>All URLs</strong> — Required to control audio on any website</li>
+            <li><strong>Tabs</strong> — Track which tab you're controlling</li>
+            <li><strong>Storage</strong> — Save your preferences</li>
+            <li><strong>Microphone (optional)</strong> — Only lists output devices, never records</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accessibility -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Accessibility</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">This extension works well with assistive technologies.</p>
+
+        <div class="info-box">
+          <h4>Screen Reader Support</h4>
+          <ul class="feature-list">
+            <li>All buttons have descriptive ARIA labels</li>
+            <li>Sliders announce current values</li>
+            <li>Status changes announced via live regions</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Keyboard Navigation</h4>
+          <ul class="feature-list">
+            <li><strong>Tab</strong> — Move between controls</li>
+            <li><strong>Enter/Space</strong> — Activate buttons</li>
+            <li><strong>Arrow keys</strong> — Adjust sliders</li>
+            <li><strong>Global shortcuts</strong> — Volume up/down/mute from any tab</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Shared utilities - must load first -->
+  <script src="../shared/browser-api.js"></script>
+  <script src="faq.js"></script>
+</body>
+</html>

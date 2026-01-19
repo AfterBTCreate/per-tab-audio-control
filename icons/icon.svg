@@ -1,0 +1,34 @@
+<svg width="100" height="100" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Per-Tab Audio Control - Extension Logo (Night Sky Theme) -->
+  <!-- Same style as company logo, with speaker instead of >_ -->
+
+  <!-- Background -->
+  <rect width="200" height="200" rx="40" fill="#0f172a"/>
+
+  <!-- Window frame -->
+  <rect x="50" y="45" width="100" height="110" rx="8" stroke="#5a7a9a" stroke-width="6" fill="none"/>
+
+  <!-- Window panes dividers -->
+  <line x1="100" y1="45" x2="100" y2="155" stroke="#5a7a9a" stroke-width="4"/>
+  <line x1="50" y1="100" x2="150" y2="100" stroke="#5a7a9a" stroke-width="4"/>
+
+  <!-- Pane backgrounds -->
+  <rect x="56" y="51" width="40" height="43" rx="2" fill="#1e3a5f"/>
+  <rect x="104" y="51" width="40" height="43" rx="2" fill="#1e3a5f"/>
+  <rect x="56" y="106" width="40" height="43" rx="2" fill="#1e3a5f"/>
+  <rect x="104" y="106" width="40" height="43" rx="2" fill="#d4c78a"/>
+
+  <!-- Letter A - Muted Rose (top-left) -->
+  <text x="76" y="82" font-family="Inter, -apple-system, sans-serif" font-size="28" font-weight="600" fill="#c9a0a0" text-anchor="middle">A</text>
+
+  <!-- Letter B - Muted Sage (top-right) -->
+  <text x="124" y="82" font-family="Inter, -apple-system, sans-serif" font-size="28" font-weight="600" fill="#a0c9a8" text-anchor="middle">B</text>
+
+  <!-- Letter C - Muted Sky (bottom-left) -->
+  <text x="76" y="137" font-family="Inter, -apple-system, sans-serif" font-size="28" font-weight="600" fill="#a0b8c9" text-anchor="middle">C</text>
+
+  <!-- Speaker icon (bottom-right) - sized to fit in pane -->
+  <path d="M112 122 L112 134 L117 134 L125 140 L125 116 L117 122 Z" fill="#0f172a"/>
+  <path d="M128 120 Q133 128 128 136" stroke="#0f172a" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M133 117 Q139 128 133 139" stroke="#0f172a" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>

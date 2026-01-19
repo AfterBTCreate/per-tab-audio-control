@@ -1,0 +1,692 @@
+/* ==================== Effects & Enhancements ==================== */
+/* Enhancement section, effect buttons with all color variants */
+
+/* Enhancements Section */
+.enhancements-section {
+  margin-bottom: 4px;
+  padding: 5px 8px;
+  background: #0f1621;
+  border: 1px solid #5a7a9a;
+  border-radius: 8px;
+}
+
+.section-header {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7a8fa5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+/* Audio Effects (Bass/Voice Boost) */
+.audio-effects {
+}
+
+.effect-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.effect-row:last-child {
+  margin-bottom: 0;
+}
+
+.effect-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #7a8fa5;
+  width: 44px;
+  flex-shrink: 0;
+}
+
+.effect-buttons {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.effect-buttons.combined {
+  gap: 2px;
+}
+
+.effect-buttons.combined .effect-btn {
+  padding: 6px 4px;
+  font-size: 9px;
+}
+
+/* Spacer to align Bass - buttons with Low/Med/High on other rows */
+.effect-btn-spacer {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+}
+
+.effect-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 8px;
+  background: #0c1929;
+  border: 1px solid #5a7a9a;
+  border-radius: 6px;
+  color: #7a8fa5;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.effect-btn:hover {
+  background: #0f1621;
+  border-color: #7a9ab8;
+  color: #b8d4e8;
+}
+
+.effect-btn.active {
+  background: #1a2744;
+  color: #f0f0f0;
+  border-color: #7a9ab8;
+}
+
+/* Effect button color variants */
+.effect-btn.low {
+  color: #60a5fa;
+  border-color: #2a2a4a;
+}
+
+.effect-btn.low:hover {
+  background: #1a1a2a;
+  border-color: #3a3a5a;
+}
+
+.effect-btn.low.active {
+  background: #60a5fa;
+  color: #0d0d0d;
+  border-color: #60a5fa;
+}
+
+.effect-btn.medium {
+  color: #facc15;
+  border-color: #4a4a2a;
+}
+
+.effect-btn.medium:hover {
+  background: #2a2a1a;
+  border-color: #5a5a3a;
+}
+
+.effect-btn.medium.active {
+  background: #facc15;
+  color: #0d0d0d;
+  border-color: #facc15;
+}
+
+.effect-btn.high {
+  color: #fb923c;
+  border-color: #4a2a0a;
+}
+
+.effect-btn.high:hover {
+  background: #2a1a0a;
+  border-color: #5a3a1a;
+}
+
+.effect-btn.high.active {
+  background: #fb923c;
+  color: #0d0d0d;
+  border-color: #fb923c;
+}
+
+/* Bass cut buttons (purple theme) */
+.effect-btn.cut.low {
+  color: #a78bfa;
+  border-color: #3a2a5a;
+}
+
+.effect-btn.cut.low:hover {
+  background: #1a1a2a;
+  border-color: #4a3a6a;
+}
+
+.effect-btn.cut.low.active {
+  background: #a78bfa;
+  color: #0d0d0d;
+  border-color: #a78bfa;
+}
+
+.effect-btn.cut.medium {
+  color: #c084fc;
+  border-color: #4a2a6a;
+}
+
+.effect-btn.cut.medium:hover {
+  background: #2a1a3a;
+  border-color: #5a3a7a;
+}
+
+.effect-btn.cut.medium.active {
+  background: #c084fc;
+  color: #0d0d0d;
+  border-color: #c084fc;
+}
+
+.effect-btn.cut.high {
+  color: #e879f9;
+  border-color: #5a2a5a;
+}
+
+.effect-btn.cut.high:hover {
+  background: #2a1a2a;
+  border-color: #6a3a6a;
+}
+
+.effect-btn.cut.high.active {
+  background: #e879f9;
+  color: #0d0d0d;
+  border-color: #e879f9;
+}
+
+/* Compressor preset buttons - custom colors */
+#compressorRow .effect-btn[data-level="off"] {
+  color: #8b4040;
+  border-color: #4a2a2a;
+}
+
+#compressorRow .effect-btn[data-level="off"]:hover {
+  background: #2a1a1a;
+  border-color: #5a3a3a;
+}
+
+#compressorRow .effect-btn[data-level="off"].active {
+  background: #8b4040;
+  color: #ffffff;
+  border-color: #8b4040;
+}
+
+#compressorRow .effect-btn[data-level="podcast"] {
+  color: #4ade80;
+  border-color: #2a4a2a;
+}
+
+#compressorRow .effect-btn[data-level="podcast"]:hover {
+  background: #1a2a1a;
+  border-color: #3a5a3a;
+}
+
+#compressorRow .effect-btn[data-level="podcast"].active {
+  background: #4a7a5c;
+  color: #ffffff;
+  border-color: #4a7a5c;
+}
+
+#compressorRow .effect-btn[data-level="movie"] {
+  color: #60a5fa;
+  border-color: #2a2a4a;
+}
+
+#compressorRow .effect-btn[data-level="movie"]:hover {
+  background: #1a1a2a;
+  border-color: #3a3a5a;
+}
+
+#compressorRow .effect-btn[data-level="movie"].active {
+  background: #5c7a99;
+  color: #ffffff;
+  border-color: #5c7a99;
+}
+
+#compressorRow .effect-btn[data-level="maximum"] {
+  color: #facc15;
+  border-color: #4a4a2a;
+}
+
+#compressorRow .effect-btn[data-level="maximum"]:hover {
+  background: #2a2a1a;
+  border-color: #5a5a3a;
+}
+
+#compressorRow .effect-btn[data-level="maximum"].active {
+  background: #a89a4a;
+  color: #ffffff;
+  border-color: #a89a4a;
+}
+
+/* Disabled state for effect buttons (when compressor is active) */
+.effect-btn.disabled,
+.effect-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.effect-label.disabled {
+  opacity: 0.4;
+}
+
+/* Divider between EQ controls and Compressor */
+.effects-divider {
+  height: 1px;
+  background: #5a7a9a;
+  margin: 6px 0;
+}
+
+/* EQ Reset Button (Bass/Treble sliders) */
+.eq-reset-btn {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin-left: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c1929;
+  border: 1px solid #5a7a9a;
+  border-radius: 4px;
+  color: #7a8fa5;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.eq-reset-btn:hover {
+  background: #0f1621;
+  border-color: #7a9ab8;
+  color: #f0f0f0;
+}
+
+.eq-reset-btn:active {
+  transform: scale(0.95);
+}
+
+/* ==================== Light Mode: Effects (Morning Theme) ==================== */
+
+body.light-mode .enhancements-section {
+  background: #faf5ef;
+  border-color: #d4c4b0;
+}
+
+body.light-mode .section-header {
+  color: #6b5d52;
+}
+
+body.light-mode .effect-label {
+  color: #6b5d52;
+}
+
+body.light-mode .effect-btn {
+  background: #f5ede3;
+  border-color: #d4c4b0;
+  color: #6b5d52;
+}
+
+body.light-mode .effect-btn:hover {
+  background: #efe7dd;
+  border-color: #c4b4a0;
+  color: #4a3f35;
+}
+
+body.light-mode .effect-btn.active {
+  background: #e8dfd5;
+  color: #2d2520;
+  border-color: #c4b4a0;
+}
+
+body.light-mode .effect-btn.low {
+  color: #3b82f6;
+  border-color: #c0d0ff;
+}
+
+body.light-mode .effect-btn.low:hover {
+  background: #e8eeff;
+}
+
+body.light-mode .effect-btn.low.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+body.light-mode .effect-btn.medium {
+  color: #ca8a04;
+  border-color: #e0d080;
+}
+
+body.light-mode .effect-btn.medium:hover {
+  background: #fffde8;
+}
+
+body.light-mode .effect-btn.medium.active {
+  background: #eab308;
+  color: #ffffff;
+  border-color: #eab308;
+}
+
+body.light-mode .effect-btn.high {
+  color: #ea580c;
+  border-color: #f0c090;
+}
+
+body.light-mode .effect-btn.high:hover {
+  background: #fff4e8;
+}
+
+body.light-mode .effect-btn.high.active {
+  background: #ea580c;
+  color: #ffffff;
+  border-color: #ea580c;
+}
+
+/* Light mode bass cut buttons */
+body.light-mode .effect-btn.cut.low {
+  color: #7c3aed;
+  border-color: #ddd6fe;
+}
+
+body.light-mode .effect-btn.cut.low:hover {
+  background: #f3f0ff;
+}
+
+body.light-mode .effect-btn.cut.low.active {
+  background: #7c3aed;
+  color: #ffffff;
+  border-color: #7c3aed;
+}
+
+body.light-mode .effect-btn.cut.medium {
+  color: #9333ea;
+  border-color: #e9d5ff;
+}
+
+body.light-mode .effect-btn.cut.medium:hover {
+  background: #faf5ff;
+}
+
+body.light-mode .effect-btn.cut.medium.active {
+  background: #9333ea;
+  color: #ffffff;
+  border-color: #9333ea;
+}
+
+body.light-mode .effect-btn.cut.high {
+  color: #c026d3;
+  border-color: #f5d0fe;
+}
+
+body.light-mode .effect-btn.cut.high:hover {
+  background: #fdf4ff;
+}
+
+body.light-mode .effect-btn.cut.high.active {
+  background: #c026d3;
+  color: #ffffff;
+  border-color: #c026d3;
+}
+
+/* Light mode compressor preset buttons */
+body.light-mode #compressorRow .effect-btn[data-level="off"] {
+  color: #8b4040;
+  border-color: #d0a0a0;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="off"]:hover {
+  background: #fff0f0;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="off"].active {
+  background: #8b4040;
+  color: #ffffff;
+  border-color: #8b4040;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="podcast"] {
+  color: #22c55e;
+  border-color: #a0d0a0;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="podcast"]:hover {
+  background: #f0fff0;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="podcast"].active {
+  background: #4a7a5c;
+  color: #ffffff;
+  border-color: #4a7a5c;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="movie"] {
+  color: #2563eb;
+  border-color: #a0a0d0;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="movie"]:hover {
+  background: #f0f0ff;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="movie"].active {
+  background: #5c7a99;
+  color: #ffffff;
+  border-color: #5c7a99;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="maximum"] {
+  color: #ca8a04;
+  border-color: #d0d0a0;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="maximum"]:hover {
+  background: #fffef0;
+}
+
+body.light-mode #compressorRow .effect-btn[data-level="maximum"].active {
+  background: #a89a4a;
+  color: #ffffff;
+  border-color: #a89a4a;
+}
+
+/* Light mode disabled state for effect buttons */
+body.light-mode .effect-btn.disabled,
+body.light-mode .effect-btn:disabled {
+  opacity: 0.35;
+}
+
+body.light-mode .effect-label.disabled {
+  opacity: 0.35;
+}
+
+body.light-mode .effects-divider {
+  background: #d4c4b0;
+}
+
+body.light-mode .eq-reset-btn {
+  background: #f5ede3;
+  border-color: #d4c4b0;
+  color: #6b5d52;
+}
+
+body.light-mode .eq-reset-btn:hover {
+  background: #efe7dd;
+  border-color: #c4b4a0;
+  color: #2d2520;
+}
+
+/* ==================== EQ Sliders (Bass/Treble) ==================== */
+
+.eq-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.eq-slider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  /* Bass/Treble: -24 to +24 gradient matching preset colors */
+  /* Cut: purple tones | Off: gray | Boost: blue -> yellow -> orange */
+  background: linear-gradient(to right,
+    #e879f9 0%,      /* -24 cut high (magenta) */
+    #c084fc 25%,     /* -12 cut medium (purple) */
+    #a78bfa 37.5%,   /* -6 cut low (light purple) */
+    #555 50%,        /* 0 off (gray) */
+    #60a5fa 62.5%,   /* +6 low (blue) */
+    #facc15 75%,     /* +12 medium (yellow) */
+    #fb923c 100%     /* +24 high (orange) */
+  );
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* Voice slider: boost-only (0 to +18), matching preset colors */
+.eq-slider.voice-slider {
+  background: linear-gradient(to right,
+    #555 0%,         /* 0 off (gray) */
+    #60a5fa 22%,     /* +4 low (blue) */
+    #facc15 56%,     /* +10 medium (yellow) */
+    #fb923c 100%     /* +18 high (orange) */
+  );
+}
+
+/* Disabled state for EQ sliders (when compressor is active) */
+.eq-slider.disabled,
+.eq-slider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.eq-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border: 2px solid #5a7a9a;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.eq-slider::-webkit-slider-thumb:hover {
+  border-color: #60a5fa;
+}
+
+.eq-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border: 2px solid #5a7a9a;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.eq-slider::-moz-range-thumb:hover {
+  border-color: #60a5fa;
+}
+
+.eq-slider-value {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7a8fa5;
+  min-width: 42px;
+  text-align: right;
+}
+
+/* Color coding for slider value - matching gradient colors */
+.eq-slider-value.boost-low {
+  color: #60a5fa;  /* blue */
+}
+
+.eq-slider-value.boost-medium {
+  color: #facc15;  /* yellow */
+}
+
+.eq-slider-value.boost-high {
+  color: #fb923c;  /* orange */
+}
+
+.eq-slider-value.cut-low {
+  color: #a78bfa;  /* light purple */
+}
+
+.eq-slider-value.cut-medium {
+  color: #c084fc;  /* purple */
+}
+
+.eq-slider-value.cut-high {
+  color: #e879f9;  /* magenta */
+}
+
+/* Light mode EQ sliders */
+body.light-mode .eq-slider {
+  /* Bass/Treble: -24 to +24 gradient matching preset colors (light mode) */
+  background: linear-gradient(to right,
+    #c026d3 0%,      /* -24 cut high (magenta) */
+    #9333ea 25%,     /* -12 cut medium (purple) */
+    #7c3aed 37.5%,   /* -6 cut low (violet) */
+    #aaa 50%,        /* 0 off (gray) */
+    #3b82f6 62.5%,   /* +6 low (blue) */
+    #eab308 75%,     /* +12 medium (yellow) */
+    #ea580c 100%     /* +24 high (orange) */
+  );
+}
+
+body.light-mode .eq-slider.voice-slider {
+  background: linear-gradient(to right,
+    #aaa 0%,         /* 0 off (gray) */
+    #3b82f6 22%,     /* +4 low (blue) */
+    #eab308 56%,     /* +10 medium (yellow) */
+    #ea580c 100%     /* +18 high (orange) */
+  );
+}
+
+body.light-mode .eq-slider::-webkit-slider-thumb {
+  background: #ffffff;
+  border-color: #d4c4b0;
+}
+
+body.light-mode .eq-slider::-webkit-slider-thumb:hover {
+  border-color: #8b7355;
+}
+
+body.light-mode .eq-slider::-moz-range-thumb {
+  background: #ffffff;
+  border-color: #d4c4b0;
+}
+
+body.light-mode .eq-slider::-moz-range-thumb:hover {
+  border-color: #8b7355;
+}
+
+body.light-mode .eq-slider-value {
+  color: #6b5d52;
+}
+
+body.light-mode .eq-slider-value.boost-low {
+  color: #3b82f6;  /* blue */
+}
+
+body.light-mode .eq-slider-value.boost-medium {
+  color: #ca8a04;  /* darker yellow for readability */
+}
+
+body.light-mode .eq-slider-value.boost-high {
+  color: #ea580c;  /* orange */
+}
+
+body.light-mode .eq-slider-value.cut-low {
+  color: #7c3aed;  /* violet */
+}
+
+body.light-mode .eq-slider-value.cut-medium {
+  color: #9333ea;  /* purple */
+}
+
+body.light-mode .eq-slider-value.cut-high {
+  color: #c026d3;  /* magenta */
+}

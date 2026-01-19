@@ -1,0 +1,579 @@
+/* ==================== Visualizer & Setting Options ==================== */
+/* Radio card grids, toggle groups, visual selectors */
+
+/* Visualizer Options */
+.visualizer-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.visualizer-option {
+  flex: 1;
+  min-width: 80px;
+  max-width: 100px;
+}
+
+.visualizer-option input[type="radio"] {
+  display: none;
+}
+
+.visualizer-option-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  background: #252525;
+  border: 2px solid #333333;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.visualizer-option-content:hover {
+  border-color: #4a4a4a;
+  background: #2a2a2a;
+}
+
+.visualizer-option input[type="radio"]:checked + .visualizer-option-content {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.visualizer-option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: #888888;
+  transition: color 0.15s ease;
+}
+
+.visualizer-option input[type="radio"]:checked + .visualizer-option-content .visualizer-option-icon {
+  color: #60a5fa;
+}
+
+.visualizer-option-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #a0a0a0;
+  transition: color 0.15s ease;
+}
+
+.visualizer-option input[type="radio"]:checked + .visualizer-option-content .visualizer-option-label {
+  color: #60a5fa;
+}
+
+/* Setting Options (vertical radio buttons with descriptions) */
+.setting-row {
+  margin: 12px 0;
+}
+
+.setting-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-option {
+  display: block;
+  cursor: pointer;
+}
+
+.setting-option input[type="radio"] {
+  display: none;
+}
+
+.setting-option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: #252525;
+  border: 2px solid #333333;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.setting-option-content:hover {
+  border-color: #4a4a4a;
+  background: #2a2a2a;
+}
+
+.setting-option input[type="radio"]:checked + .setting-option-content {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.setting-option-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e0e0e0;
+  transition: color 0.15s ease;
+}
+
+.setting-option input[type="radio"]:checked + .setting-option-content .setting-option-label {
+  color: #60a5fa;
+}
+
+.setting-option-desc {
+  font-size: 12px;
+  color: #888888;
+  line-height: 1.4;
+}
+
+.setting-option input[type="radio"]:checked + .setting-option-content .setting-option-desc {
+  color: #a0a0a0;
+}
+
+/* Toggle Group (radio buttons styled as pills) */
+.toggle-group {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle-option input[type="radio"] {
+  display: none;
+}
+
+.toggle-option span {
+  padding: 8px 16px;
+  background: #252525;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #a0a0a0;
+  transition: all 0.15s ease;
+}
+
+.toggle-option:hover span {
+  border-color: #4a4a4a;
+  background: #2a2a2a;
+}
+
+.toggle-option input[type="radio"]:checked + span {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* Timer Mode Info */
+.timer-mode-info {
+  font-size: 15px;
+  color: #c0c0c0;
+  background: #1a1a1a;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+/* Audio Mode Options */
+.audio-mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.radio-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #0d0d0d;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.radio-card:hover {
+  border-color: #4a4a4a;
+  background: #151515;
+}
+
+.radio-card:has(input:checked) {
+  border-color: #60a5fa;
+  background: #1a1a2a;
+}
+
+.radio-card input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #60a5fa;
+  cursor: pointer;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.radio-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.radio-card-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.radio-card-desc {
+  font-size: 14px;
+  color: #888888;
+  line-height: 1.5;
+}
+
+.device-mode-note {
+  font-size: 14px;
+  color: #f59e0b;
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+}
+
+/* ==================== Light Mode: Visualizer & Settings ==================== */
+
+body.light-mode .visualizer-option-content {
+  background: #ffffff;
+  border-color: #d8d8d8;
+}
+
+body.light-mode .visualizer-option-content:hover {
+  border-color: #bbbbbb;
+  background: #f5f5f5;
+}
+
+body.light-mode .visualizer-option input[type="radio"]:checked + .visualizer-option-content {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+body.light-mode .visualizer-option-icon {
+  color: #666666;
+}
+
+body.light-mode .visualizer-option input[type="radio"]:checked + .visualizer-option-content .visualizer-option-icon {
+  color: #3b82f6;
+}
+
+body.light-mode .visualizer-option-label {
+  color: #666666;
+}
+
+body.light-mode .visualizer-option input[type="radio"]:checked + .visualizer-option-content .visualizer-option-label {
+  color: #3b82f6;
+}
+
+/* Light mode setting options */
+body.light-mode .setting-option-content {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+body.light-mode .setting-option-content:hover {
+  border-color: #cccccc;
+  background: #eeeeee;
+}
+
+body.light-mode .setting-option input[type="radio"]:checked + .setting-option-content {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+body.light-mode .setting-option-label {
+  color: #333333;
+}
+
+body.light-mode .setting-option input[type="radio"]:checked + .setting-option-content .setting-option-label {
+  color: #3b82f6;
+}
+
+body.light-mode .setting-option-desc {
+  color: #666666;
+}
+
+body.light-mode .setting-option input[type="radio"]:checked + .setting-option-content .setting-option-desc {
+  color: #555555;
+}
+
+/* Light mode: Toggle Group */
+body.light-mode .toggle-option span {
+  background: #ffffff;
+  border-color: #d8d8d8;
+  color: #666666;
+}
+
+body.light-mode .toggle-option:hover span {
+  border-color: #bbbbbb;
+  background: #f5f5f5;
+}
+
+body.light-mode .toggle-option input[type="radio"]:checked + span {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* Light mode: Radio Cards */
+body.light-mode .radio-card {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+}
+
+body.light-mode .radio-card:hover {
+  border-color: #b0b0b0;
+  background: #eeeeee;
+}
+
+body.light-mode .radio-card:has(input:checked) {
+  border-color: #3b82f6;
+  background: #f0f5ff;
+}
+
+body.light-mode .radio-card-title {
+  color: #1a1a1a;
+}
+
+body.light-mode .radio-card-desc {
+  color: #666666;
+}
+
+body.light-mode .device-mode-note {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* ==================== Toggle Switch ==================== */
+
+.toggle-setting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-setting input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #333333;
+  border-radius: 12px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #888888;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.toggle-setting input[type="checkbox"]:checked + .toggle-slider {
+  background: #3b82f6;
+}
+
+.toggle-setting input[type="checkbox"]:checked + .toggle-slider::after {
+  left: 22px;
+  background: #ffffff;
+}
+
+.toggle-label {
+  font-size: 14px;
+  color: #e0e0e0;
+}
+
+body.light-mode .toggle-slider {
+  background: #d0d0d0;
+}
+
+body.light-mode .toggle-slider::after {
+  background: #ffffff;
+}
+
+body.light-mode .toggle-setting input[type="checkbox"]:checked + .toggle-slider {
+  background: #3b82f6;
+}
+
+body.light-mode .toggle-label {
+  color: #333333;
+}
+
+/* ==================== Chrome Only Badge ==================== */
+
+.chrome-only-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+body.light-mode .chrome-only-badge {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+/* ==================== Tab Capture Sites ==================== */
+
+#tabCaptureSitesContainer {
+  margin-top: 16px;
+}
+
+.add-domain-form {
+  margin-top: 12px;
+}
+
+.add-domain-form .rule-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.add-domain-form input[type="text"] {
+  flex: 1;
+  padding: 8px 12px;
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 14px;
+}
+
+.add-domain-form input[type="text"]:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.add-domain-form input[type="text"]::placeholder {
+  color: #666666;
+}
+
+.add-domain-form .hint {
+  font-size: 12px;
+  color: #666666;
+  margin-top: 6px;
+}
+
+body.light-mode .add-domain-form input[type="text"] {
+  background: #ffffff;
+  border-color: #d0d0d0;
+  color: #333333;
+}
+
+body.light-mode .add-domain-form input[type="text"]:focus {
+  border-color: #3b82f6;
+}
+
+body.light-mode .add-domain-form input[type="text"]::placeholder {
+  color: #999999;
+}
+
+body.light-mode .add-domain-form .hint {
+  color: #888888;
+}
+
+/* Tab capture site item */
+.tab-capture-site-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.tab-capture-site-item:last-child {
+  margin-bottom: 0;
+}
+
+.tab-capture-site-domain {
+  font-size: 14px;
+  color: #e0e0e0;
+  font-family: monospace;
+}
+
+.tab-capture-site-remove {
+  background: transparent;
+  border: none;
+  color: #666666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.tab-capture-site-remove:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+body.light-mode .tab-capture-site-item {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+body.light-mode .tab-capture-site-domain {
+  color: #333333;
+}
+
+body.light-mode .tab-capture-site-remove {
+  color: #999999;
+}
+
+body.light-mode .tab-capture-site-remove:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+/* Empty state */
+.tab-capture-empty {
+  padding: 24px;
+  text-align: center;
+  color: #666666;
+  font-size: 13px;
+  background: #0d0d0d;
+  border: 1px dashed #2a2a2a;
+  border-radius: 8px;
+}
+
+body.light-mode .tab-capture-empty {
+  color: #888888;
+  background: #f8f8f8;
+  border-color: #d0d0d0;
+}
+
+/* Hide section on Firefox */
+body.is-firefox #tabCaptureSubsection {
+  display: none;
+}

@@ -1,0 +1,178 @@
+/* ==================== Base Styles ==================== */
+/* Foundation: resets, body, container, header, theme toggle */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: linear-gradient(135deg, #1a2744 0%, #0c1929 100%);
+  background-attachment: fixed;
+  color: #f0f0f0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 40px 10px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.container {
+  width: 100%;
+  max-width: 600px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.logo {
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo svg {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  flex: 1;
+}
+
+.header-tagline {
+  font-size: 13px;
+  color: #7a8fa5;
+  margin: -8px 0 0 0;
+  flex-basis: 100%;
+  order: 10;
+}
+
+/* Header Button */
+.header-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #5a7a9a;
+  border-radius: 8px;
+  background: transparent;
+  color: #7a8fa5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.header-btn:hover {
+  background: #0f1621;
+  color: #f0f0f0;
+  border-color: #7a9ab8;
+}
+
+.header-btn .icon-sun {
+  display: none;
+}
+
+.header-btn .icon-moon {
+  display: block;
+}
+
+/* Expand/Collapse All Toggle */
+#expandAllToggle .icon-collapse {
+  display: none;
+}
+
+#expandAllToggle .icon-expand {
+  display: block;
+}
+
+#expandAllToggle.all-expanded .icon-collapse {
+  display: block;
+}
+
+#expandAllToggle.all-expanded .icon-expand {
+  display: none;
+}
+
+/* Multiple sections spacing */
+.section + .section {
+  margin-top: 24px;
+}
+
+/* Firefox Audio Mode - hidden by default, shown via JS in Firefox */
+.firefox-only {
+  display: none;
+}
+
+/* Chrome-only elements - shown by default, hidden via JS in Firefox */
+.chrome-only {
+  display: block;
+}
+
+/* ==================== Light Mode: Base (Morning Theme) ==================== */
+
+body.light-mode {
+  background: linear-gradient(135deg, #f5e6d3 0%, #e8d9c6 100%);
+  background-attachment: fixed;
+  color: #2d2520;
+}
+
+body.light-mode .logo {
+  color: #2d2520;
+}
+
+body.light-mode .logo svg {
+  filter: drop-shadow(0 0 10px rgba(139, 115, 85, 0.3));
+}
+
+/* Header logo dark/light mode switching */
+.logo .logo-dark {
+  display: block;
+}
+
+.logo .logo-light {
+  display: none;
+}
+
+body.light-mode .logo .logo-dark {
+  display: none;
+}
+
+body.light-mode .logo .logo-light {
+  display: block;
+}
+
+body.light-mode .header-btn {
+  border-color: #d4c4b0;
+  color: #6b5d52;
+}
+
+body.light-mode .header-btn:hover {
+  background: #faf5ef;
+  color: #2d2520;
+  border-color: #c4b4a0;
+}
+
+body.light-mode .header-btn .icon-sun {
+  display: block;
+}
+
+body.light-mode .header-btn .icon-moon {
+  display: none;
+}
+
+body.light-mode .header-tagline {
+  color: #6b5d52;
+}

@@ -1,0 +1,531 @@
+/* ==================== Base Styles ==================== */
+/* Body, container, header, theme toggle */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: linear-gradient(135deg, #1a2744 0%, #0c1929 100%);
+  background-attachment: fixed;
+  color: #f0f0f0;
+  width: 320px;
+  min-height: 200px;
+  border: 1px solid #5a7a9a;
+  box-shadow: 0 0 20px rgba(90, 122, 154, 0.2), 0 0 40px rgba(212, 199, 138, 0.1);
+}
+
+/* Hide controls during initialization to prevent flash when loading disabled domains */
+body.initializing {
+  min-height: auto;
+}
+
+body.initializing .volume-display,
+body.initializing .slider-container,
+body.initializing .presets,
+body.initializing .balance-container,
+body.initializing .enhancements-section,
+body.initializing .device-selector,
+body.initializing .add-rule-section,
+body.initializing .status-message {
+  display: none;
+}
+
+.container {
+  padding: 6px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+/* Brand Logo Link */
+.brand-logo-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.brand-logo-link:hover {
+  opacity: 0.8;
+}
+
+.brand-logo-link:active {
+  opacity: 0.6;
+}
+
+/* Brand Logo (ABC) */
+.brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-logo svg {
+  display: block;
+}
+
+/* Show dark logo by default, hide light logo */
+.brand-logo .logo-dark {
+  display: block;
+}
+
+.brand-logo .logo-light {
+  display: none;
+}
+
+/* Header Buttons */
+.header-btn {
+  background: transparent;
+  border: 1px solid #5a7a9a;
+  border-radius: 6px;
+  padding: 5px;
+  cursor: pointer;
+  color: #7a8fa5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.header-btn:hover {
+  background: #0f1621;
+  color: #f0f0f0;
+  border-color: #7a9ab8;
+}
+
+/* Mute Others button - muted red default, darker when active */
+#muteOthersBtn {
+  background: #8b4040;
+  border-color: #8b4040;
+  color: #ffffff;
+}
+
+#muteOthersBtn:hover {
+  background: #7a3636;
+  border-color: #7a3636;
+}
+
+#muteOthersBtn.mute-active {
+  background: #6b2f2f;
+  border-color: #6b2f2f;
+  color: #ffffff;
+}
+
+#muteOthersBtn.mute-active:hover {
+  background: #5a2626;
+  border-color: #5a2626;
+}
+
+/* Mute Others button icons - hide slashed icon by default */
+.mute-icon-muted {
+  display: none;
+}
+
+/* Basic/Advanced toggle - muted yellow */
+#modeToggle {
+  background: #a89a4a;
+  border-color: #a89a4a;
+  color: #ffffff;
+}
+
+#modeToggle:hover {
+  background: #968839;
+  border-color: #968839;
+}
+
+/* Bypass button - muted blue default, red when active */
+#disableDomainBtn {
+  background: #5c7a99;
+  border-color: #5c7a99;
+  color: #ffffff;
+}
+
+#disableDomainBtn:hover {
+  background: #4a6580;
+  border-color: #4a6580;
+}
+
+/* Utility buttons - muted gray (shortcuts, theme, settings) */
+#shortcutsBtn,
+#themeToggle,
+#settingsBtn {
+  background: #5a5a5a;
+  border-color: #5a5a5a;
+  color: #ffffff;
+}
+
+#shortcutsBtn:hover,
+#themeToggle:hover,
+#settingsBtn:hover {
+  background: #4a4a4a;
+  border-color: #4a4a4a;
+}
+
+/* Audio Mode button - 3 states: default (gray), tab-capture (blue), native (orange) */
+#disableDomainBtn.tab-capture {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+#disableDomainBtn.tab-capture:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+#disableDomainBtn.native-mode {
+  background: #f97316;
+  border-color: #f97316;
+  color: #ffffff;
+}
+
+#disableDomainBtn.native-mode:hover {
+  background: #ea580c;
+  border-color: #ea580c;
+}
+
+#themeToggle .icon-sun {
+  display: none;
+}
+
+#themeToggle .icon-moon {
+  display: block;
+}
+
+.logo {
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 0;
+}
+
+.header-spacer {
+  flex: 1;
+}
+
+/* Hidden header items (used by header layout customization) */
+.header-item-hidden {
+  display: none !important;
+}
+
+/* Utility class for hiding elements (CSP-compliant alternative to inline styles) */
+.hidden {
+  display: none !important;
+}
+
+.global-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #555555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 2px;
+}
+
+.logo svg {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
+
+/* ==================== Light Mode: Base (Morning Theme) ==================== */
+
+body.light-mode {
+  background: linear-gradient(135deg, #f5e6d3 0%, #e8d9c6 100%);
+  background-attachment: fixed;
+  color: #2d2520;
+  border: 1px solid #d4c4b0;
+  box-shadow: 0 0 20px rgba(139, 115, 85, 0.15), 0 0 40px rgba(196, 168, 112, 0.1);
+}
+
+body.light-mode .logo {
+  color: #2d2520;
+}
+
+body.light-mode .logo svg {
+  filter: drop-shadow(0 0 10px rgba(139, 115, 85, 0.3));
+}
+
+/* Swap brand logo in light mode */
+body.light-mode .brand-logo .logo-dark {
+  display: none;
+}
+
+body.light-mode .brand-logo .logo-light {
+  display: block;
+}
+
+body.light-mode .global-label {
+  color: #6b5d52;
+}
+
+body.light-mode .header-btn {
+  border-color: #d4c4b0;
+  color: #6b5d52;
+}
+
+body.light-mode .header-btn:hover {
+  background: #faf5ef;
+  color: #2d2520;
+  border-color: #c4b4a0;
+}
+
+body.light-mode #modeToggle {
+  background: #a89a4a;
+  border-color: #a89a4a;
+  color: #ffffff;
+}
+
+body.light-mode #modeToggle:hover {
+  background: #968839;
+  border-color: #968839;
+}
+
+body.light-mode #disableDomainBtn {
+  background: #5c7a99;
+  border-color: #5c7a99;
+  color: #ffffff;
+}
+
+body.light-mode #disableDomainBtn:hover {
+  background: #4a6580;
+  border-color: #4a6580;
+}
+
+body.light-mode #muteOthersBtn {
+  background: #8b4040;
+  border-color: #8b4040;
+  color: #ffffff;
+}
+
+body.light-mode #muteOthersBtn:hover {
+  background: #7a3636;
+  border-color: #7a3636;
+}
+
+body.light-mode #muteOthersBtn.mute-active {
+  background: #6b2f2f;
+  border-color: #6b2f2f;
+  color: #ffffff;
+}
+
+body.light-mode #muteOthersBtn.mute-active:hover {
+  background: #5a2626;
+  border-color: #5a2626;
+}
+
+body.light-mode #shortcutsBtn,
+body.light-mode #themeToggle,
+body.light-mode #settingsBtn {
+  background: #8b7355;
+  border-color: #8b7355;
+  color: #ffffff;
+}
+
+body.light-mode #shortcutsBtn:hover,
+body.light-mode #themeToggle:hover,
+body.light-mode #settingsBtn:hover {
+  background: #7a6245;
+  border-color: #7a6245;
+}
+
+body.light-mode #disableDomainBtn.tab-capture {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+body.light-mode #disableDomainBtn.tab-capture:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+body.light-mode #disableDomainBtn.native-mode {
+  background: #f97316;
+  border-color: #f97316;
+  color: #ffffff;
+}
+
+body.light-mode #disableDomainBtn.native-mode:hover {
+  background: #ea580c;
+  border-color: #ea580c;
+}
+
+/* Light mode: Audio mode toggle */
+body.light-mode .audio-mode-toggle.tabcapture-active {
+  background: #4a7a5c;
+  border-color: #4a7a5c;
+  color: #ffffff;
+}
+
+body.light-mode .audio-mode-toggle.webaudio-active {
+  background: #c4784a;
+  border-color: #c4784a;
+  color: #ffffff;
+}
+
+body.light-mode #disableDomainBtn.off-active {
+  background: #8b4040;
+  border-color: #8b4040;
+  color: #ffffff;
+}
+
+body.light-mode #disableDomainBtn.off-active:hover {
+  background: #7a3636;
+  border-color: #7a3636;
+}
+
+body.light-mode #themeToggle .icon-sun {
+  display: block;
+}
+
+body.light-mode #themeToggle .icon-moon {
+  display: none;
+}
+
+/* ==================== Basic/Advanced Mode Toggle ==================== */
+
+/* Default: Advanced mode - show three lines icon */
+.mode-toggle .icon-basic {
+  display: none;
+}
+
+.mode-toggle .icon-advanced {
+  display: block;
+}
+
+/* In basic mode, show single line icon */
+body.basic-mode .mode-toggle .icon-basic {
+  display: block;
+}
+
+body.basic-mode .mode-toggle .icon-advanced {
+  display: none;
+}
+
+/* Hide advanced elements in basic mode */
+body.basic-mode .full-mode-only {
+  display: none !important;
+}
+
+/* ==================== Audio Mode Toggle (Tab Capture / Web Audio) ==================== */
+
+/* Default: Tab Capture mode - show capture icon */
+.audio-mode-toggle .icon-tabcapture {
+  display: block;
+}
+
+.audio-mode-toggle .icon-webaudio {
+  display: none;
+}
+
+/* Tab Capture active state - muted green */
+.audio-mode-toggle.tabcapture-active {
+  background: #4a7a5c;
+  border-color: #4a7a5c;
+  color: #ffffff;
+}
+
+.audio-mode-toggle.tabcapture-active:hover {
+  background: #3d6a4d;
+  border-color: #3d6a4d;
+}
+
+/* Web Audio mode - show waveform icon */
+.audio-mode-toggle.webaudio-active .icon-tabcapture {
+  display: none;
+}
+
+.audio-mode-toggle.webaudio-active .icon-webaudio {
+  display: block;
+}
+
+/* Web Audio active state - muted orange (Firefox color) */
+.audio-mode-toggle.webaudio-active {
+  background: #c4784a;
+  border-color: #c4784a;
+  color: #ffffff;
+}
+
+.audio-mode-toggle.webaudio-active:hover {
+  background: #a86339;
+  border-color: #a86339;
+}
+
+/* Disabled state (when Off mode is active) */
+.audio-mode-toggle.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Firefox: Tab Capture not available - show Web Audio as active, not disabled */
+body.is-firefox .audio-mode-toggle .icon-tabcapture {
+  display: none;
+}
+
+body.is-firefox .audio-mode-toggle .icon-webaudio {
+  display: block;
+}
+
+/* Bypass button - active state (darker red) */
+#disableDomainBtn.off-active {
+  background: #8b4040;
+  border-color: #8b4040;
+  color: #ffffff;
+}
+
+#disableDomainBtn.off-active:hover {
+  background: #7a3636;
+  border-color: #7a3636;
+}
+
+/* ==================== Audio Blocked State ==================== */
+/* When extension cannot access audio on a site, grey out controls */
+
+/* Grey out and disable volume controls */
+body.audio-blocked .volume-display,
+body.audio-blocked .slider-container,
+body.audio-blocked .presets,
+body.audio-blocked .balance-container,
+body.audio-blocked .enhancements-section,
+body.audio-blocked .device-selector,
+body.audio-blocked .add-rule-section,
+body.audio-blocked #resetTabBtn {
+  opacity: 0.35;
+  pointer-events: none;
+  filter: grayscale(0.5);
+}
+
+/* Keep tab navigation arrows, visualizer, play button, and header fully enabled */
+body.audio-blocked .tab-info-wrapper,
+body.audio-blocked .header,
+body.audio-blocked #prevTabBtn,
+body.audio-blocked #nextTabBtn,
+body.audio-blocked #mediaToggleBtn {
+  opacity: 1;
+  pointer-events: auto;
+  filter: none;
+}
+
+/* Keep the status message and fallback buttons visible and enabled */
+body.audio-blocked #statusMessage,
+body.audio-blocked #enableTabCaptureBtn,
+body.audio-blocked #enableNativeModeBtn {
+  opacity: 1;
+  pointer-events: auto;
+  filter: none;
+}

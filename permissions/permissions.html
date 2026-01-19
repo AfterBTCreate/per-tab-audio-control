@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Per-Tab Audio Control - Grant Permission</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 48px;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .icon {
+      font-size: 56px;
+      margin-bottom: 24px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+      color: #000;
+      border: none;
+      padding: 16px 36px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 222, 128, 0.4);
+    }
+
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .status.success {
+      display: block;
+      background: rgba(74, 222, 128, 0.2);
+      color: #4ade80;
+    }
+
+    .status.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .device-list {
+      margin-top: 20px;
+      text-align: left;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 16px;
+      display: none;
+    }
+
+    .device-list.show {
+      display: block;
+    }
+
+    .device-list h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .device-item {
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .device-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .close-hint {
+      margin-top: 24px;
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .help-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.5);
+      line-height: 1.6;
+    }
+
+    .help-section a {
+      color: #60a5fa;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .help-section a:hover {
+      text-decoration: underline;
+    }
+
+    .help-section.error-help {
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 8px;
+      padding: 16px;
+      border-top: none;
+      margin-top: 16px;
+    }
+
+    .explanation {
+      background: rgba(96, 165, 250, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.7;
+      text-align: left;
+    }
+
+    .explanation.options-info {
+      background: rgba(255, 255, 255, 0.05);
+      margin-bottom: 24px;
+    }
+
+    .explanation ul {
+      margin: 14px 0 0 0;
+      padding-left: 22px;
+    }
+
+    .explanation li {
+      margin-bottom: 10px;
+    }
+
+    .explanation li:last-child {
+      margin-bottom: 0;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    button.secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: none;
+    }
+
+    .skip-note {
+      margin-top: 20px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.5);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🎧</div>
+    <h1>Audio Device Access</h1>
+    <p>To select specific audio output devices for each tab, Per-Tab Audio Control needs permission to enumerate your audio devices.</p>
+
+    <div class="explanation">
+      <strong>Why microphone permission?</strong><br>
+      Browsers require microphone permission to list audio output devices (speakers, headphones, HDMI, etc.). We don't actually use your microphone - we only need the permission to see available audio outputs.
+    </div>
+
+    <div class="explanation options-info">
+      <strong>When your browser prompts you:</strong>
+      <ul>
+        <li><strong>Allow</strong> (Recommended) - Permission persists across browser sessions. You won't be asked again.</li>
+        <li><strong>Deny / Block</strong> - Permanently blocks permission. You can change this later in browser settings.</li>
+      </ul>
+      <em style="font-size: 12px; opacity: 0.7;">Note: Some browsers (like Chrome) offer additional options such as "Allow this time" for one-time permission.</em>
+    </div>
+
+    <div class="button-group">
+      <button id="grantBtn">Grant Permission</button>
+      <button id="skipBtn" class="secondary">Skip</button>
+    </div>
+
+    <p class="skip-note" id="skipNote">If you skip, volume control will still work normally.<br>Only the Audio Output device selector will be unavailable.<br><br>You can return to this page anytime by clicking the refresh icon next to the Output Device selector in the popup or Settings page.</p>
+    <div class="status" id="status"></div>
+    <div class="device-list" id="deviceList">
+      <h3>Available Audio Output Devices:</h3>
+      <div id="devices"></div>
+    </div>
+    <p class="close-hint" id="closeHint" style="display: none;">You can now close this tab and use the extension.</p>
+    <p class="close-hint" id="autoCloseHint" style="display: none;">Auto-closing in <span id="countdown">30</span> seconds...</p>
+    <div class="help-section error-help" id="blockedSection" style="display: none;">
+      <strong>Permission blocked?</strong><br><br>
+      To unblock, open your browser's microphone settings<br>
+      and remove this extension from the blocked list, then try again.<br>
+      <em style="font-size: 11px; opacity: 0.7;">Settings location varies by browser (e.g., Settings → Privacy → Site Settings → Microphone)</em>
+    </div>
+  </div>
+
+  <!-- Shared utilities - must load first -->
+  <script src="../shared/browser-api.js"></script>
+  <script src="permissions.js"></script>
+</body>
+</html>
