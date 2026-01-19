@@ -25,7 +25,10 @@ Your audio settings stay on your device. This extension makes zero external netw
 ### Chrome Web Store
 Coming soon
 
-### Manual Installation
+### Firefox
+The codebase is compatible with Firefox, however there are currently several issues to work through. Firefox support is being developed as time allows.
+
+### Manual Installation (Chrome)
 1. Download or clone this repository
 2. Open `chrome://extensions/`
 3. Enable "Developer mode"
