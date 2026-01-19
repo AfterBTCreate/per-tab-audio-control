@@ -37,7 +37,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [4.0.0] - Release - 2026-01-18
+## [4.0.0] - Beta - 2026-01-18
 
 ### Summary
 Production-ready milestone with Night Sky theme branding and improved code quality.
