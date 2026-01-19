@@ -1,12 +1,12 @@
 // Per-Tab Audio Control - Tabs Module
 // Tab navigation, focus mode, reset tab, site rules, disable domain, storage quota, init
 
-// ==================== Mute Other Tabs ====================
+// ==================== Focus (Mute Other Tabs) ====================
 
-const muteOthersBtn = document.getElementById('muteOthersBtn');
+const focusBtn = document.getElementById('focusBtn');
 
-// Mute all other tabs (one-way action, no toggle/restore)
-async function muteOtherTabs() {
+// Focus on current tab by muting all others (one-way action)
+async function focusMuteOtherTabs() {
   try {
     const result = await browserAPI.runtime.sendMessage({
       type: 'MUTE_OTHER_TABS',
@@ -14,19 +14,19 @@ async function muteOtherTabs() {
     });
     if (result && result.success) {
       if (result.mutedCount > 0) {
-        showStatus(`Muted ${result.mutedCount} tab${result.mutedCount !== 1 ? 's' : ''}`, 'success', 2000);
+        showStatus(`Focus: Muted ${result.mutedCount} other tab${result.mutedCount !== 1 ? 's' : ''}`, 'success', 2000);
       } else {
         showStatus('No other tabs to mute', 'info', 2000);
       }
     }
   } catch (e) {
-    console.debug('Could not mute other tabs:', e);
+    console.debug('Could not focus (mute other tabs):', e);
   }
 }
 
-// Mute button click handler
-if (muteOthersBtn) {
-  muteOthersBtn.addEventListener('click', muteOtherTabs);
+// Focus button click handler
+if (focusBtn) {
+  focusBtn.addEventListener('click', focusMuteOtherTabs);
 }
 
 // ==================== Reset Tab to Defaults ====================
@@ -141,7 +141,7 @@ async function loadTabSettings() {
   currentVolume = response.volume !== undefined ? response.volume : 100;
 
   // Load previous volume from storage for unmute functionality
-  const prevKey = `tab_${currentTabId}_prev`;
+  const prevKey = getTabStorageKey(currentTabId, TAB_STORAGE.PREV);
   const prevResult = await browserAPI.storage.local.get([prevKey]);
   if (prevResult[prevKey] !== undefined) {
     previousVolume = prevResult[prevKey];

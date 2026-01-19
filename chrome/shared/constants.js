@@ -102,3 +102,27 @@ const STORAGE_KEYS = {
   // Local storage (per-tab)
   TAB_PREFIX: 'tab_'
 };
+
+// Tab storage suffixes (used with getTabStorageKey helper)
+const TAB_STORAGE = {
+  VOLUME: '',           // tab_123 (base key for volume)
+  PREV: 'prev',         // tab_123_prev (previous volume before mute)
+  DEVICE: 'device',     // tab_123_device
+  BASS: 'bass',         // tab_123_bass
+  TREBLE: 'treble',     // tab_123_treble
+  VOICE: 'voice',       // tab_123_voice
+  COMPRESSOR: 'compressor', // tab_123_compressor
+  BALANCE: 'balance',   // tab_123_balance
+  CHANNEL_MODE: 'channelMode', // tab_123_channelMode
+  RULE_APPLIED: 'ruleAppliedDomain' // tab_123_ruleAppliedDomain
+};
+
+// Helper to generate consistent tab storage keys
+// Usage: getTabStorageKey(123, TAB_STORAGE.BASS) → 'tab_123_bass'
+//        getTabStorageKey(123) → 'tab_123' (volume)
+function getTabStorageKey(tabId, suffix = '') {
+  if (suffix) {
+    return `${STORAGE_KEYS.TAB_PREFIX}${tabId}_${suffix}`;
+  }
+  return `${STORAGE_KEYS.TAB_PREFIX}${tabId}`;
+}

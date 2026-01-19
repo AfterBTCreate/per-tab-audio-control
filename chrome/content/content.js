@@ -254,6 +254,11 @@
   let isGlobalNativeMode = false;
   let nativeModeVolume = 100; // Track native volume separately (0-100)
 
+  // Tab Capture mode flag - when true, skip processing media elements through Web Audio API
+  // Tab Capture captures audio at the browser level, so we don't need to route through AudioContext
+  // This avoids CORS issues with cross-origin media (e.g., Facebook Messenger videos)
+  let isTabCaptureMode = false;
+
   // Apply native volume to all media elements (no Web Audio API, 0-100% only)
   function applyNativeVolumeToMedia(volume) {
     const cappedVolume = Math.min(100, Math.max(0, volume));
@@ -276,6 +281,31 @@
       return disabledDomains.includes(domain);
     } catch (e) {
       return false;
+    }
+  }
+
+  // Get effective audio mode for this site via background.js (single source of truth)
+  // Returns 'tabcapture', 'webaudio', or 'native'
+  async function getEffectiveAudioMode() {
+    try {
+      const hostname = window.location.hostname;
+      if (!hostname) return isFirefox ? 'webaudio' : 'tabcapture';
+
+      const response = await browserAPI.runtime.sendMessage({
+        type: 'GET_EFFECTIVE_MODE',
+        hostname: hostname
+      });
+
+      if (response && response.success && response.mode) {
+        // Map 'off' to 'native' for content script compatibility
+        return response.mode === 'off' ? 'native' : response.mode;
+      }
+
+      // Fallback if message fails
+      return isFirefox ? 'webaudio' : 'tabcapture';
+    } catch (e) {
+      console.log('[TabVolume] Error getting effective audio mode:', e.message);
+      return isFirefox ? 'webaudio' : 'tabcapture';
     }
   }
 
@@ -572,6 +602,16 @@
   }
 
   function processMediaElement(element) {
+    // In Tab Capture mode, don't route through AudioContext - let browser capture native audio
+    // This avoids CORS issues with cross-origin media (e.g., Facebook Messenger, embedded videos)
+    // Tab Capture handles volume boost/effects in the offscreen document
+    if (isTabCaptureMode) {
+      // Keep media element at full volume - Tab Capture will adjust volume
+      element.volume = 1.0;
+      console.log('[TabVolume] processMediaElement: Tab Capture mode, skipping AudioContext routing');
+      return;
+    }
+
     // In device mode on Chrome, don't route through AudioContext - use native element volume
     // Firefox exception: Uses MediaStreamDestination workaround which needs AudioContext for analyser/effects
     if (audioMode === 'device' && !isFirefox) {
@@ -1637,33 +1677,7 @@
           mutedCount++;
         }
       }
-
-      // For sites that bypass muting (like Spotify with Web Audio API), also pause playback
-      // This is more reliable than muting for these sites
-      let pausedViaButton = false;
-      const pauseSelectors = [
-        // Spotify - pause button (only click if currently playing)
-        '[data-testid="control-button-pause"]',
-        '.spoticon-pause-16',
-        // Generic pause buttons
-        'button[aria-label="Pause" i]',
-        '[role="button"][aria-label="Pause" i]'
-      ];
-
-      for (const selector of pauseSelectors) {
-        try {
-          const btn = document.querySelector(selector);
-          if (btn && (btn.offsetParent !== null || btn.offsetWidth > 0)) {
-            btn.click();
-            pausedViaButton = true;
-            break;
-          }
-        } catch (e) {
-          // Selector might be invalid
-        }
-      }
-
-      sendResponse({ success: true, mutedCount, pausedViaButton });
+      sendResponse({ success: true, mutedCount });
     } else if (request.type === 'UNMUTE_MEDIA') {
       // Unmute all media elements directly
       const mediaElements = document.querySelectorAll('audio, video');
@@ -1674,32 +1688,7 @@
           unmutedCount++;
         }
       }
-
-      // For sites that were paused during mute (like Spotify), resume playback
-      let resumedViaButton = false;
-      const playSelectors = [
-        // Spotify - play button (only click if currently paused)
-        '[data-testid="control-button-play"]',
-        '.spoticon-play-16',
-        // Generic play buttons
-        'button[aria-label="Play" i]:not([aria-label*="Playback" i])',
-        '[role="button"][aria-label="Play" i]'
-      ];
-
-      for (const selector of playSelectors) {
-        try {
-          const btn = document.querySelector(selector);
-          if (btn && (btn.offsetParent !== null || btn.offsetWidth > 0)) {
-            btn.click();
-            resumedViaButton = true;
-            break;
-          }
-        } catch (e) {
-          // Selector might be invalid
-        }
-      }
-
-      sendResponse({ success: true, unmutedCount, resumedViaButton });
+      sendResponse({ success: true, unmutedCount });
     } else if (request.type === 'GET_NATIVE_MODE_STATUS') {
       // Report native mode status (for popup UI)
       const mediaElements = document.querySelectorAll('audio, video');
@@ -1825,6 +1814,16 @@
       }
       console.log('[TabVolume] Extension disabled on this domain, skipping initialization');
       return;
+    }
+
+    // Check effective audio mode for this site (Tab Capture, Web Audio, or Native)
+    // When Tab Capture is active, we DON'T process media through Web Audio API
+    // This avoids CORS issues with cross-origin media (Facebook videos, embedded content)
+    const effectiveMode = await getEffectiveAudioMode();
+    if (effectiveMode === 'tabcapture' && !isFirefox) {
+      isTabCaptureMode = true;
+      console.log('[TabVolume] Tab Capture mode active - content script will not process media elements');
+      // Note: We don't return here - we still need to set up message listeners and report media
     }
 
     // Check for global native mode setting

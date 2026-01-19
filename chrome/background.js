@@ -2,7 +2,7 @@
 // Cross-browser compatible (Chrome & Firefox)
 //
 // Note: This file intentionally duplicates some utilities from shared/validation.js
-// (sanitizeHostname, validateVolume) because service workers can't easily share code
+// and shared/constants.js because service workers can't easily share code
 // via HTML script tags. Keep these in sync with the shared versions.
 
 // Debug flag - set to true for verbose logging during development
@@ -11,6 +11,28 @@ const log = (...args) => DEBUG && console.log('[BG]', ...args);
 const logDebug = (...args) => DEBUG && console.debug('[BG]', ...args);
 
 const DEFAULT_VOLUME = 100;
+
+// Tab storage suffixes - duplicated from shared/constants.js (service worker limitation)
+const TAB_STORAGE = {
+  VOLUME: '',           // tab_123 (base key for volume)
+  PREV: 'prev',         // tab_123_prev (previous volume before mute)
+  DEVICE: 'device',     // tab_123_device
+  BASS: 'bass',         // tab_123_bass
+  TREBLE: 'treble',     // tab_123_treble
+  VOICE: 'voice',       // tab_123_voice
+  COMPRESSOR: 'compressor', // tab_123_compressor
+  BALANCE: 'balance',   // tab_123_balance
+  CHANNEL_MODE: 'channelMode', // tab_123_channelMode
+  RULE_APPLIED: 'ruleAppliedDomain' // tab_123_ruleAppliedDomain
+};
+
+// Helper to generate consistent tab storage keys - duplicated from shared/constants.js
+function getTabStorageKey(tabId, suffix = '') {
+  if (suffix) {
+    return `tab_${tabId}_${suffix}`;
+  }
+  return `tab_${tabId}`;
+}
 
 // Volume step for keyboard shortcuts (loaded from storage)
 let keyboardStep = 1;
@@ -212,14 +234,14 @@ function validateVolume(value) {
 
 // Get volume for a tab
 async function getTabVolume(tabId) {
-  const key = `tab_${tabId}`;
+  const key = getTabStorageKey(tabId);
   const result = await browserAPI.storage.local.get([key]);
   return result[key] !== undefined ? validateVolume(result[key]) : DEFAULT_VOLUME;
 }
 
 // Set volume for a tab
 async function setTabVolume(tabId, volume) {
-  const key = `tab_${tabId}`;
+  const key = getTabStorageKey(tabId);
   const validatedVolume = validateVolume(volume);
   await browserAPI.storage.local.set({ [key]: validatedVolume });
   await updateBadge(tabId, validatedVolume);
@@ -232,6 +254,28 @@ async function setTabVolume(tabId, volume) {
     });
   } catch (e) {
     // Content script might not be ready
+  }
+
+  // Also send to Tab Capture if active (Chrome only)
+  // This ensures keyboard shortcuts work in Tab Capture mode
+  if (!isFirefox && chrome.offscreen) {
+    try {
+      const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
+      const existingContexts = await chrome.runtime.getContexts({
+        contextTypes: ['OFFSCREEN_DOCUMENT'],
+        documentUrls: [offscreenUrl]
+      });
+
+      if (existingContexts.length > 0) {
+        await chrome.runtime.sendMessage({
+          type: 'SET_TAB_CAPTURE_VOLUME',
+          tabId: tabId,
+          volume: validatedVolume
+        });
+      }
+    } catch (e) {
+      // Offscreen might not be ready or Tab Capture not active for this tab
+    }
   }
 
   // Notify popup (if open) about volume change
@@ -248,10 +292,10 @@ async function setTabVolume(tabId, volume) {
 
 // Clean up storage when tab is closed
 browserAPI.tabs.onRemoved.addListener(async (tabId) => {
-  const key = `tab_${tabId}`;
-  const prevKey = `tab_${tabId}_prev`;
-  const deviceKey = `tab_${tabId}_device`;
-  const ruleAppliedKey = `tab_${tabId}_ruleAppliedDomain`;
+  const key = getTabStorageKey(tabId);
+  const prevKey = getTabStorageKey(tabId, TAB_STORAGE.PREV);
+  const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
+  const ruleAppliedKey = getTabStorageKey(tabId, TAB_STORAGE.RULE_APPLIED);
   await browserAPI.storage.local.remove([key, prevKey, deviceKey, ruleAppliedKey]);
 
   // Remove from tabs with media tracking
@@ -277,6 +321,37 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
   }
 });
 
+// Handle tab mute state changes - unmute media elements when tab is manually unmuted
+browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Only handle mute state changes
+  if (!changeInfo.mutedInfo) return;
+
+  // When tab is unmuted, also unmute media elements and restore Tab Capture volume
+  if (changeInfo.mutedInfo.muted === false) {
+    try {
+      await browserAPI.tabs.sendMessage(tabId, { type: 'UNMUTE_MEDIA' });
+      console.log('[TabVolume] Tab unmuted, sent UNMUTE_MEDIA to tab:', tabId);
+    } catch (e) {
+      // Content script might not be loaded - that's OK
+    }
+
+    // Also restore Tab Capture volume to saved value (Chrome only)
+    if (!isFirefox) {
+      try {
+        const savedVolume = await getTabVolume(tabId);
+        await chrome.runtime.sendMessage({
+          type: 'SET_TAB_CAPTURE_VOLUME',
+          tabId: tabId,
+          volume: savedVolume
+        });
+        console.log('[TabVolume] Tab unmuted, restored Tab Capture volume to:', savedVolume);
+      } catch (tcErr) {
+        // Tab might not have Tab Capture active - that's fine
+      }
+    }
+  }
+});
+
 // Handle tab updates (navigation, refresh)
 browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete') {
@@ -296,7 +371,7 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
           return;
         }
 
-        const ruleAppliedKey = `tab_${tabId}_ruleAppliedDomain`;
+        const ruleAppliedKey = getTabStorageKey(tabId, TAB_STORAGE.RULE_APPLIED);
         const ruleResult = await browserAPI.storage.local.get([ruleAppliedKey]);
         const lastAppliedDomain = ruleResult[ruleAppliedKey];
         log('Last applied domain:', lastAppliedDomain, '| Current domain:', currentDomain, '| Same?', lastAppliedDomain === currentDomain);
@@ -315,7 +390,7 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             if (matchingRule.deviceLabel) {
               ruleDeviceLabel = matchingRule.deviceLabel;
               // Save device preference for this tab
-              const deviceKey = `tab_${tabId}_device`;
+              const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
               await browserAPI.storage.local.set({
                 [deviceKey]: { deviceId: '', deviceLabel: matchingRule.deviceLabel }
               });
@@ -323,31 +398,31 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
             // Apply bass boost from rule if specified
             if (matchingRule.bassBoost) {
-              const bassKey = `tab_${tabId}_bass`;
+              const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
               await browserAPI.storage.local.set({ [bassKey]: matchingRule.bassBoost });
             }
 
             // Apply treble boost from rule if specified
             if (matchingRule.trebleBoost) {
-              const trebleKey = `tab_${tabId}_treble`;
+              const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
               await browserAPI.storage.local.set({ [trebleKey]: matchingRule.trebleBoost });
             }
 
             // Apply voice boost from rule if specified
             if (matchingRule.voiceBoost) {
-              const voiceKey = `tab_${tabId}_voice`;
+              const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
               await browserAPI.storage.local.set({ [voiceKey]: matchingRule.voiceBoost });
             }
 
             // Apply compressor from rule if specified
             if (matchingRule.compressor) {
-              const compressorKey = `tab_${tabId}_compressor`;
+              const compressorKey = getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR);
               await browserAPI.storage.local.set({ [compressorKey]: matchingRule.compressor });
               // If compressor is enabled, disable bass, treble, and voice boost
               if (matchingRule.compressor !== 'off') {
-                const bassKey = `tab_${tabId}_bass`;
-                const trebleKey = `tab_${tabId}_treble`;
-                const voiceKey = `tab_${tabId}_voice`;
+                const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
+                const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
+                const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
                 await browserAPI.storage.local.set({
                   [bassKey]: 'off',
                   [trebleKey]: 'off',
@@ -358,13 +433,13 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
             // Apply balance from rule if specified
             if (matchingRule.balance !== undefined && matchingRule.balance !== 0) {
-              const balanceKey = `tab_${tabId}_balance`;
+              const balanceKey = getTabStorageKey(tabId, TAB_STORAGE.BALANCE);
               await browserAPI.storage.local.set({ [balanceKey]: matchingRule.balance });
             }
 
             // Apply channel mode from rule if specified
             if (matchingRule.channelMode) {
-              const channelKey = `tab_${tabId}_channelMode`;
+              const channelKey = getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE);
               await browserAPI.storage.local.set({ [channelKey]: matchingRule.channelMode });
             }
 
@@ -385,7 +460,7 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     await updateBadge(tabId, volume);
 
     // Get saved device for this tab (handles both old string format and new object format)
-    const deviceKey = `tab_${tabId}_device`;
+    const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
     const deviceResult = await browserAPI.storage.local.get([deviceKey]);
     const savedDevice = deviceResult[deviceKey];
 
@@ -436,12 +511,12 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       }
 
       // Send bass/treble/voice boost, compressor, balance, and channel mode settings if they exist for this tab
-      const bassKey = `tab_${tabId}_bass`;
-      const trebleKey = `tab_${tabId}_treble`;
-      const voiceKey = `tab_${tabId}_voice`;
-      const compressorKey = `tab_${tabId}_compressor`;
-      const balanceKey = `tab_${tabId}_balance`;
-      const channelKey = `tab_${tabId}_channelMode`;
+      const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
+      const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
+      const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
+      const compressorKey = getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR);
+      const balanceKey = getTabStorageKey(tabId, TAB_STORAGE.BALANCE);
+      const channelKey = getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE);
       const effectResult = await browserAPI.storage.local.get([bassKey, trebleKey, voiceKey, compressorKey, balanceKey, channelKey]);
       const bassBoostPresets = (await browserAPI.storage.sync.get(['bassBoostPresets'])).bassBoostPresets || [4, 8, 12];
       const trebleBoostPresets = (await browserAPI.storage.sync.get(['trebleBoostPresets'])).trebleBoostPresets || [6, 12, 24];
@@ -652,7 +727,7 @@ function isValidSender(sender) {
 const VALID_MESSAGE_TYPES = [
   'REQUEST_AUDIO_DEVICES', 'DEVICE_NOT_FOUND', 'GET_VOLUME', 'SET_VOLUME',
   'GET_TAB_ID', 'GET_TAB_INFO', 'GET_AUDIBLE_TABS',
-  'MUTE_OTHER_TABS', 'UNMUTE_OTHER_TABS',
+  'MUTE_OTHER_TABS',
   'HAS_MEDIA', 'CONTENT_READY', 'VOLUME_CHANGED',
   'START_TAB_CAPTURE_VISUALIZER', 'GET_TAB_CAPTURE_PREF', 'SET_TAB_CAPTURE_PREF',
   // Persistent visualizer Tab Capture (offscreen document)
@@ -661,7 +736,7 @@ const VALID_MESSAGE_TYPES = [
   // Tab Capture audio control (offscreen document)
   'SET_TAB_CAPTURE_VOLUME', 'SET_TAB_CAPTURE_BASS', 'SET_TAB_CAPTURE_TREBLE',
   'SET_TAB_CAPTURE_VOICE', 'SET_TAB_CAPTURE_BALANCE', 'SET_TAB_CAPTURE_DEVICE',
-  'GET_TAB_CAPTURE_MODE', 'GET_EFFECTIVE_MODE'
+  'SET_TAB_CAPTURE_COMPRESSOR', 'GET_TAB_CAPTURE_MODE', 'GET_EFFECTIVE_MODE'
 ];
 
 function isValidMessageType(type) {
@@ -755,9 +830,11 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'DEVICE_NOT_FOUND') {
     const tabId = sender.tab?.id;
     if (tabId) {
-      const deviceKey = `tab_${tabId}_device`;
+      const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
       browserAPI.storage.local.remove([deviceKey]).then(() => {
         console.log('[TabVolume] Cleared stale device ID for tab:', tabId);
+      }).catch(e => {
+        console.error('[TabVolume] Failed to clear stale device ID:', e.message);
       });
     }
     sendResponse({ success: true });
@@ -768,6 +845,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const tabId = request.tabId;
     getTabVolume(tabId).then(volume => {
       sendResponse({ volume });
+    }).catch(e => {
+      console.error('[TabVolume] Failed to get volume:', e.message);
+      sendResponse({ volume: 100 }); // Default to 100% on error
     });
     return true;
   }
@@ -777,6 +857,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const volume = request.volume;
     setTabVolume(tabId, volume).then(() => {
       sendResponse({ success: true });
+    }).catch(e => {
+      console.error('[TabVolume] Failed to set volume:', e.message);
+      sendResponse({ success: false, error: e.message });
     });
     return true;
   }
@@ -839,77 +922,50 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         const currentTabId = request.currentTabId;
         const tabs = await browserAPI.tabs.query({});
+        console.log('[TabVolume] Focus: Found', tabs.length, 'total tabs, current tab:', currentTabId);
 
         // Mute all other tabs that aren't already muted
         let mutedCount = 0;
+        let skippedCount = 0;
         for (const tab of tabs) {
           if (tab.id === currentTabId) {
+            console.log('[TabVolume] Skipping current tab:', tab.id, tab.title?.substring(0, 30));
             continue;
           }
           if (tab.mutedInfo?.muted) {
+            console.log('[TabVolume] Skipping already muted tab:', tab.id, tab.title?.substring(0, 30));
+            skippedCount++;
             continue;
           }
           try {
-            // Browser-level mute
+            // Browser-level mute only - don't mute media elements directly
+            // as this can cause issues with sites like YouTube that react to element.muted changes
+            console.log('[TabVolume] Muting tab:', tab.id, tab.title?.substring(0, 30), 'audible:', tab.audible);
             await browserAPI.tabs.update(tab.id, { muted: true });
             mutedCount++;
 
-            // Also pause media directly (for sites like Spotify that use Web Audio API)
-            try {
-              await browserAPI.tabs.sendMessage(tab.id, { type: 'MUTE_MEDIA' });
-            } catch (msgErr) {
-              // Content script might not be loaded on this tab - that's OK
+            // Also mute Tab Capture session if active (Tab Capture audio bypasses browser mute)
+            if (!isFirefox) {
+              try {
+                await chrome.runtime.sendMessage({
+                  type: 'SET_TAB_CAPTURE_VOLUME',
+                  tabId: tab.id,
+                  volume: 0
+                });
+                console.log('[TabVolume] Also muted Tab Capture for tab:', tab.id);
+              } catch (tcErr) {
+                // Tab might not have Tab Capture active - that's fine
+              }
             }
           } catch (muteErr) {
-            console.error('[TabVolume] Failed to mute tab:', tab.id, muteErr.message);
+            console.error('[TabVolume] Failed to mute tab:', tab.id, tab.title?.substring(0, 30), muteErr.message);
           }
         }
 
-        console.log('[TabVolume] Muted', mutedCount, 'other tabs');
+        console.log('[TabVolume] Focus complete: muted', mutedCount, 'tabs, skipped', skippedCount, 'already muted');
         sendResponse({ success: true, mutedCount });
       } catch (e) {
         console.error('[TabVolume] Mute other tabs failed:', e);
-        sendResponse({ success: false, error: e.message });
-      }
-    })();
-    return true;
-  }
-
-  // Unmute Other Tabs - unmute all muted tabs except current
-  if (request.type === 'UNMUTE_OTHER_TABS') {
-    (async () => {
-      try {
-        const currentTabId = request.currentTabId;
-        const tabs = await browserAPI.tabs.query({});
-
-        let unmutedCount = 0;
-        for (const tab of tabs) {
-          if (tab.id === currentTabId) {
-            continue;
-          }
-          if (!tab.mutedInfo?.muted) {
-            continue;
-          }
-          try {
-            // Browser-level unmute
-            await browserAPI.tabs.update(tab.id, { muted: false });
-            unmutedCount++;
-
-            // Also unmute media elements directly
-            try {
-              await browserAPI.tabs.sendMessage(tab.id, { type: 'UNMUTE_MEDIA' });
-            } catch (msgErr) {
-              // Content script might not be loaded on this tab - that's OK
-            }
-          } catch (e) {
-            // Tab might have been closed
-          }
-        }
-
-        console.log('[TabVolume] Unmuted', unmutedCount, 'tabs');
-        sendResponse({ success: true, unmutedCount });
-      } catch (e) {
-        console.error('[TabVolume] Unmute tabs failed:', e);
         sendResponse({ success: false, error: e.message });
       }
     })();
@@ -1207,7 +1263,8 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       request.type === 'SET_TAB_CAPTURE_TREBLE' ||
       request.type === 'SET_TAB_CAPTURE_VOICE' ||
       request.type === 'SET_TAB_CAPTURE_BALANCE' ||
-      request.type === 'SET_TAB_CAPTURE_DEVICE') {
+      request.type === 'SET_TAB_CAPTURE_DEVICE' ||
+      request.type === 'SET_TAB_CAPTURE_COMPRESSOR') {
     (async () => {
       if (isFirefox) {
         sendResponse({ success: false, error: 'Not supported in Firefox' });
@@ -1260,7 +1317,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'CONTENT_READY') {
     // Content script is ready, send current volume and device
     const tabId = sender.tab.id;
-    const deviceKey = `tab_${tabId}_device`;
+    const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
     Promise.all([
       getTabVolume(tabId),
       browserAPI.storage.local.get([deviceKey]),
@@ -1325,12 +1382,12 @@ browserAPI.commands.onCommand.addListener(async (command) => {
     case 'toggle-mute':
       // Store previous volume for unmuting
       if (volume === 0) {
-        const prevKey = `tab_${tab.id}_prev`;
+        const prevKey = getTabStorageKey(tab.id, TAB_STORAGE.PREV);
         const result = await browserAPI.storage.local.get([prevKey]);
         volume = result[prevKey] || 100;
         await browserAPI.storage.local.remove([prevKey]);
       } else {
-        const prevKey = `tab_${tab.id}_prev`;
+        const prevKey = getTabStorageKey(tab.id, TAB_STORAGE.PREV);
         await browserAPI.storage.local.set({ [prevKey]: volume });
         volume = 0;
       }
@@ -1949,16 +2006,9 @@ async function createContextMenus() {
     });
 
     contextMenusAPI.create({
-      id: 'muteOtherTabs',
+      id: 'focusMuteOtherTabs',
       parentId: 'tabVolumeParent',
-      title: 'Mute Other Tabs',
-      contexts: MENU_CONTEXTS
-    });
-
-    contextMenusAPI.create({
-      id: 'unmuteOtherTabs',
-      parentId: 'tabVolumeParent',
-      title: 'Unmute Other Tabs',
+      title: 'Focus (Mute Other Tabs)',
       contexts: MENU_CONTEXTS
     });
 
@@ -2167,41 +2217,27 @@ if (contextMenusAPI) {
         }
         break;
 
-      case 'muteOtherTabs':
-        // Mute all other tabs using browser API
+      case 'focusMuteOtherTabs':
+        // Focus: Mute all other tabs using browser-level mute only
         const allTabsToMute = await browserAPI.tabs.query({});
         for (const otherTab of allTabsToMute) {
           if (otherTab.id !== tab.id && !otherTab.mutedInfo?.muted) {
             try {
               await browserAPI.tabs.update(otherTab.id, { muted: true });
-              // Also mute media elements directly for sites that bypass browser mute
-              try {
-                await browserAPI.tabs.sendMessage(otherTab.id, { type: 'MUTE_MEDIA' });
-              } catch (e) {
-                // Tab might not have content script
+              // Also mute Tab Capture session if active (Tab Capture audio bypasses browser mute)
+              if (!isFirefox) {
+                try {
+                  await chrome.runtime.sendMessage({
+                    type: 'SET_TAB_CAPTURE_VOLUME',
+                    tabId: otherTab.id,
+                    volume: 0
+                  });
+                } catch (tcErr) {
+                  // Tab might not have Tab Capture active - that's fine
+                }
               }
             } catch (e) {
               // Tab might not support muting
-            }
-          }
-        }
-        break;
-
-      case 'unmuteOtherTabs':
-        // Unmute all other tabs using browser API
-        const allTabsToUnmute = await browserAPI.tabs.query({});
-        for (const otherTab of allTabsToUnmute) {
-          if (otherTab.id !== tab.id && otherTab.mutedInfo?.muted) {
-            try {
-              await browserAPI.tabs.update(otherTab.id, { muted: false });
-              // Also unmute media elements directly
-              try {
-                await browserAPI.tabs.sendMessage(otherTab.id, { type: 'UNMUTE_MEDIA' });
-              } catch (e) {
-                // Tab might not have content script
-              }
-            } catch (e) {
-              // Tab might not support unmuting
             }
           }
         }

@@ -86,7 +86,7 @@ let extremeVolumeWarningShown = false; // Track if warning already shown this se
 
 // Header layout customization defaults (must match options-constants.js)
 const DEFAULT_HEADER_LAYOUT = {
-  order: ['companyLogo', 'spacer1', 'logo', 'spacer2', 'muteOthers', 'audioMode', 'offMode', 'modeToggle', 'spacer3', 'shortcuts', 'theme', 'settings'],
+  order: ['companyLogo', 'spacer1', 'logo', 'spacer2', 'focus', 'audioMode', 'offMode', 'modeToggle', 'spacer3', 'shortcuts', 'theme', 'settings'],
   hidden: [],
   spacerCount: 3
 };
@@ -331,12 +331,18 @@ async function applyHeaderLayout() {
     const result = await browserAPI.storage.sync.get(['headerLayout']);
     const layout = result.headerLayout || DEFAULT_HEADER_LAYOUT;
 
-    // Migration: pauseOthers → muteOthers (v3.3.25)
-    if (layout.order && layout.order.includes('pauseOthers')) {
-      layout.order = layout.order.map(id => id === 'pauseOthers' ? 'muteOthers' : id);
-      if (layout.hidden) {
-        layout.hidden = layout.hidden.map(id => id === 'pauseOthers' ? 'muteOthers' : id);
-      }
+    // Migration: pauseOthers → muteOthers → focus (v3.3.25, v4.1.4)
+    if (layout.order) {
+      layout.order = layout.order.map(id => {
+        if (id === 'pauseOthers' || id === 'muteOthers') return 'focus';
+        return id;
+      });
+    }
+    if (layout.hidden) {
+      layout.hidden = layout.hidden.map(id => {
+        if (id === 'pauseOthers' || id === 'muteOthers') return 'focus';
+        return id;
+      });
     }
 
     const header = document.querySelector('.header');

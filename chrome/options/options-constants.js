@@ -57,11 +57,11 @@ const CLEANUP_DAYS = 90; // Rules unused for 90+ days
 
 // Header layout customization constants
 const DEFAULT_HEADER_LAYOUT = {
-  order: ['companyLogo', 'spacer1', 'logo', 'spacer2', 'muteOthers', 'audioMode', 'offMode', 'modeToggle', 'spacer3', 'shortcuts', 'theme', 'settings'],
+  order: ['companyLogo', 'spacer1', 'logo', 'spacer2', 'focus', 'audioMode', 'offMode', 'modeToggle', 'spacer3', 'shortcuts', 'theme', 'settings'],
   hidden: [],
   spacerCount: 3
 };
-const HIDEABLE_HEADER_ITEMS = ['muteOthers', 'shortcuts', 'theme'];
+const HIDEABLE_HEADER_ITEMS = ['focus', 'shortcuts', 'theme'];
 const REQUIRED_HEADER_ITEMS = ['audioMode', 'offMode', 'modeToggle', 'settings', 'logo'];
 const LOCKED_HEADER_ITEMS = ['companyLogo']; // Always first, cannot be moved or hidden
 const MAX_SPACERS = 3;
@@ -69,7 +69,7 @@ const HEADER_ITEM_LABELS = {
   companyLogo: 'ABC Logo',
   audioMode: 'Audio Mode',
   offMode: 'Bypass',
-  muteOthers: 'Mute Others',
+  focus: 'Focus',
   spacer1: 'Spacer',
   modeToggle: 'Basic/Advanced Toggle',
   shortcuts: 'Shortcuts',
