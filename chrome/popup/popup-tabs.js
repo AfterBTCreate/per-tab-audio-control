@@ -5,84 +5,29 @@
 
 const muteOthersBtn = document.getElementById('muteOthersBtn');
 
-// Update button appearance based on mute state
-function updateMuteButtonState(canRestore) {
-  if (!muteOthersBtn) return;
-
-  const unmutedIcon = muteOthersBtn.querySelector('.mute-icon-unmuted');
-  const mutedIcon = muteOthersBtn.querySelector('.mute-icon-muted');
-
-  if (canRestore) {
-    // Active state (others are muted) - show slashed speaker
-    muteOthersBtn.classList.add('mute-active');
-    muteOthersBtn.title = 'Unmute other tabs';
-    muteOthersBtn.setAttribute('aria-label', 'Unmute other tabs');
-    if (unmutedIcon) unmutedIcon.style.display = 'none';
-    if (mutedIcon) mutedIcon.style.display = 'block';
-  } else {
-    // Default state (can mute others) - show normal speaker
-    muteOthersBtn.classList.remove('mute-active');
-    muteOthersBtn.title = 'Mute other tabs';
-    muteOthersBtn.setAttribute('aria-label', 'Mute other tabs');
-    if (unmutedIcon) unmutedIcon.style.display = 'block';
-    if (mutedIcon) mutedIcon.style.display = 'none';
-  }
-}
-
-// Toggle mute state for other tabs
-async function toggleMuteOtherTabs() {
+// Mute all other tabs (one-way action, no toggle/restore)
+async function muteOtherTabs() {
   try {
-    // Get current state
-    const state = await browserAPI.runtime.sendMessage({
-      type: 'GET_MUTE_OTHERS_STATE'
+    const result = await browserAPI.runtime.sendMessage({
+      type: 'MUTE_OTHER_TABS',
+      currentTabId: currentTabId
     });
-
-    if (state && state.canRestore) {
-      // Currently muted - unmute
-      const result = await browserAPI.runtime.sendMessage({
-        type: 'UNMUTE_MUTED_TABS'
-      });
-      if (result && result.success) {
-        updateMuteButtonState(false);
-        showStatus(`Unmuted ${result.unmutedCount} tab${result.unmutedCount !== 1 ? 's' : ''}`, 'success', 2000);
-      }
-    } else {
-      // Currently unmuted - mute others
-      const result = await browserAPI.runtime.sendMessage({
-        type: 'MUTE_OTHER_TABS',
-        currentTabId: currentTabId
-      });
-      if (result && result.success) {
-        updateMuteButtonState(true);
+    if (result && result.success) {
+      if (result.mutedCount > 0) {
         showStatus(`Muted ${result.mutedCount} tab${result.mutedCount !== 1 ? 's' : ''}`, 'success', 2000);
+      } else {
+        showStatus('No other tabs to mute', 'info', 2000);
       }
     }
   } catch (e) {
-    console.debug('Could not toggle mute:', e);
-  }
-}
-
-// Initialize mute button state on popup open
-async function initMuteButtonState() {
-  try {
-    const state = await browserAPI.runtime.sendMessage({
-      type: 'GET_MUTE_OTHERS_STATE'
-    });
-    if (state) {
-      updateMuteButtonState(state.canRestore);
-    }
-  } catch (e) {
-    console.debug('Could not get mute state:', e);
+    console.debug('Could not mute other tabs:', e);
   }
 }
 
 // Mute button click handler
 if (muteOthersBtn) {
-  muteOthersBtn.addEventListener('click', toggleMuteOtherTabs);
+  muteOthersBtn.addEventListener('click', muteOtherTabs);
 }
-
-// Initialize on load
-initMuteButtonState();
 
 // ==================== Reset Tab to Defaults ====================
 

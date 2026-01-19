@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Per-Tab Audio Control",
-  "version": "4.1.2",
+  "version": "4.1.3",
   "description": "The audio controls browsers forgot to include",
   "permissions": [
     "storage",
