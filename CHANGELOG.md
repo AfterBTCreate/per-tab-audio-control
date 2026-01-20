@@ -14,6 +14,30 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [4.1.5] - Release - 2026-01-19
+
+### Fixed
+- **Cross-Origin Media (Facebook Messenger, etc.)**: Fixed audio not working on sites with cross-origin video content. In Tab Capture mode, the content script now skips processing media elements through Web Audio API, avoiding CORS restrictions that were silencing audio.
+- **Focus Now Mutes Tab Capture Audio**: Focus button now properly mutes tabs using Tab Capture mode. Tab Capture audio bypasses browser-level mute, so Focus now also sets Tab Capture volume to 0. Volume is restored when the tab is manually unmuted.
+
+---
+
+## [4.1.4] - Release - 2026-01-19
+
+### Changed
+- **Renamed "Mute Others" to "Focus"**: The button that mutes other tabs is now called "Focus" with a new concentric rings icon, better reflecting its purpose of focusing on the current tab's audio.
+- **Removed "Unmute Other Tabs"**: The context menu option to unmute other tabs has been removed. Focus is now a one-way action (mute only). Users can manually unmute individual tabs via browser tab controls.
+
+### Improved
+- **Icon Visibility**: Increased opacity of the Focus icon's concentric rings for better visibility in both light and dark modes.
+
+### Fixed
+- **Manual Unmute Now Works**: When you manually unmute a tab (via browser tab controls) after using Focus, audio now resumes immediately without needing to refresh the page.
+- **Spotify No Longer Paused**: Focus now only mutes Spotify (browser-level mute) instead of clicking the pause button. Audio resumes when unmuted without losing playback position.
+- **YouTube/Twitch Mute Stability**: Focus now uses browser-level mute only (removed media element muting which caused YouTube to auto-unmute after a few seconds).
+
+---
+
 ## [4.1.3] - Release - 2026-01-19
 
 ### Changed
@@ -41,7 +65,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 ## [4.1.0] - Release - 2026-01-18
 
 ### Summary
-**First public release** - published to GitHub and submitted to Chrome Web Store.
+**First public release** - published to GitHub. Chrome Web Store submission pending.
 
 ### Added
 - **Video.js Support**: Play/pause button now works on sites using the Video.js player library
