@@ -194,7 +194,7 @@ async function applyBassGain(gain) {
   // Determine the level string for storage
   // In slider mode, we store as 'slider:VALUE'
   const level = gain === 0 ? 'off' : `slider:${gain}`;
-  const storageKey = `tab_${currentTabId}_bass`;
+  const storageKey = getTabStorageKey(currentTabId, TAB_STORAGE.BASS);
 
   // Save setting
   await browserAPI.storage.local.set({ [storageKey]: level });
@@ -231,7 +231,7 @@ async function applyTrebleGain(gain) {
 
   // Determine the level string for storage
   const level = gain === 0 ? 'off' : `slider:${gain}`;
-  const storageKey = `tab_${currentTabId}_treble`;
+  const storageKey = getTabStorageKey(currentTabId, TAB_STORAGE.TREBLE);
 
   // Save setting
   await browserAPI.storage.local.set({ [storageKey]: level });
@@ -284,7 +284,7 @@ async function applyVoiceGain(gain) {
 
   // Determine the level string for storage
   const level = gain === 0 ? 'off' : `slider:${gain}`;
-  const storageKey = `tab_${currentTabId}_voice`;
+  const storageKey = getTabStorageKey(currentTabId, TAB_STORAGE.VOICE);
 
   // Save setting
   await browserAPI.storage.local.set({ [storageKey]: level });
@@ -408,10 +408,10 @@ if (voiceReset) {
 async function loadEffectSettings() {
   if (!currentTabId) return;
 
-  const bassKey = `tab_${currentTabId}_bass`;
-  const trebleKey = `tab_${currentTabId}_treble`;
-  const voiceKey = `tab_${currentTabId}_voice`;
-  const compressorKey = `tab_${currentTabId}_compressor`;
+  const bassKey = getTabStorageKey(currentTabId, TAB_STORAGE.BASS);
+  const trebleKey = getTabStorageKey(currentTabId, TAB_STORAGE.TREBLE);
+  const voiceKey = getTabStorageKey(currentTabId, TAB_STORAGE.VOICE);
+  const compressorKey = getTabStorageKey(currentTabId, TAB_STORAGE.COMPRESSOR);
   const result = await browserAPI.storage.local.get([bassKey, trebleKey, voiceKey, compressorKey]);
 
   currentBassBoost = result[bassKey] || 'off';
@@ -595,7 +595,7 @@ async function applyEffect(effect, level) {
 async function applyCompressor(preset) {
   if (!currentTabId) return;
 
-  const storageKey = `tab_${currentTabId}_compressor`;
+  const storageKey = getTabStorageKey(currentTabId, TAB_STORAGE.COMPRESSOR);
 
   // Save setting
   await browserAPI.storage.local.set({ [storageKey]: preset });
@@ -605,9 +605,11 @@ async function applyCompressor(preset) {
 
   // If compressor is enabled, disable bass, treble, and voice boost
   if (preset !== 'off') {
+    const isTabCapture = window.isTabCaptureActive && window.isTabCaptureActive();
+
     // Disable bass boost if active
     if (currentBassBoost !== 'off') {
-      const bassKey = `tab_${currentTabId}_bass`;
+      const bassKey = getTabStorageKey(currentTabId, TAB_STORAGE.BASS);
       await browserAPI.storage.local.set({ [bassKey]: 'off' });
       currentBassBoost = 'off';
 
@@ -621,11 +623,18 @@ async function applyCompressor(preset) {
           console.error('[TabVolume Popup] SET_BASS (off) failed:', e.message);
         }
       }
+      if (isTabCapture) {
+        browserAPI.runtime.sendMessage({
+          type: 'SET_TAB_CAPTURE_BASS',
+          tabId: currentTabId,
+          gain: 0
+        }).catch(() => {});
+      }
     }
 
     // Disable treble boost if active
     if (currentTrebleBoost !== 'off') {
-      const trebleKey = `tab_${currentTabId}_treble`;
+      const trebleKey = getTabStorageKey(currentTabId, TAB_STORAGE.TREBLE);
       await browserAPI.storage.local.set({ [trebleKey]: 'off' });
       currentTrebleBoost = 'off';
 
@@ -639,11 +648,18 @@ async function applyCompressor(preset) {
           console.error('[TabVolume Popup] SET_TREBLE (off) failed:', e.message);
         }
       }
+      if (isTabCapture) {
+        browserAPI.runtime.sendMessage({
+          type: 'SET_TAB_CAPTURE_TREBLE',
+          tabId: currentTabId,
+          gain: 0
+        }).catch(() => {});
+      }
     }
 
     // Disable voice boost if active
     if (currentVoiceBoost !== 'off') {
-      const voiceKey = `tab_${currentTabId}_voice`;
+      const voiceKey = getTabStorageKey(currentTabId, TAB_STORAGE.VOICE);
       await browserAPI.storage.local.set({ [voiceKey]: 'off' });
       currentVoiceBoost = 'off';
 
@@ -656,6 +672,13 @@ async function applyCompressor(preset) {
         } catch (e) {
           console.error('[TabVolume Popup] SET_VOICE (off) failed:', e.message);
         }
+      }
+      if (isTabCapture) {
+        browserAPI.runtime.sendMessage({
+          type: 'SET_TAB_CAPTURE_VOICE',
+          tabId: currentTabId,
+          gain: 0
+        }).catch(() => {});
       }
     }
   }
@@ -675,6 +698,15 @@ async function applyCompressor(preset) {
       console.error('[TabVolume Popup] SET_COMPRESSOR failed:', e.message);
       showError('Compression effect failed. Try refreshing the page.');
     }
+  }
+
+  // Also send to Tab Capture if active
+  if (window.isTabCaptureActive && window.isTabCaptureActive()) {
+    browserAPI.runtime.sendMessage({
+      type: 'SET_TAB_CAPTURE_COMPRESSOR',
+      tabId: currentTabId,
+      preset: preset
+    }).catch(() => {});
   }
 }
 
@@ -698,7 +730,7 @@ effectButtons.forEach(btn => {
 async function loadBalanceSetting() {
   if (!currentTabId) return;
 
-  const balanceKey = `tab_${currentTabId}_balance`;
+  const balanceKey = getTabStorageKey(currentTabId, TAB_STORAGE.BALANCE);
   const result = await browserAPI.storage.local.get([balanceKey]);
 
   currentBalance = result[balanceKey] !== undefined ? result[balanceKey] : 0;
@@ -718,7 +750,7 @@ async function applyBalance(balance) {
   updateBalanceUI();
 
   // Save setting
-  const balanceKey = `tab_${currentTabId}_balance`;
+  const balanceKey = getTabStorageKey(currentTabId, TAB_STORAGE.BALANCE);
   await browserAPI.storage.local.set({ [balanceKey]: balance });
 
   // Convert from -100..100 to -1..1 for StereoPannerNode
@@ -773,7 +805,7 @@ balanceContainer.addEventListener('wheel', (e) => {
 async function loadChannelModeSetting() {
   if (!currentTabId) return;
 
-  const modeKey = `tab_${currentTabId}_channelMode`;
+  const modeKey = getTabStorageKey(currentTabId, TAB_STORAGE.CHANNEL_MODE);
   const result = await browserAPI.storage.local.get([modeKey]);
 
   currentChannelMode = result[modeKey] || 'stereo';
@@ -823,7 +855,7 @@ async function applyChannelMode(mode) {
   updateChannelModeUI();
 
   // Save setting
-  const modeKey = `tab_${currentTabId}_channelMode`;
+  const modeKey = getTabStorageKey(currentTabId, TAB_STORAGE.CHANNEL_MODE);
   await browserAPI.storage.local.set({ [modeKey]: mode });
 
   // Send to content script (skip on restricted browser pages)

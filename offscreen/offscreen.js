@@ -9,6 +9,14 @@ console.log('[Offscreen] Document loaded');
 // Track visualizer captures per tab (can have multiple tabs captured)
 const visualizerCaptures = new Map(); // tabId -> { audioContext, analyser, stream, freqArray, waveArray }
 
+// Compressor compensation factors (reduce gain to maintain similar perceived loudness)
+const COMPRESSOR_COMPENSATION = {
+  off: 1.0,       // No compensation needed
+  podcast: 0.80,  // -1.9dB - light compression
+  movie: 0.65,    // -3.7dB - medium compression
+  maximum: 0.50   // -6dB - heavy compression
+};
+
 // ==================== Message Handler ====================
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Offscreen] Received message:', message.type);
@@ -77,6 +85,11 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
       setTabCaptureDevice(message.tabId, message.deviceId, message.deviceLabel).then(sendResponse);
       return true;
 
+    case 'SET_TAB_CAPTURE_COMPRESSOR':
+      setTabCaptureCompressor(message.tabId, message.preset);
+      sendResponse({ success: true });
+      return false;
+
     case 'GET_TAB_CAPTURE_MODE':
       const hasCapture = visualizerCaptures.has(message.tabId);
       sendResponse({ success: true, isTabCaptureMode: hasCapture });
@@ -93,9 +106,16 @@ function setTabCaptureVolume(tabId, volume) {
   if (!capture || !capture.gainNode) return;
 
   try {
-    const gain = Math.max(volume / 100, 0.0001);
+    // Track current volume for compressor compensation
+    capture.currentVolume = volume;
+
+    // Apply compressor compensation if active
+    const compensation = COMPRESSOR_COMPENSATION[capture.currentCompressor] || 1.0;
+    const baseGain = Math.max(volume / 100, 0.0001);
+    const compensatedGain = baseGain * compensation;
+
     capture.gainNode.gain.setTargetAtTime(
-      volume === 0 ? 0 : gain,
+      volume === 0 ? 0 : compensatedGain,
       capture.audioContext.currentTime,
       0.03
     );
@@ -105,7 +125,7 @@ function setTabCaptureVolume(tabId, volume) {
       capture.limiter.threshold.value = volume > 100 ? -1 : 0;
     }
 
-    console.log('[Offscreen] Set volume for tab', tabId, ':', volume);
+    console.log('[Offscreen] Set volume for tab', tabId, ':', volume, '(compensated:', compensatedGain.toFixed(3), ')');
   } catch (e) {
     console.error('[Offscreen] Error setting volume:', e);
   }
@@ -156,6 +176,69 @@ function setTabCaptureBalance(tabId, pan) {
     console.log('[Offscreen] Set balance for tab', tabId, ':', pan);
   } catch (e) {
     console.error('[Offscreen] Error setting balance:', e);
+  }
+}
+
+function setTabCaptureCompressor(tabId, preset) {
+  const capture = visualizerCaptures.get(tabId);
+  if (!capture || !capture.compressor) return;
+
+  try {
+    const compressor = capture.compressor;
+    const currentTime = capture.audioContext.currentTime;
+
+    // Apply compressor settings based on preset
+    switch (preset) {
+      case 'podcast':
+        compressor.threshold.setTargetAtTime(-20, currentTime, 0.03);
+        compressor.knee.setTargetAtTime(10, currentTime, 0.03);
+        compressor.ratio.setTargetAtTime(3, currentTime, 0.03);
+        compressor.attack.setTargetAtTime(0.005, currentTime, 0.03);
+        compressor.release.setTargetAtTime(0.25, currentTime, 0.03);
+        break;
+      case 'movie':
+        compressor.threshold.setTargetAtTime(-30, currentTime, 0.03);
+        compressor.knee.setTargetAtTime(8, currentTime, 0.03);
+        compressor.ratio.setTargetAtTime(5, currentTime, 0.03);
+        compressor.attack.setTargetAtTime(0.003, currentTime, 0.03);
+        compressor.release.setTargetAtTime(0.2, currentTime, 0.03);
+        break;
+      case 'maximum':
+        compressor.threshold.setTargetAtTime(-40, currentTime, 0.03);
+        compressor.knee.setTargetAtTime(5, currentTime, 0.03);
+        compressor.ratio.setTargetAtTime(12, currentTime, 0.03);
+        compressor.attack.setTargetAtTime(0.001, currentTime, 0.03);
+        compressor.release.setTargetAtTime(0.15, currentTime, 0.03);
+        break;
+      case 'off':
+      default:
+        // Bypass: high threshold = no compression
+        compressor.threshold.setTargetAtTime(0, currentTime, 0.03);
+        compressor.knee.setTargetAtTime(10, currentTime, 0.03);
+        compressor.ratio.setTargetAtTime(1, currentTime, 0.03);
+        compressor.attack.setTargetAtTime(0.003, currentTime, 0.03);
+        compressor.release.setTargetAtTime(0.25, currentTime, 0.03);
+        break;
+    }
+
+    // Store current preset for compensation calculation
+    capture.currentCompressor = preset;
+
+    // Apply compensation to gain node if it exists
+    if (capture.gainNode && capture.currentVolume !== undefined) {
+      const compensation = COMPRESSOR_COMPENSATION[preset] || 1.0;
+      const baseGain = capture.currentVolume / 100;
+      const compensatedGain = Math.max(baseGain * compensation, 0.0001);
+      capture.gainNode.gain.setTargetAtTime(
+        capture.currentVolume === 0 ? 0 : compensatedGain,
+        currentTime,
+        0.03
+      );
+    }
+
+    console.log('[Offscreen] Set compressor for tab', tabId, ':', preset);
+  } catch (e) {
+    console.error('[Offscreen] Error setting compressor:', e);
   }
 }
 
@@ -306,6 +389,15 @@ async function handleStartVisualizerCapture(streamId, tabId) {
     voiceFilter.Q.value = 1.0;
     voiceFilter.gain.value = 0;
 
+    // Compressor for dynamic range compression (podcast/movie/maximum modes)
+    // Default to bypassed state (high threshold = no compression)
+    const compressor = audioContext.createDynamicsCompressor();
+    compressor.threshold.value = 0;  // 0 dB = no compression
+    compressor.knee.value = 10;
+    compressor.ratio.value = 1;      // 1:1 = no compression
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
+
     // Stereo panner for balance
     const stereoPanner = audioContext.createStereoPanner();
     stereoPanner.pan.value = 0;
@@ -333,11 +425,12 @@ async function handleStartVisualizerCapture(streamId, tabId) {
     const destination = audioContext.createMediaStreamDestination();
 
     // Connect processing chain:
-    // source → bass → treble → voice → panner → gain → limiter → analyser → destination
+    // source → bass → treble → voice → compressor → panner → gain → limiter → analyser → destination
     source.connect(bassFilter);
     bassFilter.connect(trebleFilter);
     trebleFilter.connect(voiceFilter);
-    voiceFilter.connect(stereoPanner);
+    voiceFilter.connect(compressor);
+    compressor.connect(stereoPanner);
     stereoPanner.connect(gainNode);
     gainNode.connect(limiter);
     limiter.connect(analyser);
@@ -364,10 +457,14 @@ async function handleStartVisualizerCapture(streamId, tabId) {
       bassFilter,
       trebleFilter,
       voiceFilter,
+      compressor,
       stereoPanner,
       limiter,
       freqArray,
-      waveArray
+      waveArray,
+      // Track current values for compensation
+      currentVolume: 100,
+      currentCompressor: 'off'
     });
 
     console.log('[Offscreen] Visualizer capture started for tab', tabId);

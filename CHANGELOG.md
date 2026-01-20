@@ -14,6 +14,41 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [4.1.10] - Release - 2026-01-19
+
+### Fixed
+- **Keyboard Shortcuts in Tab Capture Mode**: Fixed keyboard shortcuts (Alt+Shift+Up/Down) not changing actual audio volume when Tab Capture mode is active. The shortcuts were updating the badge/storage but not sending the volume change to the offscreen document that processes Tab Capture audio.
+
+---
+
+## [4.1.9] - Release - 2026-01-19
+
+### Improved
+- **Error Handling**: Added proper error handling for volume get/set operations in background.js. Previously, promise rejections were unhandled which could cause silent failures.
+
+---
+
+## [4.1.8] - Release - 2026-01-19
+
+### Fixed
+- **Compressor in Tab Capture Mode**: Fixed compressor (Podcast/Movie/Maximum) not working when Tab Capture mode is active. The compressor was only being applied to the content script's audio chain, not the offscreen document that handles Tab Capture audio processing.
+
+---
+
+## [4.1.7] - Release - 2026-01-19
+
+### Changed
+- **Code Cleanup**: Added `getTabStorageKey()` helper and `TAB_STORAGE` constants to eliminate 50+ hardcoded storage key patterns. Reduces typo risk and centralizes the key format (`tab_123_bass`, etc.) in one place.
+
+---
+
+## [4.1.6] - Release - 2026-01-19
+
+### Changed
+- **Code Cleanup**: Removed duplicated `getEffectiveAudioMode()` function from content.js (44 lines → 23 lines). Now delegates to background.js via messaging, making it the single source of truth for audio mode determination.
+
+---
+
 ## [4.1.5] - Release - 2026-01-19
 
 ### Fixed

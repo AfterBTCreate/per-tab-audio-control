@@ -141,7 +141,7 @@ async function loadAudioDevices(requestPermission = false) {
     console.log('[TabVolume Popup] Audio outputs:', audioOutputs);
 
     // Check if there's a saved device for this tab
-    const deviceKey = `tab_${currentTabId}_device`;
+    const deviceKey = getTabStorageKey(currentTabId, TAB_STORAGE.DEVICE);
     const result = await browserAPI.storage.local.get([deviceKey]);
     let hasSavedDevice = !!result[deviceKey];
 
@@ -264,7 +264,7 @@ async function loadAudioDevices(requestPermission = false) {
 // for global defaults, storage updates on device ID changes, and content script notifications.
 // Keeping separate for clarity and to avoid breaking the more complex initialization flow.
 async function populateDeviceDropdown(audioOutputs) {
-  const deviceKey = `tab_${currentTabId}_device`;
+  const deviceKey = getTabStorageKey(currentTabId, TAB_STORAGE.DEVICE);
   const result = await browserAPI.storage.local.get([deviceKey]);
 
   // Clear existing options using safe DOM method
@@ -304,7 +304,7 @@ async function populateDeviceDropdown(audioOutputs) {
 async function setOutputDevice(deviceId) {
   if (!currentTabId) return;
 
-  const deviceKey = `tab_${currentTabId}_device`;
+  const deviceKey = getTabStorageKey(currentTabId, TAB_STORAGE.DEVICE);
 
   // Find the device label for cross-context matching
   // Use iteration instead of querySelector to handle special characters in deviceId

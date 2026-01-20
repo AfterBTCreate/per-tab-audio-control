@@ -106,32 +106,16 @@ body.initializing .status-message {
   border-color: #7a9ab8;
 }
 
-/* Mute Others button - muted red default, darker when active */
-#muteOthersBtn {
+/* Focus button - muted red */
+#focusBtn {
   background: #8b4040;
   border-color: #8b4040;
   color: #ffffff;
 }
 
-#muteOthersBtn:hover {
+#focusBtn:hover {
   background: #7a3636;
   border-color: #7a3636;
-}
-
-#muteOthersBtn.mute-active {
-  background: #6b2f2f;
-  border-color: #6b2f2f;
-  color: #ffffff;
-}
-
-#muteOthersBtn.mute-active:hover {
-  background: #5a2626;
-  border-color: #5a2626;
-}
-
-/* Mute Others button icons - hide slashed icon by default */
-.mute-icon-muted {
-  display: none;
 }
 
 /* Basic/Advanced toggle - muted yellow */
@@ -305,26 +289,15 @@ body.light-mode #disableDomainBtn:hover {
   border-color: #4a6580;
 }
 
-body.light-mode #muteOthersBtn {
+body.light-mode #focusBtn {
   background: #8b4040;
   border-color: #8b4040;
   color: #ffffff;
 }
 
-body.light-mode #muteOthersBtn:hover {
+body.light-mode #focusBtn:hover {
   background: #7a3636;
   border-color: #7a3636;
-}
-
-body.light-mode #muteOthersBtn.mute-active {
-  background: #6b2f2f;
-  border-color: #6b2f2f;
-  color: #ffffff;
-}
-
-body.light-mode #muteOthersBtn.mute-active:hover {
-  background: #5a2626;
-  border-color: #5a2626;
 }
 
 body.light-mode #shortcutsBtn,

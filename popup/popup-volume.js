@@ -146,7 +146,7 @@ async function setVolume(volume, isMuteToggle = false) {
 
   volume = Math.max(0, Math.min(500, Math.round(volume)));
 
-  const prevKey = `tab_${currentTabId}_prev`;
+  const prevKey = getTabStorageKey(currentTabId, TAB_STORAGE.PREV);
 
   // Handle mute: save current volume for later unmute
   if (isMuteToggle && volume === 0 && currentVolume !== 0) {

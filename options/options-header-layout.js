@@ -20,9 +20,9 @@ const HEADER_ITEM_DATA = {
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5"/></svg>',
     type: 'button'
   },
-  muteOthers: {
-    name: 'Mute Others',
-    icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>',
+  focus: {
+    name: 'Focus',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10" opacity="0.5"/><circle cx="12" cy="12" r="7" opacity="0.7"/><circle cx="12" cy="12" r="4" opacity="0.9"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>',
     type: 'button'
   },
   modeToggle: {
@@ -98,11 +98,16 @@ async function loadHeaderLayout() {
       currentLayout.hidden = [];
     }
 
-    // Migration: pauseOthers → muteOthers (v3.3.25)
-    if (currentLayout.order.includes('pauseOthers')) {
-      currentLayout.order = currentLayout.order.map(id => id === 'pauseOthers' ? 'muteOthers' : id);
+    // Migration: pauseOthers → muteOthers → focus (v3.3.25, v4.1.4)
+    const needsMigration = currentLayout.order.some(id => id === 'pauseOthers' || id === 'muteOthers');
+    if (needsMigration) {
+      currentLayout.order = currentLayout.order.map(id =>
+        (id === 'pauseOthers' || id === 'muteOthers') ? 'focus' : id
+      );
       // Also migrate hidden array if needed
-      currentLayout.hidden = currentLayout.hidden.map(id => id === 'pauseOthers' ? 'muteOthers' : id);
+      currentLayout.hidden = currentLayout.hidden.map(id =>
+        (id === 'pauseOthers' || id === 'muteOthers') ? 'focus' : id
+      );
       // Save the migrated layout
       saveHeaderLayout();
     }
