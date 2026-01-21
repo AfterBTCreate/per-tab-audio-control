@@ -1049,6 +1049,20 @@ async function activateWebAudioMode() {
     window.stopVisualizer();
   }
 
+  // Set sessionStorage flag to indicate user switched modes (popup click = user interaction)
+  // Content script will read this and set userHasInteracted = true
+  try {
+    await browserAPI.scripting.executeScript({
+      target: { tabId: currentTabId },
+      world: 'MAIN',
+      func: () => {
+        sessionStorage.setItem('__tabVolumeControl_modeSwitched', 'true');
+      }
+    });
+  } catch (e) {
+    console.debug('[TabVolume Popup] Could not set mode switch flag:', e.message);
+  }
+
   // Refresh page - simplest way to ensure clean audio routing
   browserAPI.tabs.reload(currentTabId);
   window.close();

@@ -370,7 +370,7 @@ body.light-mode .device-mode-note {
   display: none;
 }
 
-.toggle-slider {
+.toggle-setting .toggle-slider {
   position: relative;
   width: 44px;
   height: 24px;
@@ -380,7 +380,7 @@ body.light-mode .device-mode-note {
   flex-shrink: 0;
 }
 
-.toggle-slider::after {
+.toggle-setting .toggle-slider::after {
   content: '';
   position: absolute;
   top: 2px;
@@ -406,11 +406,11 @@ body.light-mode .device-mode-note {
   color: #e0e0e0;
 }
 
-body.light-mode .toggle-slider {
+body.light-mode .toggle-setting .toggle-slider {
   background: #d0d0d0;
 }
 
-body.light-mode .toggle-slider::after {
+body.light-mode .toggle-setting .toggle-slider::after {
   background: #ffffff;
 }
 
@@ -420,6 +420,47 @@ body.light-mode .toggle-setting input[type="checkbox"]:checked + .toggle-slider 
 
 body.light-mode .toggle-label {
   color: #333333;
+}
+
+/* ==================== Tab Info Location Options ==================== */
+
+.visualizer-tab-info-options .setting-label {
+  display: block;
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.tab-info-radios {
+  display: flex;
+  gap: 16px;
+}
+
+.tab-info-radios .radio-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.tab-info-radios input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.tab-info-radios span {
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+body.light-mode .visualizer-tab-info-options .setting-label {
+  color: #64748b;
+}
+
+body.light-mode .tab-info-radios span {
+  color: #334155;
 }
 
 /* ==================== Chrome Only Badge ==================== */

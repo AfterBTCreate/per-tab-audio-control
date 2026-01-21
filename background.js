@@ -394,11 +394,20 @@ async function setTabVolume(tabId, volume) {
 
 // Clean up storage when tab is closed
 browserAPI.tabs.onRemoved.addListener(async (tabId) => {
-  const key = getTabStorageKey(tabId);
-  const prevKey = getTabStorageKey(tabId, TAB_STORAGE.PREV);
-  const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
-  const ruleAppliedKey = getTabStorageKey(tabId, TAB_STORAGE.RULE_APPLIED);
-  await browserAPI.storage.local.remove([key, prevKey, deviceKey, ruleAppliedKey]);
+  // Remove all tab-specific storage keys
+  const keysToRemove = [
+    getTabStorageKey(tabId),                          // volume
+    getTabStorageKey(tabId, TAB_STORAGE.PREV),        // previous volume
+    getTabStorageKey(tabId, TAB_STORAGE.DEVICE),      // audio device
+    getTabStorageKey(tabId, TAB_STORAGE.RULE_APPLIED),// site rule applied flag
+    getTabStorageKey(tabId, TAB_STORAGE.BASS),        // bass enhancement
+    getTabStorageKey(tabId, TAB_STORAGE.TREBLE),      // treble enhancement
+    getTabStorageKey(tabId, TAB_STORAGE.VOICE),       // voice enhancement
+    getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR),  // compressor/limiter
+    getTabStorageKey(tabId, TAB_STORAGE.BALANCE),     // stereo balance
+    getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE) // channel mode (stereo/mono/swap)
+  ];
+  await browserAPI.storage.local.remove(keysToRemove);
 
   // Remove from tabs with media tracking
   tabsWithMedia.delete(tabId);
@@ -1128,8 +1137,13 @@ function shouldThrottleMessage(type, tabId) {
   // Cleanup old entries periodically (every 100 messages)
   if (messageThrottles.size > 100) {
     const cutoff = now - 5000; // Remove entries older than 5 seconds
+    // Collect keys to delete first to avoid modifying Map during iteration
+    const keysToDelete = [];
     for (const [k, v] of messageThrottles) {
-      if (v < cutoff) messageThrottles.delete(k);
+      if (v < cutoff) keysToDelete.push(k);
+    }
+    for (const k of keysToDelete) {
+      messageThrottles.delete(k);
     }
   }
 

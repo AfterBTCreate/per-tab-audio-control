@@ -34,6 +34,7 @@ async function resetAllSettings() {
     'volumeSteps',
     'theme',
     'visualizerType',
+    'tabInfoLocation',
     'expandedSections',
     'disabledDomains',
     'nativeModeRefresh',
