@@ -204,8 +204,8 @@ async function generateBackupCSV() {
   // Volume Steps
   lines.push('[Volume Steps]');
   lines.push('Scroll Wheel,Keyboard,Buttons');
-  const steps = syncData.volumeSteps || { scrollWheel: 5, keyboard: 1, buttons: 1 };
-  lines.push(`${steps.scrollWheel || 5},${steps.keyboard || 1},${steps.buttons || 1}`);
+  const steps = syncData.volumeSteps || { scrollWheel: 5, keyboard: 5, buttons: 1 };
+  lines.push(`${steps.scrollWheel || 5},${steps.keyboard || 5},${steps.buttons || 1}`);
   lines.push('');
 
   // Theme (from sync storage)

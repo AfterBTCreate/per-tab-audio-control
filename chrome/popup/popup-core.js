@@ -51,7 +51,8 @@ const ruleDomainCheckbox = document.getElementById('ruleDomainCheckbox');
 const ruleStatus = document.getElementById('ruleStatus');
 const statusMessage = document.getElementById('statusMessage');
 const disableDomainBtn = document.getElementById('disableDomainBtn');
-const audioModeToggle = document.getElementById('audioModeToggle');
+const tabCaptureBtn = document.getElementById('tabCaptureBtn');
+const webAudioBtn = document.getElementById('webAudioBtn');
 const modeToggle = document.getElementById('modeToggle');
 
 // Effect button elements
@@ -86,11 +87,26 @@ let extremeVolumeWarningShown = false; // Track if warning already shown this se
 
 // Header layout customization defaults (must match options-constants.js)
 const DEFAULT_HEADER_LAYOUT = {
-  order: ['companyLogo', 'spacer1', 'logo', 'spacer2', 'focus', 'audioMode', 'offMode', 'modeToggle', 'spacer3', 'shortcuts', 'theme', 'settings'],
+  order: ['spacer1', 'logo', 'tabCapture', 'webAudio', 'offMode', 'focus', 'spacer2', 'modeToggle', 'shortcuts', 'theme', 'settings', 'spacer3', 'companyLogo'],
   hidden: [],
   spacerCount: 3
 };
 const MAX_SPACERS = 3;
+
+// Popup sections layout customization defaults (must match options-constants.js)
+const DEFAULT_POPUP_SECTIONS_LAYOUT = {
+  order: ['balance', 'enhancements', 'output', 'siteRule'],
+  hidden: []
+};
+
+// Map storage section IDs to DOM data-section-id attributes
+// (storage uses 'siteRule' but popup HTML uses 'addSite')
+const POPUP_SECTION_ID_MAP = {
+  balance: 'balance',
+  enhancements: 'enhancements',
+  output: 'output',
+  siteRule: 'addSite'
+};
 
 // ==================== Utility Functions ====================
 
@@ -212,6 +228,10 @@ function volumeToPosition(volume) {
 }
 
 function positionToVolume(position) {
+  // Validate input - return 100 (default) if invalid
+  if (!Number.isFinite(position)) {
+    return 100;
+  }
   // Native mode: linear 1:1 mapping (0-100)
   if (isDomainDisabled) {
     return Math.min(100, Math.max(0, Math.round(position)));
@@ -257,11 +277,20 @@ function isRestrictedUrl(url) {
 // Show global status message at the bottom of popup
 // Types: 'info', 'success', 'warning', 'error'
 let statusTimeout = null;
+let onStatusExpiredCallback = null; // Set by popup-tabs.js to restore focus reminder
 function showStatus(message, type = 'info', duration = 4000) {
   // Clear any existing timeout
   if (statusTimeout) {
     clearTimeout(statusTimeout);
     statusTimeout = null;
+  }
+
+  // Don't let other persistent messages overwrite Active Tab Audio reminder
+  // (but allow Active Tab Audio messages and temporary messages through)
+  if (statusMessage.textContent.includes('Active Tab Audio') &&
+      !message.includes('Active Tab Audio') &&
+      duration === 0) {
+    return;
   }
 
   statusMessage.textContent = message;
@@ -272,15 +301,23 @@ function showStatus(message, type = 'info', duration = 4000) {
     statusTimeout = setTimeout(() => {
       statusMessage.className = 'status-message';
       statusTimeout = null;
+      // After temporary message expires, restore focus reminder if active
+      if (onStatusExpiredCallback) {
+        onStatusExpiredCallback();
+      }
     }, duration);
   }
 }
 
-// Clear any status message
+// Clear any status message (preserves Active Tab Audio reminder if active)
 function clearStatus() {
   if (statusTimeout) {
     clearTimeout(statusTimeout);
     statusTimeout = null;
+  }
+  // Don't clear the Active Tab Audio reminder - it should persist until disabled
+  if (statusMessage.textContent.includes('Active Tab Audio')) {
+    return;
   }
   statusMessage.textContent = '';
   statusMessage.className = 'status-message';
@@ -345,6 +382,22 @@ async function applyHeaderLayout() {
       });
     }
 
+    // Migration: audioMode → tabCapture + webAudio (v4.1.19)
+    if (layout.order && layout.order.includes('audioMode')) {
+      const newOrder = [];
+      for (const id of layout.order) {
+        if (id === 'audioMode') {
+          newOrder.push('tabCapture', 'webAudio');
+        } else {
+          newOrder.push(id);
+        }
+      }
+      layout.order = newOrder;
+    }
+    if (layout.hidden) {
+      layout.hidden = layout.hidden.filter(id => id !== 'audioMode');
+    }
+
     const header = document.querySelector('.header');
     if (!header) return;
 
@@ -355,7 +408,7 @@ async function applyHeaderLayout() {
     });
 
     // Required items that must always be visible and in order
-    const requiredItems = ['companyLogo', 'audioMode', 'offMode', 'modeToggle', 'settings', 'logo'];
+    const requiredItems = ['companyLogo', 'tabCapture', 'webAudio', 'offMode', 'modeToggle', 'settings', 'logo'];
 
     // Validate order - ensure all DOM items are in the order
     const orderSet = new Set(layout.order);
@@ -423,6 +476,70 @@ async function applyHeaderLayout() {
 
 // Apply header layout immediately (before visible)
 applyHeaderLayout();
+
+// ==================== Popup Sections Layout Customization ====================
+
+// Apply custom popup sections layout from storage (order and visibility)
+async function applyPopupSectionsLayout() {
+  try {
+    const result = await browserAPI.storage.sync.get(['popupSectionsLayout']);
+    const layout = result.popupSectionsLayout || DEFAULT_POPUP_SECTIONS_LAYOUT;
+
+    // Validate layout structure
+    if (!layout.order || !Array.isArray(layout.order)) {
+      layout.order = [...DEFAULT_POPUP_SECTIONS_LAYOUT.order];
+    }
+    if (!layout.hidden || !Array.isArray(layout.hidden)) {
+      layout.hidden = [];
+    }
+
+    // Collect sections by data-section-id
+    // Includes static sections, compact sections (no collapsible sections anymore)
+    const sections = {};
+    document.querySelectorAll('[data-section-id].static-section, [data-section-id].compact-section').forEach(el => {
+      sections[el.dataset.sectionId] = el;
+    });
+
+    if (Object.keys(sections).length === 0) return;
+
+    // Apply CSS order based on layout.order
+    // Order values start at 1 so unstyled items (order: 0) appear first
+    let orderIndex = 1;
+    for (const storageId of layout.order) {
+      const domId = POPUP_SECTION_ID_MAP[storageId];
+      if (domId && sections[domId]) {
+        sections[domId].style.order = orderIndex;
+        orderIndex++;
+      }
+    }
+
+    // Handle sections that may exist in DOM but not in stored order (defensive)
+    for (const [domId, el] of Object.entries(sections)) {
+      if (!el.style.order) {
+        el.style.order = orderIndex;
+        orderIndex++;
+      }
+    }
+
+    // Apply hidden class based on layout.hidden
+    const hiddenSet = new Set(layout.hidden || []);
+    for (const [storageId, domId] of Object.entries(POPUP_SECTION_ID_MAP)) {
+      if (sections[domId]) {
+        if (hiddenSet.has(storageId)) {
+          sections[domId].classList.add('section-hidden');
+        } else {
+          sections[domId].classList.remove('section-hidden');
+        }
+      }
+    }
+
+  } catch (e) {
+    console.debug('[Popup] Could not apply popup sections layout:', e.message);
+  }
+}
+
+// Apply popup sections layout immediately (before visible)
+applyPopupSectionsLayout();
 
 // ==================== Basic/Advanced Mode Toggle ====================
 

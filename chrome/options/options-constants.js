@@ -57,18 +57,19 @@ const CLEANUP_DAYS = 90; // Rules unused for 90+ days
 
 // Header layout customization constants
 const DEFAULT_HEADER_LAYOUT = {
-  order: ['companyLogo', 'spacer1', 'logo', 'spacer2', 'focus', 'audioMode', 'offMode', 'modeToggle', 'spacer3', 'shortcuts', 'theme', 'settings'],
+  order: ['spacer1', 'logo', 'tabCapture', 'webAudio', 'offMode', 'focus', 'spacer2', 'modeToggle', 'shortcuts', 'theme', 'settings', 'spacer3', 'companyLogo'],
   hidden: [],
   spacerCount: 3
 };
 const HIDEABLE_HEADER_ITEMS = ['focus', 'shortcuts', 'theme'];
-const REQUIRED_HEADER_ITEMS = ['audioMode', 'offMode', 'modeToggle', 'settings', 'logo'];
-const LOCKED_HEADER_ITEMS = ['companyLogo']; // Always first, cannot be moved or hidden
+const REQUIRED_HEADER_ITEMS = ['tabCapture', 'webAudio', 'offMode', 'modeToggle', 'settings', 'logo'];
+const LOCKED_HEADER_ITEMS = ['companyLogo']; // Items that cannot be moved (ABTC logo stays at end)
 const MAX_SPACERS = 3;
 const HEADER_ITEM_LABELS = {
-  companyLogo: 'ABC Logo',
-  audioMode: 'Audio Mode',
-  offMode: 'Bypass',
+  companyLogo: 'ABTC Logo',
+  tabCapture: 'Tab Capture',
+  webAudio: 'Web Audio',
+  offMode: 'Disable',
   focus: 'Focus',
   spacer1: 'Spacer',
   modeToggle: 'Basic/Advanced Toggle',
@@ -77,3 +78,27 @@ const HEADER_ITEM_LABELS = {
   settings: 'Settings',
   logo: 'Volume Icon'
 };
+
+// Popup sections layout customization constants
+const DEFAULT_POPUP_SECTIONS_LAYOUT = {
+  order: ['balance', 'enhancements', 'output', 'siteRule'],
+  hidden: []
+};
+
+const POPUP_SECTION_DATA = {
+  balance: { name: 'Balance', description: 'Balance slider and Stereo/Mono/Swap controls' },
+  enhancements: { name: 'Enhancements', description: 'Bass, Treble, Voice, and Range controls' },
+  output: { name: 'Output', description: 'Audio output device selector' },
+  siteRule: { name: 'Site Rule', description: 'Add site-specific volume rules' }
+};
+
+// Map section IDs to popup data-section-id attributes
+const POPUP_SECTION_ID_MAP = {
+  balance: 'balance',
+  enhancements: 'enhancements',
+  output: 'output',
+  siteRule: 'addSite'  // The popup uses 'addSite' for the site rule section
+};
+
+const HIDEABLE_POPUP_SECTIONS = ['balance', 'enhancements', 'output', 'siteRule'];
+const MIN_VISIBLE_POPUP_SECTIONS = 1; // At least one section must be visible

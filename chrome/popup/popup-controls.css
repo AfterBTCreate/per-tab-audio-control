@@ -1,6 +1,11 @@
 /* ==================== Controls ==================== */
 /* Device selector, balance slider, rules, shortcuts, logo states */
 
+/* Hidden sections (via popup sections layout customization) */
+.section-hidden {
+  display: none !important;
+}
+
 /* Device Selector */
 .device-selector {
   margin-bottom: 4px;
@@ -342,6 +347,7 @@
   text-align: center;
   display: none;
   animation: statusFadeIn 0.2s ease;
+  order: 999; /* Always at bottom when using flex container */
 }
 
 @keyframes statusFadeIn {
@@ -400,6 +406,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+  order: 1000; /* Always at bottom when using flex container */
 }
 
 .cleanup-rules-btn:hover {
@@ -432,6 +439,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+  order: 1001; /* Always at bottom when using flex container */
 }
 
 .enable-tabcapture-btn:hover {
@@ -461,6 +469,7 @@
   border-radius: 6px;
   color: #60a5fa;
   font-size: 11px;
+  order: 1002; /* Always at bottom when using flex container */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -928,4 +937,211 @@ body.light-mode .logo.ultra .wave-3,
 body.light-mode .logo.ultra .wave-4,
 body.light-mode .logo.ultra .wave-5 {
   stroke: #9333ea;
+}
+
+/* ==================== Static Sections (non-collapsible) ==================== */
+
+.static-section {
+  /* Non-collapsible section containers */
+}
+
+.section-header-row.static {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  user-select: none;
+  cursor: default;
+}
+
+.section-header-row.static:hover {
+  background: transparent;
+}
+
+/* ==================== Collapsible Sections ==================== */
+
+.collapsible-section {
+  /* Sections are collapsible containers */
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.section-header-row:hover {
+  background: rgba(90, 122, 154, 0.1);
+}
+
+.section-header-row:focus-visible {
+  outline: 2px solid #4A90D9;
+  outline-offset: 2px;
+}
+
+.collapse-chevron {
+  flex-shrink: 0;
+  color: #7a8fa5;
+  transition: transform 0.2s ease;
+}
+
+.collapsible-section.collapsed .collapse-chevron {
+  transform: rotate(-90deg);
+}
+
+.collapsible-section.collapsed {
+  padding: 8px 0;
+}
+
+.collapsible-section.collapsed .section-header-row {
+  padding: 0 8px 0 0;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.collapsible-section.collapsed .section-title {
+  flex: 1;
+  font-size: 11px;
+}
+
+.collapsible-section.collapsed .section-header-controls {
+  align-self: center;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: #7a8fa5;
+  flex: 1;
+}
+
+.section-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Prevent clicks on controls from toggling collapse */
+.section-header-controls button {
+  pointer-events: auto;
+}
+
+.section-content {
+  overflow: hidden;
+  transition: max-height 0.2s ease, opacity 0.2s ease, padding 0.2s ease;
+  max-height: 500px;
+  opacity: 1;
+  padding: 4px;
+  margin: -4px;
+}
+
+.collapsible-section.collapsed .section-content {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Section-specific adjustments for collapsed state */
+.balance-container.collapsible-section .section-header-row {
+  margin-bottom: 4px;
+}
+
+.balance-container.collapsible-section.collapsed .section-header-row {
+  margin-bottom: 0;
+}
+
+.enhancements-section.collapsible-section .section-header-row {
+  margin-bottom: 2px;
+}
+
+.enhancements-section.collapsible-section.collapsed .section-header-row {
+  margin-bottom: 0;
+}
+
+/* Note: device-selector and add-rule-section now use compact-section (single-line) layout */
+
+/* Light mode adjustments */
+body.light-mode .section-header-row:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .collapse-chevron {
+  color: #64748b;
+}
+
+body.light-mode .section-title {
+  color: #64748b;
+}
+
+/* ==================== Compact Sections (Single-line) ==================== */
+
+.compact-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.compact-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #7a8fa5;
+  white-space: nowrap;
+}
+
+/* Compact device selector adjustments */
+.device-selector.compact-section {
+  padding: 6px 10px;
+}
+
+.device-selector.compact-section .device-select {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 28px 6px 8px;
+}
+
+/* Compact add rule section adjustments */
+.add-rule-section.compact-section {
+  padding: 6px 10px;
+}
+
+.add-rule-section.compact-section .domain-checkbox {
+  gap: 4px;
+  margin-left: auto;
+}
+
+.add-rule-section.compact-section .domain-checkbox span {
+  font-size: 10px;
+}
+
+.add-rule-btn.compact {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  gap: 4px;
+}
+
+/* Rule status in compact mode - spans full width below, only when visible */
+.rule-status.compact {
+  flex-basis: 100%;
+  margin-top: 4px;
+  padding: 4px 8px;
+}
+
+/* Ensure rule status takes no space when hidden */
+.rule-status.compact:not(.success):not(.error) {
+  display: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Light mode compact sections */
+body.light-mode .compact-label {
+  color: #6b5d52;
 }

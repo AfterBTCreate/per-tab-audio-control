@@ -5,18 +5,23 @@
 // All SVGs use currentColor to avoid CSP inline style issues
 const HEADER_ITEM_DATA = {
   companyLogo: {
-    name: 'ABC Logo',
+    name: 'ABTC Logo',
     // Simplified monochrome version for CSP compliance
     icon: '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="5"><rect x="10" y="10" width="80" height="80" rx="8"/><line x1="50" y1="10" x2="50" y2="90" stroke-width="3"/><line x1="10" y1="50" x2="90" y2="50" stroke-width="3"/><text x="30" y="40" font-family="sans-serif" font-size="22" font-weight="600" fill="currentColor" stroke="none" text-anchor="middle">A</text><text x="70" y="40" font-family="sans-serif" font-size="22" font-weight="600" fill="currentColor" stroke="none" text-anchor="middle">B</text><text x="30" y="80" font-family="sans-serif" font-size="22" font-weight="600" fill="currentColor" stroke="none" text-anchor="middle">C</text></svg>',
     type: 'companyLogo'
   },
-  audioMode: {
-    name: 'Audio Mode',
+  tabCapture: {
+    name: 'Tab Capture',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>',
     type: 'button'
   },
+  webAudio: {
+    name: 'Web Audio',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h2l2-4 3 8 3-8 2 4h4"/></svg>',
+    type: 'button'
+  },
   offMode: {
-    name: 'Bypass',
+    name: 'Disable',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5"/></svg>',
     type: 'button'
   },
@@ -99,8 +104,8 @@ async function loadHeaderLayout() {
     }
 
     // Migration: pauseOthers → muteOthers → focus (v3.3.25, v4.1.4)
-    const needsMigration = currentLayout.order.some(id => id === 'pauseOthers' || id === 'muteOthers');
-    if (needsMigration) {
+    const needsFocusMigration = currentLayout.order.some(id => id === 'pauseOthers' || id === 'muteOthers');
+    if (needsFocusMigration) {
       currentLayout.order = currentLayout.order.map(id =>
         (id === 'pauseOthers' || id === 'muteOthers') ? 'focus' : id
       );
@@ -108,6 +113,25 @@ async function loadHeaderLayout() {
       currentLayout.hidden = currentLayout.hidden.map(id =>
         (id === 'pauseOthers' || id === 'muteOthers') ? 'focus' : id
       );
+      // Save the migrated layout
+      saveHeaderLayout();
+    }
+
+    // Migration: audioMode → tabCapture + webAudio (v4.1.19)
+    const needsAudioModeMigration = currentLayout.order.some(id => id === 'audioMode');
+    if (needsAudioModeMigration) {
+      // Replace audioMode with tabCapture and webAudio
+      const newOrder = [];
+      for (const id of currentLayout.order) {
+        if (id === 'audioMode') {
+          newOrder.push('tabCapture', 'webAudio');
+        } else {
+          newOrder.push(id);
+        }
+      }
+      currentLayout.order = newOrder;
+      // Remove audioMode from hidden if it was there (both new buttons should be visible)
+      currentLayout.hidden = currentLayout.hidden.filter(id => id !== 'audioMode');
       // Save the migrated layout
       saveHeaderLayout();
     }
@@ -232,10 +256,10 @@ function setupDragListeners() {
       const midpoint = rect.left + rect.width / 2;
       let position = e.clientX < midpoint ? 'before' : 'after';
 
-      // Cannot drop before locked items (companyLogo must stay first)
+      // Cannot drop before or after locked items (companyLogo stays in place)
       const isLockedTarget = typeof LOCKED_HEADER_ITEMS !== 'undefined' && LOCKED_HEADER_ITEMS.includes(wrapper.dataset.id);
-      if (isLockedTarget && position === 'before') {
-        // Don't allow dropping before locked items
+      if (isLockedTarget) {
+        // Don't allow dropping before or after locked items
         clearIndicators();
         return;
       }

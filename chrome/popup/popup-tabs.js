@@ -1,32 +1,96 @@
 // Per-Tab Audio Control - Tabs Module
 // Tab navigation, focus mode, reset tab, site rules, disable domain, storage quota, init
 
-// ==================== Focus (Mute Other Tabs) ====================
+// ==================== Active Tab Audio Mode (Only Active Tab Plays Audio) ====================
 
 const focusBtn = document.getElementById('focusBtn');
+let isFocusActive = false;
 
-// Focus on current tab by muting all others (one-way action)
-async function focusMuteOtherTabs() {
+// Check and restore focus state on popup open
+async function checkFocusState() {
   try {
-    const result = await browserAPI.runtime.sendMessage({
-      type: 'MUTE_OTHER_TABS',
-      currentTabId: currentTabId
-    });
-    if (result && result.success) {
-      if (result.mutedCount > 0) {
-        showStatus(`Focus: Muted ${result.mutedCount} other tab${result.mutedCount !== 1 ? 's' : ''}`, 'success', 2000);
-      } else {
-        showStatus('No other tabs to mute', 'info', 2000);
+    const result = await browserAPI.runtime.sendMessage({ type: 'GET_FOCUS_STATE' });
+    if (result && result.success && result.active) {
+      isFocusActive = true;
+      if (focusBtn) {
+        focusBtn.classList.add('active');
+      }
+      // Show permanent status reminder
+      showFocusReminder();
+    }
+  } catch (e) {
+    console.debug('Could not check focus state:', e);
+  }
+}
+
+// Show permanent focus reminder status (uses showStatus with duration=0 for persistence)
+function showFocusReminder() {
+  if (isFocusActive) {
+    showStatus('Active Tab Audio ON - Audio follows active tab', 'info', 0);
+  }
+}
+
+// Set callback to restore focus reminder after temporary messages expire
+onStatusExpiredCallback = showFocusReminder;
+
+// Clear focus reminder status
+function clearFocusReminder() {
+  // Clear status if it's the Active Tab Audio message
+  if (statusMessage && statusMessage.textContent.includes('Active Tab Audio')) {
+    statusMessage.className = 'status-message';
+    statusMessage.textContent = '';
+  }
+}
+
+// Toggle Active Tab Audio mode - only the active tab plays audio
+async function toggleFocusMode() {
+  try {
+    if (!isFocusActive) {
+      // Activate: mute all other tabs, audio follows active tab
+      const result = await browserAPI.runtime.sendMessage({
+        type: 'MUTE_OTHER_TABS',
+        currentTabId: currentTabId
+      });
+      if (result && result.success) {
+        isFocusActive = true;
+        focusBtn.classList.add('active');
+        if (result.mutedCount > 0) {
+          showStatus(`Active Tab Audio: Muted ${result.mutedCount} other tab${result.mutedCount !== 1 ? 's' : ''}`, 'success', 2000);
+        } else {
+          showStatus('Active Tab Audio enabled', 'info', 2000);
+        }
+        // After brief status, show permanent reminder
+        setTimeout(() => {
+          if (isFocusActive) {
+            showFocusReminder();
+          }
+        }, 2500);
+      }
+    } else {
+      // Deactivate: unmute all tabs
+      const result = await browserAPI.runtime.sendMessage({
+        type: 'UNMUTE_OTHER_TABS',
+        currentTabId: currentTabId
+      });
+      if (result && result.success) {
+        isFocusActive = false;
+        focusBtn.classList.remove('active');
+        clearFocusReminder();
+        if (result.unmutedCount > 0) {
+          showStatus(`Unmuted ${result.unmutedCount} tab${result.unmutedCount !== 1 ? 's' : ''}`, 'success', 2000);
+        } else {
+          showStatus('Active Tab Audio disabled', 'info', 2000);
+        }
       }
     }
   } catch (e) {
-    console.debug('Could not focus (mute other tabs):', e);
+    console.debug('Could not toggle Active Tab Audio mode:', e);
   }
 }
 
 // Focus button click handler
 if (focusBtn) {
-  focusBtn.addEventListener('click', focusMuteOtherTabs);
+  focusBtn.addEventListener('click', toggleFocusMode);
 }
 
 // ==================== Reset Tab to Defaults ====================
@@ -455,35 +519,60 @@ async function syncLocalStorageFlag(shouldBeDisabled) {
 }
 
 // ==================== Audio Mode UI Updates ====================
-// Two separate controls:
-// 1. Audio Mode Toggle (Tab Capture / Web Audio) - switches between active processing modes
-// 2. Off Button - enables/disables audio processing entirely
+// Three separate controls:
+// 1. Tab Capture Button - activates Tab Capture mode (Chrome only)
+// 2. Web Audio Button - activates Web Audio mode
+// 3. Bypass Button - disables audio processing entirely
 
-// Update the Audio Mode Toggle button UI (Tab Capture / Web Audio)
-async function updateAudioModeToggleUI() {
-  if (!audioModeToggle) return;
-
+// Update the Audio Mode buttons UI (Tab Capture / Web Audio)
+async function updateAudioModeButtonsUI() {
   const isFirefox = typeof browser !== 'undefined';
 
-  // Remove all state classes first
-  audioModeToggle.classList.remove('tabcapture-active', 'webaudio-active', 'disabled');
+  // Remove all state classes first from all three audio mode buttons
+  if (tabCaptureBtn) {
+    tabCaptureBtn.classList.remove('active');
+  }
+  if (webAudioBtn) {
+    webAudioBtn.classList.remove('active');
+  }
+  if (disableDomainBtn) {
+    disableDomainBtn.classList.remove('active');
+  }
 
-  // Disable toggle when Off mode is active (applies to both browsers)
+  // If Disable mode is active, show it as active and update tooltips
   if (isDomainDisabled) {
-    audioModeToggle.classList.add('disabled');
-    audioModeToggle.title = 'Disabled (Bypass active)';
+    if (disableDomainBtn) {
+      disableDomainBtn.classList.add('active');
+      disableDomainBtn.title = 'Disable mode (active) - click Tab Capture or Web Audio to switch';
+    }
+    if (tabCaptureBtn) {
+      tabCaptureBtn.title = 'Switch to Tab Capture mode';
+    }
+    if (webAudioBtn) {
+      webAudioBtn.title = 'Switch to Web Audio mode';
+    }
     return;
   }
 
+  // Update Disable button tooltip when not active
+  if (disableDomainBtn) {
+    disableDomainBtn.title = 'Disable audio processing';
+  }
+
   // Firefox: Tab Capture not available - always show Web Audio active
+  // (Tab Capture button is hidden via CSS on Firefox)
   if (isFirefox) {
-    audioModeToggle.classList.add('webaudio-active');
-    audioModeToggle.title = 'Web Audio mode (Tab Capture is Chrome-only)';
+    if (webAudioBtn) {
+      webAudioBtn.classList.add('active');
+      webAudioBtn.title = 'Web Audio mode (active)';
+    }
     return;
   }
 
   // Chrome: Get effective mode from background (considers default + overrides)
   const hostname = extractDomain(currentTabUrl);
+  let effectiveMode = 'webaudio';
+
   if (hostname) {
     try {
       const response = await browserAPI.runtime.sendMessage({
@@ -491,42 +580,43 @@ async function updateAudioModeToggleUI() {
         hostname: hostname
       });
 
-      if (response && response.success && response.mode === 'tabcapture') {
-        // Tab Capture is the effective mode - blue with capture icon
-        audioModeToggle.classList.add('tabcapture-active');
-        audioModeToggle.title = 'Tab Capture mode (click to switch to Web Audio)';
-        return;
+      if (response && response.success && response.mode) {
+        effectiveMode = response.mode;
       }
     } catch (e) {
       console.debug('[TabVolume Popup] Could not get effective mode:', e);
     }
   }
 
-  // Default: Web Audio active - gray with waveform icon
-  audioModeToggle.classList.add('webaudio-active');
-  audioModeToggle.title = 'Web Audio mode (click to switch to Tab Capture)';
+  // Update button states based on effective mode
+  if (effectiveMode === 'tabcapture') {
+    if (tabCaptureBtn) {
+      tabCaptureBtn.classList.add('active');
+      tabCaptureBtn.title = 'Tab Capture mode (active)';
+    }
+    if (webAudioBtn) {
+      webAudioBtn.title = 'Switch to Web Audio mode';
+    }
+  } else {
+    if (webAudioBtn) {
+      webAudioBtn.classList.add('active');
+      webAudioBtn.title = 'Web Audio mode (active)';
+    }
+    if (tabCaptureBtn) {
+      tabCaptureBtn.title = 'Switch to Tab Capture mode';
+    }
+  }
 }
 
-// Update the Off (Bypass) button UI
+// Alias for backward compatibility with existing code
+async function updateAudioModeToggleUI() {
+  return updateAudioModeButtonsUI();
+}
+
+// Update the Disable button UI (now handled by updateAudioModeButtonsUI)
 async function updateDisableButtonUI() {
-  if (!disableDomainBtn) return;
-
-  // Remove all state classes
-  disableDomainBtn.classList.remove('tab-capture', 'native-mode', 'off-active');
-
-  if (isDomainDisabled) {
-    // Off mode active - orange
-    disableDomainBtn.classList.add('off-active');
-    disableDomainBtn.setAttribute('aria-pressed', 'true');
-    disableDomainBtn.title = 'Bypass active (click to return to previous mode)';
-  } else {
-    // Normal mode - not pressed
-    disableDomainBtn.setAttribute('aria-pressed', 'false');
-    disableDomainBtn.title = 'Enable Bypass (skip audio processing)';
-  }
-
-  // Also update the audio mode toggle (it should be disabled when Off is active)
-  updateAudioModeToggleUI();
+  // All three audio mode buttons are now updated together
+  await updateAudioModeButtonsUI();
 }
 
 // Expose globally for popup-visualizer.js to call after Tab Capture changes
@@ -599,34 +689,15 @@ function updateDisabledDomainUI() {
       }
     });
 
-    // Hide boost markers and reposition remaining markers for linear scale
+    // Switch to linear scale for markers (CSS handles positioning)
     if (sliderMarkers) {
-      const markers = sliderMarkers.querySelectorAll('.marker');
-      markers.forEach(marker => {
-        const value = parseInt(marker.dataset.value);
-        if (value > 100) {
-          // Hide boost markers
-          marker.style.visibility = 'hidden';
-        } else {
-          // Reposition 0-100 markers for linear scale (value% = position%)
-          marker.style.visibility = '';
-          marker.style.left = `${value}%`;
-          // Adjust transform for edge markers
-          if (value === 0) {
-            marker.style.transform = 'translateX(0)';
-          } else if (value === 100) {
-            marker.style.transform = 'translateX(-100%)';
-          } else {
-            marker.style.transform = 'translateX(-50%)';
-          }
-        }
-      });
+      sliderMarkers.classList.add('linear-scale');
     }
 
     // Show native mode status message (full width below presets)
     if (nativeModeStatus) {
       const domain = extractDomain(currentTabUrl);
-      nativeModeStatus.textContent = `Bypass mode on ${domain} (0-100% only). Click ⊘ to enable full controls.`;
+      nativeModeStatus.textContent = `Audio processing disabled on ${domain} (0-100% only). Click ⊘ to enable full controls.`;
       nativeModeStatus.style.display = 'block';
     }
 
@@ -659,30 +730,9 @@ function updateDisabledDomainUI() {
       btn.style.display = '';
     });
 
-    // Show all markers and restore original positions for non-linear scale
+    // Restore non-linear scale for markers (remove linear-scale class, CSS handles positioning)
     if (sliderMarkers) {
-      const markers = sliderMarkers.querySelectorAll('.marker');
-      // Original non-linear positions from CSS
-      const originalPositions = {
-        0: { left: '0', transform: 'translateX(0)' },
-        25: { left: '12.5%', transform: 'translateX(-50%)' },
-        50: { left: '25%', transform: 'translateX(-50%)' },
-        75: { left: '37.5%', transform: 'translateX(-50%)' },
-        100: { left: '50%', transform: 'translateX(-50%)' },
-        150: { left: '62.5%', transform: 'translateX(-50%)' },
-        200: { left: '75%', transform: 'translateX(-50%)' },
-        250: { left: '87.5%', transform: 'translateX(-50%)' },
-        300: { left: '100%', transform: 'translateX(-100%)' }
-      };
-      markers.forEach(marker => {
-        const value = parseInt(marker.dataset.value);
-        marker.style.visibility = '';
-        // Restore original CSS positions
-        if (originalPositions[value]) {
-          marker.style.left = originalPositions[value].left;
-          marker.style.transform = originalPositions[value].transform;
-        }
-      });
+      sliderMarkers.classList.remove('linear-scale');
     }
 
     // Hide native mode status
@@ -807,9 +857,10 @@ async function removeDomainFromAutoMode(domain) {
 }
 
 // ==================== Audio Mode Handlers ====================
-// Two separate controls:
-// 1. audioModeToggle - Toggle between Tab Capture and Web Audio
-// 2. disableDomainBtn - Toggle Off mode on/off
+// Three separate controls:
+// 1. tabCaptureBtn - Switch to Tab Capture mode
+// 2. webAudioBtn - Switch to Web Audio mode
+// 3. disableDomainBtn - Toggle Bypass mode on/off
 
 // Storage key for remembering last active mode (Tab Capture or Web Audio) per domain
 const LAST_ACTIVE_MODE_KEY = 'lastActiveMode';
@@ -837,9 +888,10 @@ async function saveLastActiveMode(domain, mode) {
   }
 }
 
-// Toggle between Tab Capture and Web Audio modes
-async function toggleAudioMode() {
-  console.log('[TabVolume Popup] toggleAudioMode called');
+// Activate Tab Capture mode
+// Simple approach: update storage, refresh page (handles all edge cases reliably)
+async function activateTabCaptureMode() {
+  console.log('[TabVolume Popup] activateTabCaptureMode called');
 
   if (!currentTabUrl) return;
 
@@ -851,88 +903,81 @@ async function toggleAudioMode() {
     return;
   }
 
-  // Firefox: Tab Capture not available
+  // Firefox: Tab Capture not available - silently return
   if (isFirefox) {
-    showStatus('Tab Capture requires Chrome', 'info', 3000);
     return;
   }
 
-  // Don't toggle if Off mode is active
+  // Check if already in Tab Capture mode - silently return (no need for status, popup closes on refresh)
+  if (!isDomainDisabled) {
+    let effectiveMode = 'webaudio';
+    try {
+      const response = await browserAPI.runtime.sendMessage({
+        type: 'GET_EFFECTIVE_MODE',
+        hostname: domain
+      });
+      if (response && response.success && response.mode) {
+        effectiveMode = response.mode;
+      }
+    } catch (e) {
+      console.debug('[TabVolume Popup] Could not get effective mode:', e);
+    }
+
+    if (effectiveMode === 'tabcapture') {
+      return;
+    }
+  }
+
+  // Update storage: remove from disabled list if needed
   if (isDomainDisabled) {
-    showStatus('Disable Bypass first', 'info', 2000);
-    return;
+    await removeFromOverrideList(domain, 'off');
+
+    // Clear localStorage flag BEFORE refresh to prevent double-refresh
+    // (syncLocalStorageFlag would otherwise detect mismatch and refresh again)
+    try {
+      await browserAPI.scripting.executeScript({
+        target: { tabId: currentTabId },
+        world: 'MAIN',
+        func: (d) => {
+          localStorage.removeItem('__tabVolumeControl_disabled_' + d);
+        },
+        args: [domain]
+      });
+    } catch (e) {
+      console.debug('[TabVolume Popup] Could not clear localStorage flag:', e.message);
+    }
   }
 
-  // Get effective mode from background (same as what UI shows)
-  let effectiveMode = 'webaudio';
+  // Save preference and update override lists
+  await saveLastActiveMode(domain, 'tabcapture');
+  await addToOverrideList(domain, 'tabcapture');
+  await removeFromOverrideList(domain, 'webaudio');
+
+  // Set Tab Capture site preference
   try {
-    const response = await browserAPI.runtime.sendMessage({
-      type: 'GET_EFFECTIVE_MODE',
-      hostname: domain
+    await browserAPI.runtime.sendMessage({
+      type: 'SET_TAB_CAPTURE_PREF',
+      hostname: domain,
+      enabled: true
     });
-    if (response && response.success && response.mode) {
-      effectiveMode = response.mode;
-    }
   } catch (e) {
-    console.debug('[TabVolume Popup] Could not get effective mode:', e);
+    console.debug('[TabVolume Popup] Could not set Tab Capture pref:', e);
   }
 
-  console.log('[TabVolume Popup] Current effective mode:', effectiveMode);
-
-  if (effectiveMode === 'tabcapture') {
-    // Currently Tab Capture → Switch to Web Audio
-    console.log('[TabVolume Popup] Tab Capture → Web Audio');
-
-    // Save preference and update override lists
-    await saveLastActiveMode(domain, 'webaudio');
-    await addToOverrideList(domain, 'webaudio');
-    await removeFromOverrideList(domain, 'tabcapture');
-
-    // Also clear Tab Capture site preference (legacy system used by autoStartTabCaptureIfNeeded)
-    try {
-      await browserAPI.runtime.sendMessage({
-        type: 'SET_TAB_CAPTURE_PREF',
-        hostname: domain,
-        enabled: false
-      });
-    } catch (e) {
-      console.debug('[TabVolume Popup] Could not clear Tab Capture pref:', e);
-    }
-
-    // Stop Tab Capture if running and refresh
-    if (typeof window.stopTabCaptureMode === 'function') {
-      await window.stopTabCaptureMode();
-    }
-    await refreshTabsForDomain(domain);
-    window.close();
-  } else {
-    // Currently Web Audio → Switch to Tab Capture
-    console.log('[TabVolume Popup] Web Audio → Tab Capture');
-
-    // Save preference and update override lists
-    await saveLastActiveMode(domain, 'tabcapture');
-    await addToOverrideList(domain, 'tabcapture');
-    await removeFromOverrideList(domain, 'webaudio');
-
-    // Also set Tab Capture site preference (legacy system used by autoStartTabCaptureIfNeeded)
-    try {
-      await browserAPI.runtime.sendMessage({
-        type: 'SET_TAB_CAPTURE_PREF',
-        hostname: domain,
-        enabled: true
-      });
-    } catch (e) {
-      console.debug('[TabVolume Popup] Could not set Tab Capture pref:', e);
-    }
-
-    // Start Tab Capture
-    await switchToTabCapture();
+  // Stop visualizer before refresh
+  if (typeof window.stopVisualizer === 'function') {
+    window.stopVisualizer();
   }
+
+  // Refresh page - simplest way to ensure clean audio routing
+  browserAPI.tabs.reload(currentTabId);
+  window.close();
 }
 
-// Toggle Off mode on/off
-async function toggleDomainDisabled() {
-  console.log('[TabVolume Popup] toggleOffMode called');
+// Activate Web Audio mode
+// Simple approach: update storage, refresh page (handles all edge cases reliably)
+async function activateWebAudioMode() {
+  console.log('[TabVolume Popup] activateWebAudioMode called');
 
   if (!currentTabUrl) return;
 
@@ -943,251 +988,179 @@ async function toggleDomainDisabled() {
     return;
   }
 
-  if (isDomainDisabled) {
-    // Currently Off → Return to last known mode (Tab Capture or Web Audio)
-    console.log('[TabVolume Popup] Off → Returning to previous mode');
-
-    const lastMode = await getLastActiveMode(domain);
-    console.log('[TabVolume Popup] Last active mode:', lastMode);
-
-    // Remove from disabled list first
-    await switchToDefaultMode(domain);
-
-    // If last mode was Tab Capture, start it (otherwise Web Audio is default)
-    if (lastMode === 'tabcapture' && typeof window.startTabCaptureMode === 'function') {
-      // Note: Page was refreshed by switchToDefaultMode, Tab Capture will need to be started fresh
-      // The popup will close, so we can't start Tab Capture here
-      // User will need to click the TC/WA toggle to start Tab Capture
+  // Check if already in Web Audio mode - silently return (no need for status, popup closes on refresh)
+  if (!isDomainDisabled) {
+    let effectiveMode = 'webaudio';
+    try {
+      const response = await browserAPI.runtime.sendMessage({
+        type: 'GET_EFFECTIVE_MODE',
+        hostname: domain
+      });
+      if (response && response.success && response.mode) {
+        effectiveMode = response.mode;
+      }
+    } catch (e) {
+      console.debug('[TabVolume Popup] Could not get effective mode:', e);
     }
-  } else {
-    // Currently active → Switch to Off mode
-    console.log('[TabVolume Popup] Active → Off');
 
-    // Save current mode before going to Off
-    const isTabCapture = typeof window.isTabCaptureActive === 'function' && window.isTabCaptureActive();
-    await saveLastActiveMode(domain, isTabCapture ? 'tabcapture' : 'webaudio');
-
-    await switchToNativeMode(domain);
+    if (effectiveMode === 'webaudio') {
+      return;
+    }
   }
+
+  // Update storage: remove from disabled list if needed
+  if (isDomainDisabled) {
+    await removeFromOverrideList(domain, 'off');
+
+    // Clear localStorage flag BEFORE refresh to prevent double-refresh
+    // (syncLocalStorageFlag would otherwise detect mismatch and refresh again)
+    try {
+      await browserAPI.scripting.executeScript({
+        target: { tabId: currentTabId },
+        world: 'MAIN',
+        func: (d) => {
+          localStorage.removeItem('__tabVolumeControl_disabled_' + d);
+        },
+        args: [domain]
+      });
+    } catch (e) {
+      console.debug('[TabVolume Popup] Could not clear localStorage flag:', e.message);
+    }
+  }
+
+  // Save preference and update override lists
+  await saveLastActiveMode(domain, 'webaudio');
+  await addToOverrideList(domain, 'webaudio');
+  await removeFromOverrideList(domain, 'tabcapture');
+
+  // Clear Tab Capture site preference
+  try {
+    await browserAPI.runtime.sendMessage({
+      type: 'SET_TAB_CAPTURE_PREF',
+      hostname: domain,
+      enabled: false
+    });
+  } catch (e) {
+    console.debug('[TabVolume Popup] Could not clear Tab Capture pref:', e);
+  }
+
+  // Stop visualizer before refresh
+  if (typeof window.stopVisualizer === 'function') {
+    window.stopVisualizer();
+  }
+
+  // Refresh page - simplest way to ensure clean audio routing
+  browserAPI.tabs.reload(currentTabId);
+  window.close();
 }
 
-// Switch to Tab Capture mode (no page refresh needed)
-async function switchToTabCapture() {
-  if (typeof window.startTabCaptureMode !== 'function') {
-    showError('Tab Capture not available');
+// Activate Disable mode (disables audio processing)
+// Simple approach: update storage, refresh page (handles all edge cases reliably)
+async function activateDisableMode() {
+  console.log('[TabVolume Popup] activateDisableMode called');
+
+  if (!currentTabUrl) return;
+
+  const domain = extractDomain(currentTabUrl);
+
+  if (!domain) {
+    showError('Unable to get domain');
     return;
   }
 
-  const success = await window.startTabCaptureMode();
-  if (success) {
-    updateDisableButtonUI();
-    showStatus('Tab Capture enabled', 'success', 2000);
-  } else {
-    // Get detailed error if available
-    const errorDetail = typeof window.getLastTabCaptureError === 'function'
-      ? window.getLastTabCaptureError()
-      : null;
-    const errorMsg = errorDetail
-      ? `Failed to start Tab Capture: ${errorDetail}`
-      : 'Failed to start Tab Capture';
-    showError(errorMsg);
-    console.error('[TabVolume Popup] Tab Capture failed:', errorDetail);
+  // If already disabled, silently return (no need for status, popup closes on refresh)
+  if (isDomainDisabled) {
+    return;
   }
-}
 
-// Switch to Native Mode / Enable Off (page refresh needed)
-// This enables Off mode for the specified domain
-async function switchToNativeMode(domain) {
-  // Update UI immediately
-  isDomainDisabled = true;
-  updateDisableButtonUI();
-  updateDisabledDomainUI();
+  // Save current mode before disabling (so we can restore it later)
+  const isTabCapture = typeof window.isTabCaptureActive === 'function' && window.isTabCaptureActive();
+  await saveLastActiveMode(domain, isTabCapture ? 'tabcapture' : 'webaudio');
 
-  try {
-    // Get the default audio mode to know how to handle this
-    const settings = await browserAPI.storage.sync.get([
-      'defaultAudioMode',
-      'disabledDomains',
-      'offDefault_tabCaptureSites',
-      'offDefault_webAudioSites'
-    ]);
-    const defaultMode = settings.defaultAudioMode || 'tabcapture';
+  // Get the default audio mode to know how to handle this
+  const settings = await browserAPI.storage.sync.get([
+    'defaultAudioMode',
+    'disabledDomains',
+    'offDefault_tabCaptureSites',
+    'offDefault_webAudioSites'
+  ]);
+  const defaultMode = settings.defaultAudioMode || 'tabcapture';
 
-    if (defaultMode === 'native') {
-      // Default is Off - remove from any override lists to let default Off apply
-      let tcSites = settings.offDefault_tabCaptureSites || [];
-      let waSites = settings.offDefault_webAudioSites || [];
-      tcSites = tcSites.filter(d => d !== domain);
-      waSites = waSites.filter(d => d !== domain);
-      await browserAPI.storage.sync.set({
-        offDefault_tabCaptureSites: tcSites,
-        offDefault_webAudioSites: waSites
-      });
-    } else {
-      // Default is Tab Capture or Web Audio - add to disabledDomains
-      let disabledDomains = settings.disabledDomains || [];
-      if (!disabledDomains.includes(domain)) {
-        disabledDomains.push(domain);
-      }
-
-      // Use safe storage with quota checking
-      const saveResult = await safeStorageSet({ disabledDomains }, false);
-      if (!saveResult.success) {
-        showError('Storage full - cannot add site to native mode');
-        return;
-      }
-    }
-
-    // Set localStorage flag on the page
-    try {
-      await browserAPI.scripting.executeScript({
-        target: { tabId: currentTabId },
-        world: 'MAIN',
-        func: (d) => {
-          try { localStorage.setItem('__tabVolumeControl_disabled_' + d, 'true'); } catch(e) {}
-        },
-        args: [domain]
-      });
-    } catch (e) {
-      console.debug('[TabVolume Popup] Could not set localStorage flag:', e);
-    }
-
-    // Remove from Tab Capture sites list (since we're now using Native Mode)
-    try {
-      await browserAPI.runtime.sendMessage({
-        type: 'SET_TAB_CAPTURE_PREF',
-        hostname: domain,
-        enabled: false
-      });
-    } catch (e) {
-      console.debug('[TabVolume Popup] Could not clear Tab Capture preference:', e);
-    }
-
-    // Stop visualizer before refresh to cancel any pending reconnect timers
-    if (typeof window.stopVisualizer === 'function') {
-      window.stopVisualizer();
-    }
-
-    // Refresh based on setting
-    await refreshTabsForDomain(domain);
-    window.close();
-  } catch (e) {
-    console.error('[TabVolume Popup] Error switching to native mode:', e);
-    showError('Failed to enable native mode');
-  }
-}
-
-// Switch away from Native Mode / Disable Off (page refresh needed)
-// This disables Off mode for the specified domain, returning to audio processing
-async function switchToDefaultMode(domain) {
-  // Update UI immediately
-  isDomainDisabled = false;
-  updateDisableButtonUI();
-
-  try {
-    // Get the default audio mode and last active mode to know how to handle this
-    const settings = await browserAPI.storage.sync.get([
-      'defaultAudioMode',
-      'disabledDomains',
-      'offDefault_tabCaptureSites',
-      'offDefault_webAudioSites'
-    ]);
-    const defaultMode = settings.defaultAudioMode || 'tabcapture';
-
-    if (defaultMode === 'native') {
-      // Default is Off - add to an override list to enable audio processing
-      // Use the last active mode to determine which override list
-      const lastMode = await getLastActiveMode(domain);
-      const targetMode = lastMode === 'tabcapture' ? 'tabcapture' : 'webaudio';
-
-      if (targetMode === 'tabcapture') {
-        let tcSites = settings.offDefault_tabCaptureSites || [];
-        if (!tcSites.includes(domain)) {
-          tcSites.push(domain);
-        }
-        const saveResult = await safeStorageSet({ offDefault_tabCaptureSites: tcSites }, false);
-        if (!saveResult.success) {
-          showError('Storage full - cannot add site override');
-          return;
-        }
-      } else {
-        let waSites = settings.offDefault_webAudioSites || [];
-        if (!waSites.includes(domain)) {
-          waSites.push(domain);
-        }
-        const saveResult = await safeStorageSet({ offDefault_webAudioSites: waSites }, false);
-        if (!saveResult.success) {
-          showError('Storage full - cannot add site override');
-          return;
-        }
-      }
-    } else {
-      // Default is Tab Capture or Web Audio - remove from disabledDomains
-      let disabledDomains = settings.disabledDomains || [];
-      disabledDomains = disabledDomains.filter(d => d !== domain);
-      await browserAPI.storage.sync.set({ disabledDomains });
-    }
-
-    // Remove localStorage flag on the page
-    try {
-      await browserAPI.scripting.executeScript({
-        target: { tabId: currentTabId },
-        world: 'MAIN',
-        func: (d) => {
-          try { localStorage.removeItem('__tabVolumeControl_disabled_' + d); } catch(e) {}
-        },
-        args: [domain]
-      });
-    } catch (e) {
-      console.debug('[TabVolume Popup] Could not clear localStorage flag:', e);
-    }
-
-    // Stop visualizer before refresh to cancel any pending reconnect timers
-    if (typeof window.stopVisualizer === 'function') {
-      window.stopVisualizer();
-    }
-
-    // Refresh based on setting
-    await refreshTabsForDomain(domain);
-    window.close();
-  } catch (e) {
-    console.error('[TabVolume Popup] Error switching to default mode:', e);
-    showError('Failed to return to default mode');
-  }
-}
-
-// Helper: Refresh tabs based on nativeModeRefresh setting
-async function refreshTabsForDomain(domain) {
-  const settings = await browserAPI.storage.sync.get(['nativeModeRefresh']);
-  const refreshBehavior = settings.nativeModeRefresh || 'current';
-
-  if (refreshBehavior === 'current') {
-    browserAPI.tabs.reload(currentTabId);
-  } else {
-    // Reload all tabs matching this domain
-    const allTabs = await browserAPI.tabs.query({});
-    const matchingTabs = allTabs.filter(tab => {
-      try {
-        const tabDomain = new URL(tab.url).hostname;
-        return tabDomain === domain || tabDomain.endsWith('.' + domain);
-      } catch (e) {
-        return false;
-      }
+  if (defaultMode === 'native') {
+    // Default is Off - remove from any override lists to let default Off apply
+    let tcSites = settings.offDefault_tabCaptureSites || [];
+    let waSites = settings.offDefault_webAudioSites || [];
+    tcSites = tcSites.filter(d => d !== domain);
+    waSites = waSites.filter(d => d !== domain);
+    await browserAPI.storage.sync.set({
+      offDefault_tabCaptureSites: tcSites,
+      offDefault_webAudioSites: waSites
     });
-    for (const tab of matchingTabs) {
-      browserAPI.tabs.reload(tab.id);
+  } else {
+    // Default is Tab Capture or Web Audio - add to disabledDomains
+    let disabledDomains = settings.disabledDomains || [];
+    if (!disabledDomains.includes(domain)) {
+      disabledDomains.push(domain);
+    }
+
+    // Use safe storage with quota checking
+    const saveResult = await safeStorageSet({ disabledDomains }, false);
+    if (!saveResult.success) {
+      showError('Storage full - cannot disable domain');
+      return;
     }
   }
+
+  // Remove from Tab Capture sites list
+  try {
+    await browserAPI.runtime.sendMessage({
+      type: 'SET_TAB_CAPTURE_PREF',
+      hostname: domain,
+      enabled: false
+    });
+  } catch (e) {
+    console.debug('[TabVolume Popup] Could not clear Tab Capture preference:', e);
+  }
+
+  // Set localStorage flag BEFORE refresh to prevent double-refresh
+  // (syncLocalStorageFlag would otherwise detect mismatch and refresh again)
+  try {
+    await browserAPI.scripting.executeScript({
+      target: { tabId: currentTabId },
+      world: 'MAIN',
+      func: (d) => {
+        localStorage.setItem('__tabVolumeControl_disabled_' + d, 'true');
+      },
+      args: [domain]
+    });
+  } catch (e) {
+    console.debug('[TabVolume Popup] Could not set localStorage flag:', e.message);
+  }
+
+  // Stop visualizer before refresh
+  if (typeof window.stopVisualizer === 'function') {
+    window.stopVisualizer();
+  }
+
+  // Refresh page - simplest way to fully disable audio processing
+  browserAPI.tabs.reload(currentTabId);
+  window.close();
 }
 
-// Audio mode toggle button handler (Tab Capture / Web Audio)
-if (audioModeToggle) {
-  audioModeToggle.addEventListener('click', toggleAudioMode);
+
+// Tab Capture button handler
+if (tabCaptureBtn) {
+  tabCaptureBtn.addEventListener('click', activateTabCaptureMode);
 }
 
-// Disable domain button handler (Off mode)
+// Web Audio button handler
+if (webAudioBtn) {
+  webAudioBtn.addEventListener('click', activateWebAudioMode);
+}
+
+// Disable domain button handler (activates Disable mode)
 if (disableDomainBtn) {
-  disableDomainBtn.addEventListener('click', toggleDomainDisabled);
+  disableDomainBtn.addEventListener('click', activateDisableMode);
 }
 
 // ==================== Storage Quota Management ====================
@@ -1389,6 +1362,9 @@ async function init() {
     currentTabId = tab.id;
     currentTabUrl = tab.url || '';
 
+    // Check and restore focus state (button highlight + status reminder)
+    await checkFocusState();
+
     // Check for restricted pages where content script can't run
     // Uses isRestrictedUrl() from popup-core.js which includes all browser URL patterns
     isRestrictedPage = isRestrictedUrl(currentTabUrl);
@@ -1406,7 +1382,12 @@ async function init() {
 
     // For restricted pages, show warning and hide all controls
     if (isRestrictedPage) {
-      showStatus('Audio control not available on browser pages', 'warning', 0);
+      // Show combined message if Active Tab Audio is on, otherwise just restricted page warning
+      if (isFocusActive) {
+        showStatus('Active Tab Audio ON | Audio controls unavailable on this page', 'info', 0);
+      } else {
+        showStatus('Audio control not available on browser pages', 'warning', 0);
+      }
       updateRestrictedPageUI();
       document.body.classList.remove('initializing');
       return; // Don't try to load settings or start visualizer
@@ -1439,6 +1420,10 @@ async function init() {
     // NOTE: autoStartTabCaptureIfNeeded removed - it used legacy storage check
     // and caused race conditions with startVisualizer() which now properly handles
     // Tab Capture auto-start via GET_EFFECTIVE_MODE
+
+    // Show focus reminder last - ensures it appears after all other status messages
+    // This is called at the end of init so it won't be overwritten by init status messages
+    showFocusReminder();
   } catch (e) {
     console.error('[TabVolume Popup] Init error:', e);
     tabTitle.textContent = 'Unable to access tab';

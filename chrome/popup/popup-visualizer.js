@@ -1522,7 +1522,7 @@ function stopVisualizer() {
 // Expose for popup-tabs.js to call before page refresh
 window.stopVisualizer = stopVisualizer;
 
-// Reset visualizer state when switching tabs
+// Reset visualizer state when switching tabs or modes
 async function resetVisualizerState() {
   // Reset detection counters
   zeroDataCount = 0;
@@ -1676,3 +1676,5 @@ async function resetVisualizerState() {
   // Reset UI indicators
   updateVisualizerUnavailableMessage();
 }
+// Expose for popup-tabs.js to call after mode switch
+window.resetVisualizerState = resetVisualizerState;

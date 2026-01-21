@@ -24,7 +24,7 @@ const DEFAULT_VOLUME_PRESETS = [50, 100, 200, 300, 500];
 // Default volume steps
 const DEFAULT_VOLUME_STEPS = {
   scrollWheel: 5,
-  keyboard: 1,
+  keyboard: 5,
   buttons: 1
 };
 
@@ -95,7 +95,7 @@ const STORAGE_KEYS = {
   POPUP_MODE: 'popupMode',
   DEFAULT_AUDIO_MODE: 'defaultAudioMode',
   EQ_CONTROL_MODE: 'eqControlMode',
-  NATIVE_MODE_REFRESH: 'nativeModeRefresh',
+  // NATIVE_MODE_REFRESH removed in v4.1.17 - mode switches work without refresh
   HEADER_LAYOUT: 'headerLayout',
   DISABLED_DOMAINS: 'disabledDomains',
 

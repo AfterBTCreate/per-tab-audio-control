@@ -151,12 +151,24 @@
     return { success, isPlaying };
   }
 
+  // Security: Validate hostname before using in storage keys
+  function isValidHostname(hostname) {
+    if (!hostname || typeof hostname !== 'string') return false;
+    if (hostname.length > 253) return false;
+    // Only allow valid hostname characters (alphanumeric, dots, hyphens)
+    return /^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$/.test(hostname) || /^[a-zA-Z0-9]$/.test(hostname);
+  }
+
   // CRITICAL: Synchronous disabled domain check BEFORE any setup
   // This must happen before event listeners, observers, or any functionality is initialized.
   // We use localStorage because it's synchronous and accessible from content scripts.
   // The page-script.js also does this check to avoid patching Web Audio APIs.
   try {
-    const disabledKey = '__tabVolumeControl_disabled_' + window.location.hostname;
+    const hostname = window.location.hostname;
+    if (!isValidHostname(hostname)) {
+      log('Invalid hostname, skipping disabled check');
+    }
+    const disabledKey = '__tabVolumeControl_disabled_' + hostname;
     const isDisabled = localStorage.getItem(disabledKey) === 'true';
     if (isDisabled) {
       console.log('[TabVolume] content.js: Domain is DISABLED, setting up minimal handler');
@@ -231,6 +243,12 @@
           sendResponse({ success: result.success, isPlaying: result.isPlaying });
         }
         return false;
+      });
+
+      // Cleanup observers when page unloads to prevent memory leaks
+      window.addEventListener('pagehide', () => {
+        observer.disconnect();
+        nativeVolumeObserver.disconnect();
       });
 
       return; // Exit before audio processing code runs
@@ -1449,6 +1467,8 @@
   }
 
   // Valid message types this content script handles
+  // Note: Mode switching messages (SWITCH_TO_WEBAUDIO_MODE, ENABLE_BYPASS_MODE, DISABLE_BYPASS_MODE)
+  // were removed in v4.1.23 - all mode switches now refresh the page for reliability
   const VALID_MESSAGE_TYPES = [
     'SET_VOLUME', 'SET_DEVICE', 'GET_DEVICES', 'SET_BASS', 'SET_TREBLE', 'SET_VOICE',
     'SET_BALANCE', 'SET_CHANNEL_MODE', 'SET_COMPRESSOR', 'GET_MEDIA_STATE',
@@ -1524,7 +1544,7 @@
         console.error('[TabVolume] SET_DEVICE error:', e.message, e.stack);
         sendResponse({
           success: false,
-          notFound: false,
+          notFound: e.name === 'NotFoundError',
           error: `Device switching error: ${e.message}`
         });
       });

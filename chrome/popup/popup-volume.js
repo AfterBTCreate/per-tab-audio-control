@@ -7,10 +7,13 @@
 let scrollStep = 5;
 let buttonStep = 1;
 
+// Easter egg timer for 404% volume
+let easterEgg404Timer = null;
+
 // Load volume step settings from storage
 async function loadVolumeSteps() {
   const result = await browserAPI.storage.sync.get(['volumeSteps']);
-  const steps = result.volumeSteps || { scrollWheel: 5, keyboard: 1, buttons: 1 };
+  const steps = result.volumeSteps || { scrollWheel: 5, keyboard: 5, buttons: 1 };
 
   scrollStep = steps.scrollWheel;
   buttonStep = steps.buttons;
@@ -129,6 +132,24 @@ function updateUI(volume) {
 
   // Update mute button
   muteBtn.classList.toggle('muted', volume === 0);
+
+  // Easter egg: 404% volume ("Volume not found") - only triggers if audio is playing
+  if (volume === 404) {
+    if (!easterEgg404Timer) {
+      easterEgg404Timer = setTimeout(async () => {
+        // Only show if audio is actually playing
+        if (typeof isTabAudible === 'function' && await isTabAudible()) {
+          showStatus('Volume not found... just kidding', 'info', 4000);
+        }
+        easterEgg404Timer = null;
+      }, 4000);
+    }
+  } else {
+    if (easterEgg404Timer) {
+      clearTimeout(easterEgg404Timer);
+      easterEgg404Timer = null;
+    }
+  }
 }
 
 // ==================== Set Volume ====================

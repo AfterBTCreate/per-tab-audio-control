@@ -72,12 +72,12 @@
 }
 
 .volume-value {
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: -1px;
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
   transition: all 0.15s ease;
-  width: 85px;
+  width: 70px;
   text-align: center;
 }
 
@@ -115,7 +115,7 @@
 .slider-container {
   position: relative;
   margin-bottom: 4px;
-  padding-bottom: 14px;
+  padding-bottom: 8px;
 }
 
 .slider-track {
@@ -141,10 +141,10 @@
 
 .slider-markers {
   position: absolute;
-  top: 20px;
+  top: 14px;
   left: 0;
   right: 0;
-  padding-top: 2px;
+  padding-top: 0;
 }
 
 .marker {
@@ -178,6 +178,49 @@
   transform: translateX(-100%) !important;
 }
 
+/* Linear-only markers (25, 75) - hidden by default */
+.marker.marker-linear-only {
+  display: none !important;
+}
+
+/* Linear scale for Disabled mode (0-100% only) */
+.slider-markers.linear-scale .marker[data-value="0"] {
+  left: 0% !important;
+  transform: translateX(0) !important;
+  visibility: visible !important;
+}
+
+.slider-markers.linear-scale .marker[data-value="25"] {
+  display: inline !important;
+  left: 25% !important;
+  transform: translateX(-50%) !important;
+  visibility: visible !important;
+}
+
+.slider-markers.linear-scale .marker[data-value="50"] {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  visibility: visible !important;
+}
+
+.slider-markers.linear-scale .marker[data-value="75"] {
+  display: inline !important;
+  left: 75% !important;
+  transform: translateX(-50%) !important;
+  visibility: visible !important;
+}
+
+.slider-markers.linear-scale .marker[data-value="100"] {
+  left: 100% !important;
+  transform: translateX(-100%) !important;
+  visibility: visible !important;
+}
+
+.slider-markers.linear-scale .marker[data-value="300"],
+.slider-markers.linear-scale .marker[data-value="500"] {
+  visibility: hidden !important;
+}
+
 .volume-slider {
   width: 100%;
   height: 20px;
@@ -192,13 +235,14 @@
 .volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   background: #ffffff;
   border-radius: 50%;
   cursor: grab;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.1);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  margin-top: -2px;
 }
 
 .volume-slider::-webkit-slider-thumb:hover {
@@ -212,13 +256,13 @@
 }
 
 .volume-slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   background: #ffffff;
   border-radius: 50%;
   cursor: grab;
   border: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
 .volume-slider::-webkit-slider-runnable-track {
@@ -305,12 +349,12 @@ body.light-mode .marker {
 
 body.light-mode .volume-slider::-webkit-slider-thumb {
   background: #8b7355;
-  box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3), 0 0 0 2px rgba(139, 115, 85, 0.1);
+  box-shadow: 0 2px 6px rgba(139, 115, 85, 0.3), 0 0 0 2px rgba(139, 115, 85, 0.1);
 }
 
 body.light-mode .volume-slider::-moz-range-thumb {
   background: #8b7355;
-  box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3), 0 0 0 2px rgba(139, 115, 85, 0.1);
+  box-shadow: 0 2px 6px rgba(139, 115, 85, 0.3), 0 0 0 2px rgba(139, 115, 85, 0.1);
 }
 
 body.light-mode .volume-adjust-btn {

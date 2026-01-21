@@ -10,10 +10,22 @@
   // Set a marker so we can verify the script ran (survives console.clear)
   window.__tabVolumePageScriptRan = true;
 
+  // Security: Validate hostname before using in storage keys
+  function isValidHostname(hostname) {
+    if (!hostname || typeof hostname !== 'string') return false;
+    if (hostname.length > 253) return false;
+    // Only allow valid hostname characters (alphanumeric, dots, hyphens)
+    return /^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$/.test(hostname) || /^[a-zA-Z0-9]$/.test(hostname);
+  }
+
   // Check if extension is disabled on this domain (synchronous check via localStorage)
   // This MUST happen before any API patching to ensure clean audio on disabled domains
   try {
-    const disabledKey = '__tabVolumeControl_disabled_' + window.location.hostname;
+    const hostname = window.location.hostname;
+    if (!isValidHostname(hostname)) {
+      console.debug('[TabVolume] Invalid hostname, skipping disabled check');
+    }
+    const disabledKey = '__tabVolumeControl_disabled_' + hostname;
     const disabledValue = localStorage.getItem(disabledKey);
 
     if (disabledValue === 'true') {

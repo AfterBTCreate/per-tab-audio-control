@@ -34,19 +34,30 @@ function getTabStorageKey(tabId, suffix = '') {
   return `tab_${tabId}`;
 }
 
-// Volume step for keyboard shortcuts (loaded from storage)
-let keyboardStep = 1;
+// Security: Validate tabId parameter to prevent injection attacks
+function isValidTabId(tabId) {
+  return Number.isInteger(tabId) && tabId > 0 && tabId < 2147483647;
+}
 
+// Volume step for keyboard shortcuts (loaded from storage)
+let keyboardStep = 5;
+
+// Active Tab Audio mode - only the active tab plays audio
+// Audio automatically follows the active tab when switching
+let focusModeState = {
+  active: false,
+  lastActiveTabId: null  // Track last active tab to mute when switching
+};
 
 // Load keyboard step from storage
 async function loadKeyboardStep() {
   const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
   try {
     const result = await browserAPI.storage.sync.get(['volumeSteps']);
-    const steps = result.volumeSteps || { scrollWheel: 5, keyboard: 1, buttons: 1 };
+    const steps = result.volumeSteps || { scrollWheel: 5, keyboard: 5, buttons: 1 };
     keyboardStep = steps.keyboard;
   } catch (e) {
-    keyboardStep = 1;
+    keyboardStep = 5;
   }
 }
 
@@ -57,7 +68,7 @@ loadKeyboardStep();
 const browserAPIForListener = typeof browser !== 'undefined' ? browser : chrome;
 browserAPIForListener.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'sync' && changes.volumeSteps) {
-    const steps = changes.volumeSteps.newValue || { scrollWheel: 5, keyboard: 1, buttons: 1 };
+    const steps = changes.volumeSteps.newValue || { scrollWheel: 5, keyboard: 5, buttons: 1 };
     keyboardStep = steps.keyboard;
   }
 });
@@ -99,11 +110,29 @@ function getValidatedHostname(url) {
 const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 const isFirefox = typeof browser !== 'undefined';
 
+// Check if URL is a restricted browser page where content scripts can't run
+const restrictedUrlPatterns = [
+  /^chrome:\/\//,
+  /^chrome-extension:\/\//,
+  /^about:/,
+  /^edge:\/\//,
+  /^moz-extension:\/\//,
+  /^file:\/\//,
+  /^brave:\/\//,
+  /^vivaldi:\/\//,
+  /^opera:\/\//
+];
+
+function isRestrictedUrl(url) {
+  if (!url) return true;
+  return restrictedUrlPatterns.some(pattern => pattern.test(url));
+}
+
 // Track tabs that have reported having media (for tab navigation including paused media)
 const tabsWithMedia = new Set();
 
-// Log version on startup to verify refresh is working
-console.log('[TabVolume] Service worker starting - version', browserAPI.runtime.getManifest().version, isFirefox ? '(Firefox)' : '(Chrome)');
+// Log version on startup (DEBUG only - verify refresh is working)
+log('Service worker starting - version', browserAPI.runtime.getManifest().version, isFirefox ? '(Firefox)' : '(Chrome)');
 
 // Note: We intentionally do NOT close the offscreen document on service worker startup.
 // The offscreen document holds persistent Tab Capture sessions that should survive
@@ -193,6 +222,7 @@ async function getMatchingSiteRule(url) {
 }
 
 // Update badge for a specific tab
+// Priority: 1) Restricted page, 2) Tab Capture pending, 3) Volume display
 async function updateBadge(tabId, volume, tabUrl = null) {
   try {
     // Get tab URL if not provided
@@ -206,9 +236,45 @@ async function updateBadge(tabId, volume, tabUrl = null) {
       }
     }
 
-    // Set badge - simple black/white for maximum visibility
-    const bgColor = '#000000'; // Black background
-    const textColor = '#ffffff'; // White text
+    // Check if restricted browser page - show warning indicator
+    if (isRestrictedUrl(url)) {
+      await browserAPI.action.setBadgeText({ text: '!', tabId });
+      // Amber color matching the popup warning status (#fbbf24)
+      await browserAPI.action.setBadgeBackgroundColor({ color: '#fbbf24', tabId });
+      if (browserAPI.action.setBadgeTextColor) {
+        await browserAPI.action.setBadgeTextColor({ color: '#000000', tabId }); // Dark text for contrast
+      }
+      await browserAPI.action.setTitle({
+        title: 'Audio control not available on browser pages',
+        tabId
+      });
+      return;
+    }
+
+    // Check if Tab Capture is pending - show activation indicator
+    const pending = await isTabCapturePending(tabId);
+    if (pending) {
+      await browserAPI.action.setBadgeText({ text: '!', tabId });
+      await browserAPI.action.setBadgeBackgroundColor({ color: '#4A90D9', tabId });
+      if (browserAPI.action.setBadgeTextColor) {
+        await browserAPI.action.setBadgeTextColor({ color: '#ffffff', tabId });
+      }
+      await browserAPI.action.setTitle({
+        title: 'Click to activate Tab Capture for this site',
+        tabId
+      });
+      return;
+    }
+
+    // Reset tooltip to default when showing volume
+    await browserAPI.action.setTitle({
+      title: 'Per-Tab Audio Control',
+      tabId
+    });
+
+    // Set badge colors - red background when muted (0%), black otherwise
+    const bgColor = volume === 0 ? '#CC0000' : '#000000';
+    const textColor = '#ffffff';
     const badgeText = `${volume}%`;
 
     await browserAPI.action.setBadgeText({ text: badgeText, tabId });
@@ -218,6 +284,42 @@ async function updateBadge(tabId, volume, tabUrl = null) {
     if (browserAPI.action.setBadgeTextColor) {
       await browserAPI.action.setBadgeTextColor({ color: textColor, tabId });
     }
+  } catch (e) {
+    // Tab might have been closed
+  }
+}
+
+// Check if Tab Capture is pending activation for a tab (Chrome only)
+// Returns true if: site has Tab Capture rule AND Tab Capture is not yet active
+async function isTabCapturePending(tabId) {
+  // Only relevant for Chrome
+  if (isFirefox) return false;
+
+  try {
+    const tab = await browserAPI.tabs.get(tabId);
+    if (!tab.url) return false;
+
+    const url = new URL(tab.url);
+    // Only for http/https
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+
+    // Check effective mode for this domain
+    const effectiveMode = await getEffectiveModeForDomain(url.hostname);
+    if (effectiveMode !== 'tabcapture') return false;
+
+    // Check if Tab Capture is already active
+    const isActive = await isTabCaptureActive(tabId);
+    return !isActive;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Update badge and tooltip - delegates to updateBadge which handles pending state
+async function updateTabCaptureIndicator(tabId) {
+  try {
+    const volume = await getTabVolume(tabId);
+    await updateBadge(tabId, volume);
   } catch (e) {
     // Tab might have been closed
   }
@@ -301,6 +403,17 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
   // Remove from tabs with media tracking
   tabsWithMedia.delete(tabId);
 
+  // Clear tracked tab if it was closed (Active Tab Audio mode continues)
+  if (focusModeState.active && focusModeState.lastActiveTabId === tabId) {
+    focusModeState.lastActiveTabId = null;
+    try {
+      browserAPI.storage.session.set({ activeTabAudioLastTabId: null });
+    } catch (e) {
+      // Session storage might not be available
+    }
+    // onActivated will handle unmuting the next active tab
+  }
+
   // Notify offscreen to stop any visualizer capture for this tab (Chrome only)
   if (!isFirefox && chrome.offscreen) {
     try {
@@ -318,6 +431,173 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
     } catch (e) {
       // Ignore errors
     }
+  }
+});
+
+// Active Tab Audio mode - mute previous tab, unmute new active tab
+browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
+  // Check session storage for state (survives service worker restarts)
+  let isActive = focusModeState.active;
+  let previousTabId = focusModeState.lastActiveTabId;
+
+  // If local state is false, check session storage (service worker may have restarted)
+  if (!isActive) {
+    try {
+      const stored = await browserAPI.storage.session.get(['activeTabAudioMode', 'activeTabAudioLastTabId']);
+      isActive = stored.activeTabAudioMode || false;
+      previousTabId = stored.activeTabAudioLastTabId || null;
+      if (isActive) {
+        focusModeState.active = true;
+        focusModeState.lastActiveTabId = previousTabId;
+      }
+    } catch (e) {
+      // Session storage error - continue with local state
+    }
+  }
+
+  if (!isActive) return;
+
+  const newActiveTabId = activeInfo.tabId;
+
+  // Mute the previous active tab (if different and exists)
+  if (previousTabId && previousTabId !== newActiveTabId) {
+    try {
+      await browserAPI.tabs.update(previousTabId, { muted: true });
+      // Also mute Tab Capture (bypasses browser mute)
+      if (!isFirefox) {
+        try {
+          await chrome.runtime.sendMessage({
+            type: 'SET_TAB_CAPTURE_VOLUME',
+            tabId: previousTabId,
+            volume: 0
+          });
+        } catch (tcErr) {
+          // Tab might not have Tab Capture active
+        }
+      }
+    } catch (e) {
+      // Tab might have been closed
+    }
+  }
+
+  // Unmute the new active tab
+  try {
+    await browserAPI.tabs.update(newActiveTabId, { muted: false });
+    // Also restore Tab Capture volume
+    if (!isFirefox) {
+      try {
+        const savedVolume = await getTabVolume(newActiveTabId);
+        await chrome.runtime.sendMessage({
+          type: 'SET_TAB_CAPTURE_VOLUME',
+          tabId: newActiveTabId,
+          volume: savedVolume
+        });
+      } catch (tcErr) {
+        // Tab might not have Tab Capture active
+      }
+    }
+  } catch (e) {
+    // Tab error
+  }
+
+  // Update tracked active tab (both local and session storage)
+  focusModeState.lastActiveTabId = newActiveTabId;
+  try {
+    await browserAPI.storage.session.set({ activeTabAudioLastTabId: newActiveTabId });
+  } catch (e) {
+    // Session storage error
+  }
+});
+
+// Update Tab Capture pending indicator when switching tabs
+browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
+  await updateTabCaptureIndicator(activeInfo.tabId);
+});
+
+// Active Tab Audio mode - handle window focus changes (cross-window tab switching)
+browserAPI.windows.onFocusChanged.addListener(async (windowId) => {
+  // Ignore when focus is lost (no window has focus)
+  if (windowId === browserAPI.windows.WINDOW_ID_NONE) return;
+
+  // Check if Active Tab Audio mode is enabled
+  let isActive = focusModeState.active;
+  let previousTabId = focusModeState.lastActiveTabId;
+
+  // If local state is false, check session storage (service worker may have restarted)
+  if (!isActive) {
+    try {
+      const stored = await browserAPI.storage.session.get(['activeTabAudioMode', 'activeTabAudioLastTabId']);
+      isActive = stored.activeTabAudioMode || false;
+      previousTabId = stored.activeTabAudioLastTabId || null;
+      if (isActive) {
+        focusModeState.active = true;
+        focusModeState.lastActiveTabId = previousTabId;
+      }
+    } catch (e) {
+      // Session storage error - continue with local state
+    }
+  }
+
+  if (!isActive) return;
+
+  // Get the active tab in the newly focused window
+  try {
+    const tabs = await browserAPI.tabs.query({ active: true, windowId: windowId });
+    if (tabs.length === 0) return;
+
+    const newActiveTabId = tabs[0].id;
+
+    // Skip if it's the same tab (user just clicked the same window again)
+    if (newActiveTabId === previousTabId) return;
+
+    // Mute the previous active tab
+    if (previousTabId) {
+      try {
+        await browserAPI.tabs.update(previousTabId, { muted: true });
+        if (!isFirefox) {
+          try {
+            await chrome.runtime.sendMessage({
+              type: 'SET_TAB_CAPTURE_VOLUME',
+              tabId: previousTabId,
+              volume: 0
+            });
+          } catch (tcErr) {
+            // Tab might not have Tab Capture active
+          }
+        }
+      } catch (e) {
+        // Tab might have been closed
+      }
+    }
+
+    // Unmute the new active tab
+    try {
+      await browserAPI.tabs.update(newActiveTabId, { muted: false });
+      if (!isFirefox) {
+        try {
+          const savedVolume = await getTabVolume(newActiveTabId);
+          await chrome.runtime.sendMessage({
+            type: 'SET_TAB_CAPTURE_VOLUME',
+            tabId: newActiveTabId,
+            volume: savedVolume
+          });
+        } catch (tcErr) {
+          // Tab might not have Tab Capture active
+        }
+      }
+    } catch (e) {
+      // Tab error
+    }
+
+    // Update tracked active tab
+    focusModeState.lastActiveTabId = newActiveTabId;
+    try {
+      await browserAPI.storage.session.set({ activeTabAudioLastTabId: newActiveTabId });
+    } catch (e) {
+      // Session storage error
+    }
+  } catch (e) {
+    // Query error
   }
 });
 
@@ -457,7 +737,8 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       }
     }
 
-    await updateBadge(tabId, volume);
+    // Update badge - shows Tab Capture pending indicator or volume
+    await updateTabCaptureIndicator(tabId);
 
     // Get saved device for this tab (handles both old string format and new object format)
     const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
@@ -585,7 +866,9 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 // Chrome-only: Offscreen document management for audio device enumeration
-let creatingOffscreenDocument = null;
+// Uses a promise-based lock to prevent race conditions when multiple callers
+// try to create the offscreen document simultaneously
+let offscreenDocumentLock = null;
 
 async function setupOffscreenDocument() {
   // Only available in Chrome
@@ -593,43 +876,120 @@ async function setupOffscreenDocument() {
     return false;
   }
 
-  const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
-
-  // Check if already exists
-  const existingContexts = await chrome.runtime.getContexts({
-    contextTypes: ['OFFSCREEN_DOCUMENT'],
-    documentUrls: [offscreenUrl]
-  });
-
-  if (existingContexts.length > 0) {
-    return true;
+  // If another call is in progress, wait for it and return its result
+  // This must be checked BEFORE any async operations to prevent race window
+  if (offscreenDocumentLock) {
+    return offscreenDocumentLock;
   }
 
-  // If another call is already creating the document, wait for it
-  if (creatingOffscreenDocument) {
-    await creatingOffscreenDocument;
-    return true;
-  }
+  // Create the lock immediately (synchronously) before any async work
+  let resolveLock;
+  offscreenDocumentLock = new Promise(resolve => { resolveLock = resolve; });
 
-  // Create the document - assign promise BEFORE awaiting to prevent race condition
   try {
-    creatingOffscreenDocument = chrome.offscreen.createDocument({
+    const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
+
+    // Check if already exists
+    const existingContexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT'],
+      documentUrls: [offscreenUrl]
+    });
+
+    if (existingContexts.length > 0) {
+      resolveLock(true);
+      return true;
+    }
+
+    // Create the document
+    await chrome.offscreen.createDocument({
       url: offscreenUrl,
       reasons: ['USER_MEDIA'],
       justification: 'Enumerate audio output devices and Tab Capture for visualizer'
     });
-    await creatingOffscreenDocument;
     // Small delay to ensure the offscreen JS has loaded and registered its listeners
     await new Promise(resolve => setTimeout(resolve, 100));
+    resolveLock(true);
     return true;
   } catch (e) {
-    // Document may already exist (created by another caller in rare race)
+    // Document may already exist (created between our check and create call)
     if (e.message && e.message.includes('single offscreen')) {
+      resolveLock(true);
       return true;
     }
+    resolveLock(false);
     throw e;
   } finally {
-    creatingOffscreenDocument = null;
+    offscreenDocumentLock = null;
+  }
+}
+
+// Check if Tab Capture is currently active for a tab (Chrome only)
+async function isTabCaptureActive(tabId) {
+  if (isFirefox || !chrome.offscreen) {
+    return false;
+  }
+
+  try {
+    const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
+    const existingContexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT'],
+      documentUrls: [offscreenUrl]
+    });
+
+    if (existingContexts.length === 0) {
+      return false;
+    }
+
+    const response = await chrome.runtime.sendMessage({
+      type: 'GET_VISUALIZER_CAPTURE_STATUS',
+      tabId: tabId
+    });
+
+    return response && response.isActive;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Initiate Tab Capture for a tab (Chrome only, requires user gesture context)
+// This is called from keyboard shortcuts which provide user gesture context
+async function initiateTabCaptureFromKeyboard(tabId) {
+  if (isFirefox || !chrome.tabCapture) {
+    return false;
+  }
+
+  try {
+    // Ensure offscreen document exists
+    await setupOffscreenDocument();
+
+    // Get the media stream ID (requires user gesture - keyboard shortcut provides this)
+    const streamId = await chrome.tabCapture.getMediaStreamId({
+      targetTabId: tabId
+    });
+
+    if (!streamId) {
+      console.log('[TabVolume] Keyboard shortcut: No stream ID returned');
+      return false;
+    }
+
+    // Send to offscreen document to start capture
+    const response = await chrome.runtime.sendMessage({
+      type: 'START_VISUALIZER_CAPTURE',
+      streamId: streamId,
+      tabId: tabId
+    });
+
+    console.log('[TabVolume] Keyboard shortcut initiated Tab Capture for tab', tabId);
+
+    // Clear the pending indicator now that Tab Capture is active
+    if (response && response.success) {
+      await updateTabCaptureIndicator(tabId);
+    }
+
+    return response && response.success;
+  } catch (e) {
+    console.error('[TabVolume] Keyboard shortcut Tab Capture failed:', e);
+    return false;
   }
 }
 
@@ -727,7 +1087,7 @@ function isValidSender(sender) {
 const VALID_MESSAGE_TYPES = [
   'REQUEST_AUDIO_DEVICES', 'DEVICE_NOT_FOUND', 'GET_VOLUME', 'SET_VOLUME',
   'GET_TAB_ID', 'GET_TAB_INFO', 'GET_AUDIBLE_TABS',
-  'MUTE_OTHER_TABS',
+  'MUTE_OTHER_TABS', 'UNMUTE_OTHER_TABS', 'GET_FOCUS_STATE',
   'HAS_MEDIA', 'CONTENT_READY', 'VOLUME_CHANGED',
   'START_TAB_CAPTURE_VISUALIZER', 'GET_TAB_CAPTURE_PREF', 'SET_TAB_CAPTURE_PREF',
   // Persistent visualizer Tab Capture (offscreen document)
@@ -843,6 +1203,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'GET_VOLUME') {
     const tabId = request.tabId;
+    if (!isValidTabId(tabId)) {
+      sendResponse({ volume: 100 }); // Default to 100% for invalid tabId
+      return false;
+    }
     getTabVolume(tabId).then(volume => {
       sendResponse({ volume });
     }).catch(e => {
@@ -855,6 +1219,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'SET_VOLUME') {
     const tabId = request.tabId;
     const volume = request.volume;
+    if (!isValidTabId(tabId)) {
+      sendResponse({ success: false, error: 'Invalid tab ID' });
+      return false;
+    }
     setTabVolume(tabId, volume).then(() => {
       sendResponse({ success: true });
     }).catch(e => {
@@ -872,6 +1240,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'GET_TAB_INFO') {
+    if (!isValidTabId(request.tabId)) {
+      sendResponse({ title: 'Unknown', url: '' });
+      return false;
+    }
     browserAPI.tabs.get(request.tabId).then(tab => {
       sendResponse({
         title: tab.title,
@@ -922,28 +1294,15 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         const currentTabId = request.currentTabId;
         const tabs = await browserAPI.tabs.query({});
-        console.log('[TabVolume] Focus: Found', tabs.length, 'total tabs, current tab:', currentTabId);
 
         // Mute all other tabs that aren't already muted
         let mutedCount = 0;
-        let skippedCount = 0;
         for (const tab of tabs) {
-          if (tab.id === currentTabId) {
-            console.log('[TabVolume] Skipping current tab:', tab.id, tab.title?.substring(0, 30));
-            continue;
-          }
-          if (tab.mutedInfo?.muted) {
-            console.log('[TabVolume] Skipping already muted tab:', tab.id, tab.title?.substring(0, 30));
-            skippedCount++;
-            continue;
-          }
+          if (tab.id === currentTabId) continue;
+          if (tab.mutedInfo?.muted) continue;
           try {
-            // Browser-level mute only - don't mute media elements directly
-            // as this can cause issues with sites like YouTube that react to element.muted changes
-            console.log('[TabVolume] Muting tab:', tab.id, tab.title?.substring(0, 30), 'audible:', tab.audible);
             await browserAPI.tabs.update(tab.id, { muted: true });
             mutedCount++;
-
             // Also mute Tab Capture session if active (Tab Capture audio bypasses browser mute)
             if (!isFirefox) {
               try {
@@ -952,20 +1311,99 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
                   tabId: tab.id,
                   volume: 0
                 });
-                console.log('[TabVolume] Also muted Tab Capture for tab:', tab.id);
               } catch (tcErr) {
-                // Tab might not have Tab Capture active - that's fine
+                // Tab might not have Tab Capture active
               }
             }
           } catch (muteErr) {
-            console.error('[TabVolume] Failed to mute tab:', tab.id, tab.title?.substring(0, 30), muteErr.message);
+            // Tab might have been closed
           }
         }
 
-        console.log('[TabVolume] Focus complete: muted', mutedCount, 'tabs, skipped', skippedCount, 'already muted');
+        // Set Active Tab Audio mode state (local and session storage)
+        focusModeState.active = true;
+        focusModeState.lastActiveTabId = currentTabId;
+        try {
+          await browserAPI.storage.session.set({
+            activeTabAudioMode: true,
+            activeTabAudioLastTabId: currentTabId
+          });
+        } catch (e) {
+          // Session storage error
+        }
+
         sendResponse({ success: true, mutedCount });
       } catch (e) {
-        console.error('[TabVolume] Mute other tabs failed:', e);
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
+    return true;
+  }
+
+  // Get Focus State - check if Active Tab Audio mode is enabled
+  if (request.type === 'GET_FOCUS_STATE') {
+    (async () => {
+      let isActive = focusModeState.active;
+      // Check session storage if local state is false (service worker may have restarted)
+      if (!isActive) {
+        try {
+          const stored = await browserAPI.storage.session.get(['activeTabAudioMode']);
+          isActive = stored.activeTabAudioMode || false;
+          if (isActive) {
+            focusModeState.active = true;
+          }
+        } catch (e) {
+          // Session storage might not be available
+        }
+      }
+      sendResponse({ success: true, active: isActive });
+    })();
+    return true;
+  }
+
+  // Unmute Other Tabs - unmute all muted tabs except current (for focus toggle)
+  if (request.type === 'UNMUTE_OTHER_TABS') {
+    (async () => {
+      try {
+        const currentTabId = request.currentTabId;
+        const tabs = await browserAPI.tabs.query({});
+
+        // Unmute all other tabs that are muted
+        let unmutedCount = 0;
+        for (const tab of tabs) {
+          if (tab.id === currentTabId) continue;
+          if (!tab.mutedInfo?.muted) continue;
+          try {
+            await browserAPI.tabs.update(tab.id, { muted: false });
+            unmutedCount++;
+            // Also restore Tab Capture volume if active
+            if (!isFirefox) {
+              try {
+                await chrome.runtime.sendMessage({
+                  type: 'SET_TAB_CAPTURE_VOLUME',
+                  tabId: tab.id,
+                  volume: 100
+                });
+              } catch (tcErr) {
+                // Tab might not have Tab Capture active
+              }
+            }
+          } catch (unmuteErr) {
+            // Tab might have been closed
+          }
+        }
+
+        // Clear Active Tab Audio mode state (local and session storage)
+        focusModeState.active = false;
+        focusModeState.lastActiveTabId = null;
+        try {
+          await browserAPI.storage.session.remove(['activeTabAudioMode', 'activeTabAudioLastTabId']);
+        } catch (e) {
+          // Session storage error
+        }
+
+        sendResponse({ success: true, unmutedCount });
+      } catch (e) {
         sendResponse({ success: false, error: e.message });
       }
     })();
@@ -1138,6 +1576,12 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
 
         console.log('[TabVolume] Persistent visualizer capture started for tab', tabId);
+
+        // Clear the pending indicator now that Tab Capture is active
+        if (response && response.success) {
+          await updateTabCaptureIndicator(tabId);
+        }
+
         sendResponse(response);
       } catch (e) {
         console.error('[TabVolume] Persistent visualizer capture failed:', e);
@@ -1369,6 +1813,31 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 browserAPI.commands.onCommand.addListener(async (command) => {
   const [tab] = await browserAPI.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
+
+  // Check if we should auto-initiate Tab Capture (Chrome only)
+  // Only initiate if: mode is 'tabcapture', not Firefox, and not already active
+  if (!isFirefox && tab.url) {
+    try {
+      const url = new URL(tab.url);
+      // Skip chrome://, edge://, about:, etc.
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        const effectiveMode = await getEffectiveModeForDomain(url.hostname);
+
+        // Only auto-initiate Tab Capture if mode is 'tabcapture'
+        // Do NOT initiate for 'webaudio' or 'off' modes
+        if (effectiveMode === 'tabcapture') {
+          const isActive = await isTabCaptureActive(tab.id);
+          if (!isActive) {
+            // Initiate Tab Capture - keyboard shortcut provides user gesture context
+            await initiateTabCaptureFromKeyboard(tab.id);
+          }
+        }
+      }
+    } catch (e) {
+      // Invalid URL or other error - continue with volume change anyway
+      console.log('[TabVolume] Keyboard shortcut: Could not check/initiate Tab Capture:', e.message);
+    }
+  }
 
   let volume = await getTabVolume(tab.id);
 
@@ -2006,9 +2475,9 @@ async function createContextMenus() {
     });
 
     contextMenusAPI.create({
-      id: 'focusMuteOtherTabs',
+      id: 'toggleFocusMode',
       parentId: 'tabVolumeParent',
-      title: 'Focus (Mute Other Tabs)',
+      title: 'Toggle Focus Mode',
       contexts: MENU_CONTEXTS
     });
 
@@ -2024,7 +2493,7 @@ async function createContextMenus() {
     contextMenusAPI.create({
       id: 'enableBypassMode',
       parentId: 'tabVolumeParent',
-      title: 'Enable Bypass Mode',
+      title: 'Disable Audio Processing',
       contexts: MENU_CONTEXTS
     });
 
@@ -2217,28 +2686,75 @@ if (contextMenusAPI) {
         }
         break;
 
-      case 'focusMuteOtherTabs':
-        // Focus: Mute all other tabs using browser-level mute only
-        const allTabsToMute = await browserAPI.tabs.query({});
-        for (const otherTab of allTabsToMute) {
-          if (otherTab.id !== tab.id && !otherTab.mutedInfo?.muted) {
+      case 'toggleFocusMode':
+        // Toggle Focus Mode (Active Tab Audio) - audio follows active tab
+        // Uses same logic as MUTE_OTHER_TABS / UNMUTE_OTHER_TABS message handlers
+        {
+          // Check current Focus Mode state (local + session storage)
+          let isActive = focusModeState.active;
+          if (!isActive) {
             try {
-              await browserAPI.tabs.update(otherTab.id, { muted: true });
-              // Also mute Tab Capture session if active (Tab Capture audio bypasses browser mute)
-              if (!isFirefox) {
-                try {
-                  await chrome.runtime.sendMessage({
-                    type: 'SET_TAB_CAPTURE_VOLUME',
-                    tabId: otherTab.id,
-                    volume: 0
-                  });
-                } catch (tcErr) {
-                  // Tab might not have Tab Capture active - that's fine
+              const stored = await browserAPI.storage.session.get(['activeTabAudioMode']);
+              isActive = stored.activeTabAudioMode || false;
+            } catch (e) {}
+          }
+
+          const currentTabId = tab.id;
+          const allTabs = await browserAPI.tabs.query({});
+
+          if (isActive) {
+            // Disable Focus Mode - unmute all other tabs
+            for (const otherTab of allTabs) {
+              if (otherTab.id === currentTabId) continue;
+              if (!otherTab.mutedInfo?.muted) continue;
+              try {
+                await browserAPI.tabs.update(otherTab.id, { muted: false });
+                if (!isFirefox) {
+                  try {
+                    await chrome.runtime.sendMessage({
+                      type: 'SET_TAB_CAPTURE_VOLUME',
+                      tabId: otherTab.id,
+                      volume: 100
+                    });
+                  } catch (tcErr) {}
                 }
-              }
-            } catch (e) {
-              // Tab might not support muting
+              } catch (e) {}
             }
+            // Clear state
+            focusModeState.active = false;
+            focusModeState.lastActiveTabId = null;
+            try {
+              await browserAPI.storage.session.remove(['activeTabAudioMode', 'activeTabAudioLastTabId']);
+            } catch (e) {}
+            console.log('[TabVolume] Focus Mode disabled via context menu');
+          } else {
+            // Enable Focus Mode - mute all other tabs
+            for (const otherTab of allTabs) {
+              if (otherTab.id === currentTabId) continue;
+              if (otherTab.mutedInfo?.muted) continue;
+              try {
+                await browserAPI.tabs.update(otherTab.id, { muted: true });
+                if (!isFirefox) {
+                  try {
+                    await chrome.runtime.sendMessage({
+                      type: 'SET_TAB_CAPTURE_VOLUME',
+                      tabId: otherTab.id,
+                      volume: 0
+                    });
+                  } catch (tcErr) {}
+                }
+              } catch (e) {}
+            }
+            // Set state
+            focusModeState.active = true;
+            focusModeState.lastActiveTabId = currentTabId;
+            try {
+              await browserAPI.storage.session.set({
+                activeTabAudioMode: true,
+                activeTabAudioLastTabId: currentTabId
+              });
+            } catch (e) {}
+            console.log('[TabVolume] Focus Mode enabled via context menu, tracking tab:', currentTabId);
           }
         }
         break;

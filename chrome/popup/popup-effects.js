@@ -265,16 +265,16 @@ async function applyTrebleGain(gain) {
 // Bass slider input handler
 if (bassSlider) {
   bassSlider.addEventListener('input', (e) => {
-    const gain = parseInt(e.target.value);
-    applyBassGain(gain);
+    const gain = parseInt(e.target.value, 10);
+    if (!isNaN(gain)) applyBassGain(gain);
   });
 }
 
 // Treble slider input handler
 if (trebleSlider) {
   trebleSlider.addEventListener('input', (e) => {
-    const gain = parseInt(e.target.value);
-    applyTrebleGain(gain);
+    const gain = parseInt(e.target.value, 10);
+    if (!isNaN(gain)) applyTrebleGain(gain);
   });
 }
 
@@ -318,8 +318,8 @@ async function applyVoiceGain(gain) {
 // Voice slider input handler
 if (voiceSlider) {
   voiceSlider.addEventListener('input', (e) => {
-    const gain = parseInt(e.target.value);
-    applyVoiceGain(gain);
+    const gain = parseInt(e.target.value, 10);
+    if (!isNaN(gain)) applyVoiceGain(gain);
   });
 }
 
@@ -330,7 +330,7 @@ if (bassSlider) {
   bassSlider.parentElement.addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = 1;
-    const currentValue = parseInt(bassSlider.value);
+    const currentValue = parseInt(bassSlider.value, 10) || 0;
     const delta = e.deltaY < 0 ? step : -step;
     const newValue = Math.max(-24, Math.min(24, currentValue + delta));
     bassSlider.value = newValue;
@@ -343,7 +343,7 @@ if (trebleSlider) {
   trebleSlider.parentElement.addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = 1;
-    const currentValue = parseInt(trebleSlider.value);
+    const currentValue = parseInt(trebleSlider.value, 10) || 0;
     const delta = e.deltaY < 0 ? step : -step;
     const newValue = Math.max(-24, Math.min(24, currentValue + delta));
     trebleSlider.value = newValue;
@@ -356,7 +356,7 @@ if (voiceSlider) {
   voiceSlider.parentElement.addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = 1;
-    const currentValue = parseInt(voiceSlider.value);
+    const currentValue = parseInt(voiceSlider.value, 10) || 0;
     const delta = e.deltaY < 0 ? step : -step;
     const newValue = Math.max(0, Math.min(18, currentValue + delta));
     voiceSlider.value = newValue;
@@ -535,6 +535,12 @@ function getEffectGain(effect, level) {
 // Apply effect to content script
 async function applyEffect(effect, level) {
   if (!currentTabId) return;
+
+  // Defense-in-depth: prevent bass/treble/voice changes while compressor is active
+  // (buttons should already be disabled, but this catches any edge cases)
+  if (currentCompressor !== 'off' && (effect === 'bass' || effect === 'treble' || effect === 'voice')) {
+    return;
+  }
 
   const gain = getEffectGain(effect, level);
   const storageKey = `tab_${currentTabId}_${effect}`;
@@ -781,8 +787,8 @@ async function applyBalance(balance) {
 
 // Balance slider input handler
 balanceSlider.addEventListener('input', (e) => {
-  const balance = parseInt(e.target.value);
-  applyBalance(balance);
+  const balance = parseInt(e.target.value, 10);
+  if (!isNaN(balance)) applyBalance(balance);
 });
 
 // Balance reset button handler
