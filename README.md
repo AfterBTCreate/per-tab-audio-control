@@ -12,6 +12,7 @@ Boost quiet videos up to 500%, fine-tune equalizer settings, set automatic volum
 - **Volume boost** — Amplify any tab from 0% to 500%
 - **Per-site rules** — Automatically apply your preferred volume to specific websites
 - **Mute control** — Mute individual tabs or all other tabs with one click
+- **Focus mode** — Instantly mute all other tabs to focus on your current audio
 - **Balance slider** — Pan audio left/right, with stereo, mono, and swap presets
 
 ### Audio Enhancements
