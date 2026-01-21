@@ -50,7 +50,7 @@ Firefox support is in development. The codebase is compatible but some features 
 1. Download or clone this repository
 2. Open `chrome://extensions/`
 3. Enable "Developer mode"
-4. Click "Load unpacked" and select the `chrome` folder
+4. Click "Load unpacked" and select the extension folder
 
 ## Permissions
 
