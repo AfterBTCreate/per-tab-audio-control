@@ -69,12 +69,13 @@ Firefox support is in development. The codebase is compatible but some features 
 
 ## License
 
-This project is licensed under the **GNU General Public License v3.0** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License + Commons Clause** — see the [LICENSE](LICENSE) file for details.
 
 You can use, study, modify, and distribute this software freely, provided you:
 - Include the original license and copyright
-- Make modifications available under GPL v3
-- State any changes you made
+- **Do not sell** the software or services derived from it
+
+The Commons Clause restricts commercial use — you may not sell this software or offer paid services based on it without permission from the author.
 
 ## Author
 
