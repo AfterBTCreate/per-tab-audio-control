@@ -207,6 +207,7 @@ body.light-mode .visualizer-enable:hover {
   text-overflow: ellipsis;
   margin-bottom: 4px;
   margin-left: 28px;
+  padding-right: 50px;
   position: relative;
   z-index: 1;
 }
@@ -225,9 +226,9 @@ body.light-mode .visualizer-enable:hover {
 .tab-counter {
   font-size: 10px;
   color: #7a8fa5;
-  margin-left: 28px;
-  margin-top: 2px;
-  position: relative;
+  position: absolute;
+  top: 6px;
+  right: 8px;
   z-index: 1;
   display: none;
 }
@@ -260,6 +261,29 @@ body.light-mode .tab-title {
 
 body.light-mode .tab-url {
   color: #6b5d52;
+}
+
+/* External tab title (below visualizer) */
+.tab-title-external {
+  display: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-align: center;
+  padding: 6px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tab-title-external.visible {
+  display: block;
+}
+
+body.light-mode .tab-title-external {
+  color: #6b5d52;
+  border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 
 body.light-mode .tab-counter {

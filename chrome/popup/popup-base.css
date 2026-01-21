@@ -1,6 +1,15 @@
 /* ==================== Base Styles ==================== */
 /* Body, container, header, theme toggle */
 
+/* Comfortaa font for ABC logo */
+@font-face {
+  font-family: 'Comfortaa';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/comfortaa-latin-600.woff2') format('woff2');
+}
+
 * {
   margin: 0;
   padding: 0;

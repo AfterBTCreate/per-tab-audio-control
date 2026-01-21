@@ -626,7 +626,10 @@ async function updateVisualizerUnavailableMessage() {
     // Off mode is intentional - don't show error, don't block controls
     showEnablePrompt = false;
     document.body.classList.remove('audio-blocked');
-    // Don't show unavailable indicator - Off mode has its own status via updateDisabledDomainUI()
+    // Show the "off" indicator to indicate visualizer won't work in disabled mode
+    if (offMsg) {
+      offMsg.classList.add('visible');
+    }
   } else {
     showEnablePrompt = false;
     document.body.classList.remove('audio-blocked');

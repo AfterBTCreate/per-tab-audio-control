@@ -14,6 +14,67 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [4.1.79] - Release - 2026-01-21
+
+### Changed
+- **ABC logo font**: Updated all SVG logos to use Comfortaa font (rounded letterforms) to match the Chrome Web Store icon and website branding
+
+---
+
+## [4.1.78] - Release - 2026-01-21
+
+### Changed
+- **Speaker icon updated**: Redesigned the speaker icon in the ABC logo to match the Chrome Web Store icon design with a more compact trapezoid shape and curved sound waves
+
+---
+
+## [4.1.77] - Release - 2026-01-21
+
+### Fixed
+- **Visualizer indicator in disabled mode**: Now shows the "Visualizer off" indicator in the bottom-right corner when domain is in disabled/off mode
+
+---
+
+## [4.1.76] - Release - 2026-01-21
+
+### Fixed
+- **Web Audio mode not working after switch**: Fixed "Extension cannot access audio" error when switching from Tab Capture to Web Audio mode. The issue was that page refresh lost user interaction context needed for AudioContext creation. Now sets a sessionStorage flag before refresh that content script reads to allow immediate audio processing.
+
+---
+
+## [4.1.75] - Release - 2026-01-21
+
+### Changed
+- **Tab Title Location default**: Changed default from "Inside visualizer" to "Below visualizer" for cleaner appearance
+
+---
+
+## [4.1.74] - Release - 2026-01-21
+
+### Fixed
+- **QA: Map iteration safety**: Fixed potential iterator invalidation when cleaning up message throttle entries - now collects keys before deletion
+- **QA: Tab storage cleanup**: Added missing storage keys to tab close cleanup (bass, treble, voice, compressor, balance, channel mode) - prevents memory leaks
+
+### Documentation
+- **SECURITY-FINDINGS.md**: Updated rate limiting section to reflect current implementation status (rate limiting IS implemented, not absent)
+
+---
+
+## [4.1.73] - Release - 2026-01-21
+
+### Added
+- **Tab Title Location setting**: Choose where to display tab title - "Inside visualizer" (default, shows title and URL overlaid) or "Below visualizer" (shows title in separate row below)
+- **Auto-scroll for notifications**: Status messages now auto-scroll into view when they cause a scrollbar to appear
+
+### Changed
+- **Tab counter repositioned**: Moved tab counter from bottom-left to top-right of the visualizer
+- **Tab title truncation**: Added right padding to prevent title text from overlapping with the tab counter
+
+### Documentation
+- **User Guide updated**: Added Tab Title Location setting documentation under Appearance > Visualizer section
+
+---
+
 ## [4.1.72] - Release - 2026-01-20
 
 ### Removed

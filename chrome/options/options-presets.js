@@ -158,6 +158,38 @@ visualizerRadios.forEach(radio => {
 // Load visualizer type on init
 loadVisualizerType();
 
+// ==================== Tab Info Location Setting ====================
+
+const tabInfoLocationRadios = document.querySelectorAll('input[name="tabInfoLocation"]');
+
+// Load setting
+async function loadTabInfoLocation() {
+  const result = await browserAPI.storage.sync.get(['tabInfoLocation']);
+  // Default to 'below' if not set
+  const location = result.tabInfoLocation || 'below';
+  tabInfoLocationRadios.forEach(radio => {
+    radio.checked = radio.value === location;
+  });
+}
+
+// Save setting
+async function saveTabInfoLocation(location) {
+  await browserAPI.storage.sync.set({ tabInfoLocation: location });
+  showStatus(visualizerStatus, 'Visualizer setting saved!', 'success');
+}
+
+// Add listeners
+tabInfoLocationRadios.forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      saveTabInfoLocation(e.target.value);
+    }
+  });
+});
+
+// Load on init
+loadTabInfoLocation();
+
 // ==================== EQ Control Mode (Presets vs Sliders) ====================
 
 const eqControlModeRadios = document.querySelectorAll('input[name="eqControlMode"]');

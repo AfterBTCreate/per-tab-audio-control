@@ -34,6 +34,7 @@ const volumeValue = document.getElementById('volumeValue');
 const sliderFill = document.getElementById('sliderFill');
 const tabTitle = document.getElementById('tabTitle');
 const tabUrl = document.getElementById('tabUrl');
+const tabTitleExternal = document.getElementById('tabTitleExternal');
 const muteBtn = document.getElementById('muteBtn');
 const presetButtons = document.querySelectorAll('.preset-btn');
 const logo = document.querySelector('.logo');
@@ -296,6 +297,9 @@ function showStatus(message, type = 'info', duration = 4000) {
   statusMessage.textContent = message;
   statusMessage.className = 'status-message ' + type;
 
+  // Auto-scroll to show the status message if it causes overflow
+  statusMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
   // Auto-hide after duration (0 = persistent)
   if (duration > 0) {
     statusTimeout = setTimeout(() => {
@@ -359,6 +363,55 @@ loadTheme();
 
 // Theme toggle handler
 themeToggle.addEventListener('click', toggleTheme);
+
+// ==================== Tab Info Location Setting ====================
+
+// Apply setting for tab info placement (inside visualizer or below)
+async function applyTabInfoLocation() {
+  try {
+    const result = await browserAPI.storage.sync.get(['tabInfoLocation']);
+    // Default to 'below' if not set
+    const location = result.tabInfoLocation || 'below';
+
+    if (location === 'inside') {
+      // Show title and URL inside visualizer
+      if (tabTitle) tabTitle.style.visibility = '';
+      if (tabUrl) tabUrl.style.visibility = '';
+      if (tabTitleExternal) tabTitleExternal.classList.remove('visible');
+    } else {
+      // Show title below visualizer (hide internal, show external)
+      if (tabTitle) tabTitle.style.visibility = 'hidden';
+      if (tabUrl) tabUrl.style.visibility = 'hidden';
+      if (tabTitleExternal) {
+        // Copy the title text to external element
+        tabTitleExternal.textContent = tabTitle ? tabTitle.textContent : '';
+        tabTitleExternal.classList.add('visible');
+      }
+    }
+  } catch (error) {
+    console.error('Error applying tab info location setting:', error);
+  }
+}
+
+// Load setting immediately
+applyTabInfoLocation();
+
+// Keep external title in sync when internal title changes
+if (tabTitle && tabTitleExternal) {
+  const titleObserver = new MutationObserver(() => {
+    if (tabTitleExternal.classList.contains('visible')) {
+      tabTitleExternal.textContent = tabTitle.textContent;
+    }
+  });
+  titleObserver.observe(tabTitle, { childList: true, characterData: true, subtree: true });
+}
+
+// Listen for storage changes to update in real-time
+browserAPI.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.tabInfoLocation) {
+    applyTabInfoLocation();
+  }
+});
 
 // ==================== Header Layout Customization ====================
 

@@ -484,6 +484,18 @@
   let audioContextCreating = false; // Mutex to prevent duplicate creation
   let userHasInteracted = false; // Track if user has interacted with the page
 
+  // Check if user just switched modes via popup (popup click = user interaction)
+  // This flag is set by popup before page refresh when switching to Web Audio mode
+  try {
+    if (sessionStorage.getItem('__tabVolumeControl_modeSwitched') === 'true') {
+      userHasInteracted = true;
+      sessionStorage.removeItem('__tabVolumeControl_modeSwitched');
+      console.log('[TabVolume] Mode switch detected - treating as user interaction');
+    }
+  } catch (e) {
+    // sessionStorage might not be available (private browsing, etc.)
+  }
+
   // Track user interaction to avoid AudioContext autoplay warnings
   // Only resume AudioContext after user gesture to comply with browser policy
   const trackUserInteraction = () => {

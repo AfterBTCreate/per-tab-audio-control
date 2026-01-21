@@ -102,3 +102,6 @@ const POPUP_SECTION_ID_MAP = {
 
 const HIDEABLE_POPUP_SECTIONS = ['balance', 'enhancements', 'output', 'siteRule'];
 const MIN_VISIBLE_POPUP_SECTIONS = 1; // At least one section must be visible
+
+// Visualizer settings
+const DEFAULT_TAB_INFO_LOCATION = 'inside'; // 'inside' = in visualizer, 'below' = below visualizer
