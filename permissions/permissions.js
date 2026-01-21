@@ -49,8 +49,8 @@ async function requestPermission() {
     status.className = 'status success';
     status.textContent = `✓ Permission granted! Found ${audioOutputs.length} audio output device(s).`;
 
-    // Display devices
-    devicesContainer.innerHTML = '';
+    // Display devices (use replaceChildren for safe clearing)
+    devicesContainer.replaceChildren();
     audioOutputs.forEach(device => {
       const div = document.createElement('div');
       div.className = 'device-item';
@@ -111,7 +111,7 @@ async function checkExistingPermission() {
       status.className = 'status success';
       status.textContent = '✓ Permission already granted!';
 
-      devicesContainer.innerHTML = '';
+      devicesContainer.replaceChildren();
       audioOutputs.forEach(device => {
         const div = document.createElement('div');
         div.className = 'device-item';

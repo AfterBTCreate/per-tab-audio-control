@@ -143,6 +143,13 @@
   transform: none;
 }
 
+/* Last item tooltip - align right to prevent cutoff */
+.header-item-wrapper:last-child .tooltip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
 /* Spacer item */
 .header-spacer-item {
   width: 28px;

@@ -211,36 +211,5 @@ if (clearAllRulesBtn) {
   clearAllRulesBtn.addEventListener('click', clearAllRules);
 }
 
-// ==================== Off Mode Refresh Behavior ====================
-
-const nativeModeRefreshRadios = document.querySelectorAll('input[name="nativeModeRefresh"]');
-const nativeModeRefreshStatus = document.getElementById('nativeModeRefreshStatus');
-
-// Load native mode refresh behavior setting
-async function loadNativeModeRefreshBehavior() {
-  const result = await browserAPI.storage.sync.get(['nativeModeRefresh']);
-  const behavior = result.nativeModeRefresh || 'current'; // Default to 'current'
-
-  const radio = document.querySelector(`input[name="nativeModeRefresh"][value="${behavior}"]`);
-  if (radio) {
-    radio.checked = true;
-  }
-}
-
-// Save native mode refresh behavior setting
-async function saveNativeModeRefreshBehavior(behavior) {
-  await browserAPI.storage.sync.set({ nativeModeRefresh: behavior });
-  showStatus(nativeModeRefreshStatus, 'Refresh behavior saved!', 'success');
-}
-
-// Add listeners to radio buttons
-nativeModeRefreshRadios.forEach(radio => {
-  radio.addEventListener('change', (e) => {
-    if (e.target.checked) {
-      saveNativeModeRefreshBehavior(e.target.value);
-    }
-  });
-});
-
-// Load native mode refresh behavior on init
-loadNativeModeRefreshBehavior();
+// Note: Refresh Behavior setting removed in v4.1.17
+// Mode switches now work without page refresh (direct messaging to content script)

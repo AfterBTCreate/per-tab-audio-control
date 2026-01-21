@@ -3,7 +3,11 @@
 
 const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 
-console.log('[Offscreen] Document loaded');
+// Debug flag - set to true for verbose logging during development
+const DEBUG = false;
+const log = (...args) => DEBUG && console.log('[Offscreen]', ...args);
+
+log('Document loaded');
 
 // ==================== Visualizer Tab Capture State ====================
 // Track visualizer captures per tab (can have multiple tabs captured)
@@ -19,7 +23,19 @@ const COMPRESSOR_COMPENSATION = {
 
 // ==================== Message Handler ====================
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[Offscreen] Received message:', message.type);
+  // Security: Validate sender is our extension
+  if (sender.id !== browserAPI.runtime.id) {
+    console.warn('[Offscreen] Rejected message from unauthorized sender:', sender.id);
+    return false;
+  }
+
+  // Security: Validate message type is a string
+  if (typeof message.type !== 'string') {
+    console.warn('[Offscreen] Invalid message type:', typeof message.type);
+    return false;
+  }
+
+  log('Received message:', message.type);
 
   switch (message.type) {
     case 'GET_AUDIO_DEVICES':
@@ -94,14 +110,38 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const hasCapture = visualizerCaptures.has(message.tabId);
       sendResponse({ success: true, isTabCaptureMode: hasCapture });
       return false;
-  }
 
-  return false;
+    default:
+      log('Unknown message type:', message.type);
+      return false;
+  }
 });
 
 // ==================== Tab Capture Audio Control Functions ====================
 
+// Security: Validate numeric parameters to prevent NaN/Infinity issues
+function isValidTabId(tabId) {
+  return Number.isInteger(tabId) && tabId > 0;
+}
+
+function isValidVolume(volume) {
+  return Number.isFinite(volume) && volume >= 0 && volume <= 500;
+}
+
+function isValidGainDb(gainDb) {
+  return Number.isFinite(gainDb) && gainDb >= -50 && gainDb <= 50;
+}
+
+function isValidPan(pan) {
+  return Number.isFinite(pan) && pan >= -1 && pan <= 1;
+}
+
 function setTabCaptureVolume(tabId, volume) {
+  if (!isValidTabId(tabId) || !isValidVolume(volume)) {
+    console.warn('[Offscreen] Invalid params for setTabCaptureVolume:', { tabId, volume });
+    return;
+  }
+
   const capture = visualizerCaptures.get(tabId);
   if (!capture || !capture.gainNode) return;
 
@@ -125,55 +165,75 @@ function setTabCaptureVolume(tabId, volume) {
       capture.limiter.threshold.value = volume > 100 ? -1 : 0;
     }
 
-    console.log('[Offscreen] Set volume for tab', tabId, ':', volume, '(compensated:', compensatedGain.toFixed(3), ')');
+    log('Set volume for tab', tabId, ':', volume, '(compensated:', compensatedGain.toFixed(3), ')');
   } catch (e) {
     console.error('[Offscreen] Error setting volume:', e);
   }
 }
 
 function setTabCaptureBass(tabId, gainDb) {
+  if (!isValidTabId(tabId) || !isValidGainDb(gainDb)) {
+    console.warn('[Offscreen] Invalid params for setTabCaptureBass:', { tabId, gainDb });
+    return;
+  }
+
   const capture = visualizerCaptures.get(tabId);
   if (!capture || !capture.bassFilter) return;
 
   try {
     capture.bassFilter.gain.setTargetAtTime(gainDb, capture.audioContext.currentTime, 0.03);
-    console.log('[Offscreen] Set bass for tab', tabId, ':', gainDb);
+    log('Set bass for tab', tabId, ':', gainDb);
   } catch (e) {
     console.error('[Offscreen] Error setting bass:', e);
   }
 }
 
 function setTabCaptureTreble(tabId, gainDb) {
+  if (!isValidTabId(tabId) || !isValidGainDb(gainDb)) {
+    console.warn('[Offscreen] Invalid params for setTabCaptureTreble:', { tabId, gainDb });
+    return;
+  }
+
   const capture = visualizerCaptures.get(tabId);
   if (!capture || !capture.trebleFilter) return;
 
   try {
     capture.trebleFilter.gain.setTargetAtTime(gainDb, capture.audioContext.currentTime, 0.03);
-    console.log('[Offscreen] Set treble for tab', tabId, ':', gainDb);
+    log('Set treble for tab', tabId, ':', gainDb);
   } catch (e) {
     console.error('[Offscreen] Error setting treble:', e);
   }
 }
 
 function setTabCaptureVoice(tabId, gainDb) {
+  if (!isValidTabId(tabId) || !isValidGainDb(gainDb)) {
+    console.warn('[Offscreen] Invalid params for setTabCaptureVoice:', { tabId, gainDb });
+    return;
+  }
+
   const capture = visualizerCaptures.get(tabId);
   if (!capture || !capture.voiceFilter) return;
 
   try {
     capture.voiceFilter.gain.setTargetAtTime(gainDb, capture.audioContext.currentTime, 0.03);
-    console.log('[Offscreen] Set voice for tab', tabId, ':', gainDb);
+    log('Set voice for tab', tabId, ':', gainDb);
   } catch (e) {
     console.error('[Offscreen] Error setting voice:', e);
   }
 }
 
 function setTabCaptureBalance(tabId, pan) {
+  if (!isValidTabId(tabId) || !isValidPan(pan)) {
+    console.warn('[Offscreen] Invalid params for setTabCaptureBalance:', { tabId, pan });
+    return;
+  }
+
   const capture = visualizerCaptures.get(tabId);
   if (!capture || !capture.stereoPanner) return;
 
   try {
     capture.stereoPanner.pan.setTargetAtTime(pan, capture.audioContext.currentTime, 0.03);
-    console.log('[Offscreen] Set balance for tab', tabId, ':', pan);
+    log('Set balance for tab', tabId, ':', pan);
   } catch (e) {
     console.error('[Offscreen] Error setting balance:', e);
   }
@@ -236,19 +296,19 @@ function setTabCaptureCompressor(tabId, preset) {
       );
     }
 
-    console.log('[Offscreen] Set compressor for tab', tabId, ':', preset);
+    log('Set compressor for tab', tabId, ':', preset);
   } catch (e) {
     console.error('[Offscreen] Error setting compressor:', e);
   }
 }
 
 async function setTabCaptureDevice(tabId, deviceId, deviceLabel) {
-  console.log('[Offscreen] setTabCaptureDevice called:', { tabId, deviceId, deviceLabel });
-  console.log('[Offscreen] Active captures:', Array.from(visualizerCaptures.keys()));
+  log('setTabCaptureDevice called:', { tabId, deviceId, deviceLabel });
+  log('Active captures:', Array.from(visualizerCaptures.keys()));
 
   const capture = visualizerCaptures.get(tabId);
   if (!capture || !capture.audioElement) {
-    console.log('[Offscreen] No capture/audioElement found for tab', tabId);
+    log('No capture/audioElement found for tab', tabId);
     return { success: false, error: 'No active capture for this tab' };
   }
 
@@ -268,7 +328,7 @@ async function setTabCaptureDevice(tabId, deviceId, deviceLabel) {
       );
       if (matchingDevice) {
         targetDeviceId = matchingDevice.deviceId;
-        console.log('[Offscreen] Resolved device by label:', deviceLabel, '->', targetDeviceId);
+        log('Resolved device by label:', deviceLabel, '->', targetDeviceId);
       }
     }
 
@@ -278,7 +338,7 @@ async function setTabCaptureDevice(tabId, deviceId, deviceLabel) {
     const sinkId = targetDeviceId || '';
     await capture.audioElement.setSinkId(sinkId);
 
-    console.log('[Offscreen] Set device for tab', tabId, ':', deviceLabel || sinkId || 'default');
+    log('Set device for tab', tabId, ':', deviceLabel || sinkId || 'default');
     return { success: true };
   } catch (e) {
     console.error('[Offscreen] Error setting device:', e);
@@ -288,7 +348,7 @@ async function setTabCaptureDevice(tabId, deviceId, deviceLabel) {
 
 // ==================== Device Enumeration ====================
 async function handleGetDevices(requestPermission) {
-  console.log('[Offscreen] handleGetDevices called, requestPermission:', requestPermission);
+  log('handleGetDevices called, requestPermission:', requestPermission);
 
   try {
     if (!navigator.mediaDevices) {
@@ -299,7 +359,7 @@ async function handleGetDevices(requestPermission) {
     let permissionGranted = false;
     if (requestPermission) {
       try {
-        console.log('[Offscreen] Calling getUserMedia({ audio: true })...');
+        log('Calling getUserMedia({ audio: true })...');
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach(track => track.stop());
         permissionGranted = true;
@@ -318,7 +378,7 @@ async function handleGetDevices(requestPermission) {
         groupId: d.groupId
       }));
 
-    console.log('[Offscreen] Found audio outputs:', audioOutputs);
+    log('Found audio outputs:', audioOutputs);
     return { success: true, devices: audioOutputs, permissionGranted };
   } catch (e) {
     console.error('[Offscreen] Error:', e);
@@ -334,12 +394,18 @@ async function handleGetDevices(requestPermission) {
  * Audio is passed through unchanged to the destination
  */
 async function handleStartVisualizerCapture(streamId, tabId) {
-  console.log('[Offscreen] Starting visualizer capture for tab:', tabId);
+  log('Starting visualizer capture for tab:', tabId);
+
+  // Validate streamId before attempting capture
+  if (!streamId || typeof streamId !== 'string') {
+    console.error('[Offscreen] Invalid streamId provided:', streamId);
+    return { success: false, error: 'Invalid streamId' };
+  }
 
   try {
     // Check if already capturing this tab
     if (visualizerCaptures.has(tabId)) {
-      console.log('[Offscreen] Already capturing tab', tabId);
+      log('Already capturing tab', tabId);
       return { success: true, alreadyCapturing: true };
     }
 
@@ -354,7 +420,7 @@ async function handleStartVisualizerCapture(streamId, tabId) {
       video: false
     });
 
-    console.log('[Offscreen] Got media stream for tab', tabId);
+    log('Got media stream for tab', tabId);
 
     // Create audio context
     const audioContext = new AudioContext();
@@ -467,7 +533,7 @@ async function handleStartVisualizerCapture(streamId, tabId) {
       currentCompressor: 'off'
     });
 
-    console.log('[Offscreen] Visualizer capture started for tab', tabId);
+    log('Visualizer capture started for tab', tabId);
     return { success: true };
 
   } catch (e) {
@@ -480,11 +546,11 @@ async function handleStartVisualizerCapture(streamId, tabId) {
  * Stop visualizer capture for a specific tab
  */
 async function handleStopVisualizerCapture(tabId) {
-  console.log('[Offscreen] Stopping visualizer capture for tab:', tabId);
+  log('Stopping visualizer capture for tab:', tabId);
 
   const capture = visualizerCaptures.get(tabId);
   if (!capture) {
-    console.log('[Offscreen] No capture found for tab', tabId);
+    log('No capture found for tab', tabId);
     return { success: true };
   }
 
@@ -510,7 +576,7 @@ async function handleStopVisualizerCapture(tabId) {
     // Remove from map
     visualizerCaptures.delete(tabId);
 
-    console.log('[Offscreen] Visualizer capture stopped for tab', tabId);
+    log('Visualizer capture stopped for tab', tabId);
     return { success: true };
 
   } catch (e) {
@@ -523,7 +589,7 @@ async function handleStopVisualizerCapture(tabId) {
  * Stop all visualizer captures (e.g., on extension update)
  */
 async function handleStopAllVisualizerCaptures() {
-  console.log('[Offscreen] Stopping all visualizer captures');
+  log('Stopping all visualizer captures');
 
   const tabIds = Array.from(visualizerCaptures.keys());
   for (const tabId of tabIds) {

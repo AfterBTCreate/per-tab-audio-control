@@ -203,7 +203,7 @@ updateQuotaDisplay();
 loadAudioMode();
 
 // ==================== Unified Site Overrides ====================
-// Shows all site mode overrides in one list: Tab Capture, Web Audio, Bypass
+// Shows all site mode overrides in one list: Tab Capture, Web Audio, Disabled
 
 // Add Firefox class to body for CSS
 if (isFirefox) {
@@ -237,7 +237,7 @@ function createTrashIcon() {
 const modeConfig = {
   tabcapture: { label: 'Tab Capture', className: 'mode-tabcapture' },
   webaudio: { label: 'Web Audio', className: 'mode-webaudio' },
-  off: { label: 'Bypass', className: 'mode-off' }
+  off: { label: 'Disabled', className: 'mode-off' }
 };
 
 // Current default mode (cached for removeSiteOverride)

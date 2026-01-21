@@ -221,11 +221,13 @@
 
 .btn.secondary {
   background: #1a2744;
+  border: 1px solid #5a7a9a;
   color: #f0f0f0;
 }
 
 .btn.secondary:hover {
   background: #2a3858;
+  border-color: #7a9ab8;
   color: #ffffff;
 }
 
@@ -418,11 +420,13 @@ body.light-mode .btn.primary:hover {
 
 body.light-mode .btn.secondary {
   background: #f5ede3;
+  border: 1px solid #d4c4b0;
   color: #2d2520;
 }
 
 body.light-mode .btn.secondary:hover {
   background: #ebe2d6;
+  border-color: #c4b4a0;
   color: #2d2520;
 }
 
