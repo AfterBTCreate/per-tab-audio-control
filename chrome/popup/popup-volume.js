@@ -188,10 +188,10 @@ async function setVolume(volume, isMuteToggle = false) {
   currentVolume = volume;
   updateUI(volume);
 
-  // Show one-time warning for extreme volume levels
+  // Show one-time warning for boosted volume levels
   if (volume > EXTREME_VOLUME_THRESHOLD && !extremeVolumeWarningShown) {
     extremeVolumeWarningShown = true;
-    showStatus('High volume may affect audio quality or hearing. Use caution.', 'warning', 5000);
+    showStatus('High volume can damage hearing and speakers. Use at your own risk.', 'warning', 5000);
   }
 
   // Add visual feedback

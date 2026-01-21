@@ -14,6 +14,17 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [4.1.80] - Release - 2026-01-21
+
+### Added
+- **Volume warning**: Show one-time warning when boosting volume above 100% (previously 350%)
+- **Disclaimer section**: Added hearing/speaker damage disclaimer to Options page and README
+
+### Changed
+- **Warning message**: Updated to "High volume can damage hearing and speakers. Use at your own risk."
+
+---
+
 ## [4.1.79] - Release - 2026-01-21
 
 ### Changed
