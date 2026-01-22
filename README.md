@@ -67,6 +67,10 @@ Firefox support is in development. The codebase is compatible but some features 
 
 **Runtime permission:** Microphone access is requested only when using the output device selector (to list available devices — no audio is recorded).
 
+## Disclaimer
+
+**Warning:** High volume levels can cause permanent hearing damage and may damage speakers or headphones. Use at your own risk. After Bedtime Creations is not liable for any hearing loss, equipment damage, or other harm resulting from use of this software.
+
 ## License
 
 This project is licensed under the **MIT License + Commons Clause** — see the [LICENSE](LICENSE) file for details.
