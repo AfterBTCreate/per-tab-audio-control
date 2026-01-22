@@ -4,7 +4,11 @@ The audio controls browsers forgot to include.
 
 Boost quiet videos up to 500%, fine-tune equalizer settings, set automatic volume rules per site, and route audio to different output devices — all from a single popup.
 
-**[Screenshots and full feature list](https://afterbedtimecreations.com/projects.html)**
+No subscriptions. No ads. No data collection.
+
+![Per-Tab Audio Control popup](https://afterbedtimecreations.com/images/extension-sliders-dark.png)
+
+**[Full feature list and more screenshots](https://afterbedtimecreations.com/projects)**
 
 ## Features
 
@@ -14,23 +18,39 @@ Boost quiet videos up to 500%, fine-tune equalizer settings, set automatic volum
 - **Mute control** — Mute individual tabs or all other tabs with one click
 - **Focus mode** — Instantly mute all other tabs to focus on your current audio
 - **Balance slider** — Pan audio left/right, with stereo, mono, and swap presets
+- **Play/Pause** — Control media playback from the popup or context menu
 
 ### Audio Enhancements
 - **Equalizer** — Bass boost, treble, and voice enhancement controls
 - **Compressor** — Normalize loud/quiet audio for consistent levels
 - **Limiter** — Prevent distortion when boosting volume
 
+### Audio Modes
+- **Tab Capture** (default) — Works on all sites, most reliable
+- **Web Audio** — Lighter option for simple sites
+- **Disabled** — Native browser volume only (0-100%)
+- Per-site mode preferences saved automatically
+
 ### Additional Features
-- **Real-time visualizer** — See audio levels as you adjust
+- **Real-time visualizer** — See audio levels as you adjust, click to jump to that tab
 - **Output device selector** — Route each tab's audio to different speakers/headphones
 - **Keyboard shortcuts** — Alt+Shift+M to mute, Alt+Shift+Up/Down for volume
 - **Context menu** — Right-click options for quick actions
-- **Customizable UI** — Reorder header items and popup sections, collapse sections you don't use
+- **Tab switcher** — Switch between audio tabs without leaving the popup
+- **Built-in user guide** — Feature explanations accessible from Settings
 
-### Design
-- **Night Sky theme** — Clean, dark interface designed for low-light use
-- **Compact popup** — Everything accessible without scrolling
+### Customization
+- **Light and dark themes** — Morning (light) and Bedtime (dark) themes
+- **Customizable UI** — Reorder header items and popup sections, hide sections you don't use
+- **Basic/Advanced mode** — Toggle between simple volume controls and full feature set
+- **Configurable presets** — Set your own volume and effect presets
+- **Backup and restore** — Export and import all settings
 - **Settings sync** — Preferences sync across devices via Chrome Sync
+
+### Accessibility
+- **Full keyboard navigation** — Control everything without a mouse
+- **Screen reader support** — Compatible with assistive technologies
+- **Live status announcements** — Changes announced to screen readers
 
 ## Privacy
 
@@ -41,7 +61,7 @@ Your audio settings stay on your device. This extension makes zero external netw
 ## Installation
 
 ### Chrome
-Coming soon to the Chrome Web Store.
+Submitted to Chrome Web Store (pending review).
 
 ### Firefox
 Firefox support is in development. The codebase is compatible but some features require additional work.
