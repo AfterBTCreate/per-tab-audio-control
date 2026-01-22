@@ -28,7 +28,8 @@ No subscriptions. No ads. No data collection.
 - **Tab Capture** (default) — Works on all sites, most reliable
 - **Web Audio** — Lighter option for simple sites
 - **Disabled** — Native browser volume only (0-100%)
-- Per-site mode preferences saved automatically
+
+Mode preferences are saved per-site automatically.
 
 ### Additional Features
 - **Real-time visualizer** — See audio levels as you adjust, click to jump to that tab
