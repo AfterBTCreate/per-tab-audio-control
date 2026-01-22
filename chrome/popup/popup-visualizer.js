@@ -1681,3 +1681,17 @@ async function resetVisualizerState() {
 }
 // Expose for popup-tabs.js to call after mode switch
 window.resetVisualizerState = resetVisualizerState;
+
+// ==================== Popup Cleanup ====================
+// Clean up resources when popup closes to prevent memory leaks
+window.addEventListener('beforeunload', () => {
+  // Cancel any pending port reconnection timer
+  if (portReconnectTimer) {
+    clearTimeout(portReconnectTimer);
+    portReconnectTimer = null;
+  }
+  // Disconnect visualizer port
+  disconnectVisualizerPort();
+  // Stop visualizer animation
+  stopVisualizer();
+});

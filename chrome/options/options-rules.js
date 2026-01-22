@@ -179,7 +179,12 @@ async function loadRules() {
   // Add delete handlers
   rulesListContent.querySelectorAll('.rule-delete').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      const index = parseInt(e.target.dataset.index);
+      const index = parseInt(e.target.dataset.index, 10);
+      // Validate index to prevent accidental deletion of wrong rule
+      if (!Number.isInteger(index) || index < 0) {
+        console.warn('[TabVolume Options] Invalid rule index:', e.target.dataset.index);
+        return;
+      }
       await deleteRule(index);
     });
   });

@@ -14,117 +14,43 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [4.1.80] - Release - 2026-01-21
+## [4.2.0] - Release - 2026-01-21
+
+### Summary
+**Chrome Web Store Submitted** - Major update with popup customization and accessibility improvements.
 
 ### Added
-- **Volume warning**: Show one-time warning when boosting volume above 100% (previously 350%)
-- **Disclaimer section**: Added hearing/speaker damage disclaimer to Options page and README
+- **Popup Sections Customization**: Reorder and hide the 4 main popup sections (Balance, Enhancements, Output, Site Rule) via Options page
+- **Tab Title Location setting**: Choose to display tab title inside or below the visualizer
+- **Volume Boost Warning**: One-time warning when boosting volume above 100% to protect hearing and speakers
+- **Auto-scroll for notifications**: Status messages auto-scroll into view when needed
 
-### Changed
-- **Warning message**: Updated to "High volume can damage hearing and speakers. Use at your own risk."
-
----
-
-## [4.1.79] - Release - 2026-01-21
-
-### Changed
-- **ABC logo font**: Updated all SVG logos to use Comfortaa font (rounded letterforms) to match the Chrome Web Store icon and website branding
-
----
-
-## [4.1.78] - Release - 2026-01-21
-
-### Changed
-- **Speaker icon updated**: Redesigned the speaker icon in the ABC logo to match the Chrome Web Store icon design with a more compact trapezoid shape and curved sound waves
-
----
-
-## [4.1.77] - Release - 2026-01-21
-
-### Fixed
-- **Visualizer indicator in disabled mode**: Now shows the "Visualizer off" indicator in the bottom-right corner when domain is in disabled/off mode
-
----
-
-## [4.1.76] - Release - 2026-01-21
-
-### Fixed
-- **Web Audio mode not working after switch**: Fixed "Extension cannot access audio" error when switching from Tab Capture to Web Audio mode. The issue was that page refresh lost user interaction context needed for AudioContext creation. Now sets a sessionStorage flag before refresh that content script reads to allow immediate audio processing.
-
----
-
-## [4.1.75] - Release - 2026-01-21
-
-### Changed
-- **Tab Title Location default**: Changed default from "Inside visualizer" to "Below visualizer" for cleaner appearance
-
----
-
-## [4.1.74] - Release - 2026-01-21
-
-### Fixed
-- **QA: Map iteration safety**: Fixed potential iterator invalidation when cleaning up message throttle entries - now collects keys before deletion
-- **QA: Tab storage cleanup**: Added missing storage keys to tab close cleanup (bass, treble, voice, compressor, balance, channel mode) - prevents memory leaks
-
-### Documentation
-- **SECURITY-FINDINGS.md**: Updated rate limiting section to reflect current implementation status (rate limiting IS implemented, not absent)
-
----
-
-## [4.1.73] - Release - 2026-01-21
-
-### Added
-- **Tab Title Location setting**: Choose where to display tab title - "Inside visualizer" (default, shows title and URL overlaid) or "Below visualizer" (shows title in separate row below)
-- **Auto-scroll for notifications**: Status messages now auto-scroll into view when they cause a scrollbar to appear
-
-### Changed
-- **Tab counter repositioned**: Moved tab counter from bottom-left to top-right of the visualizer
-- **Tab title truncation**: Added right padding to prevent title text from overlapping with the tab counter
-
-### Documentation
-- **User Guide updated**: Added Tab Title Location setting documentation under Appearance > Visualizer section
-
----
-
-## [4.1.72] - Release - 2026-01-20
-
-### Removed
-- **Discord and Patreon links**: Removed Discord and Patreon/Support links from options.html, guide.html, and faq.html about sections
-
----
-
-## [4.1.71] - Release - 2026-01-20
+### Security
+- **Input validation hardening**: Added defense-in-depth validation for audio parameters (volume, gain, balance, device, compressor)
+- **Tab ID validation**: Strengthened validation to reject invalid IDs
+- **EQ slider range clamping**: Enforced -24 to +24 dB limits on bass, treble, and voice controls
+- **Popup cleanup**: Proper resource cleanup on popup close to prevent memory leaks
 
 ### Accessibility
-- **Comprehensive ARIA Audit**: Added missing `aria-label` attributes throughout:
-  - popup.html: Added `aria-hidden` to header spacers and slider markers
-  - options.html: Added `aria-label` to icon-only about links, spacer buttons, and all reset buttons
-  - guide.html: Added `aria-label` and `aria-hidden` to icon-only about links and their SVGs
-  - faq.html: Added `aria-label` and `aria-hidden` to icon-only about links and their SVGs
+- **Comprehensive ARIA audit**: Added missing `aria-label` and `aria-hidden` attributes throughout popup, options, guide, and FAQ pages
 
----
+### Changed
+- **ABTC logo redesign**: Updated speaker icon and Comfortaa font to match Chrome Web Store branding
+- **Tab counter repositioned**: Moved from bottom-left to top-right of visualizer
+- **Tab Title Location default**: Changed to "Below visualizer" for cleaner appearance
+- **Validation error messages**: Now include valid ranges (e.g., "Invalid volume (must be 0-500)")
 
-## [4.1.70] - Release - 2026-01-20
-
-### Documentation
-- **User Guide Privacy & Security**: Updated "About Permissions" section with complete list of all 9 permissions
-- **Website Privacy Policy**: Added popup sections customization to UI preferences list
-
----
-
-## [4.1.69] - Release - 2026-01-20
+### Fixed
+- **Web Audio mode after switch**: Fixed "Extension cannot access audio" error when switching from Tab Capture to Web Audio
+- **Visualizer indicator in disabled mode**: Now correctly shows "Visualizer off" indicator
+- **Memory management**: Fixed potential memory leaks on tab close and throttle cleanup
 
 ### Documentation
-- **User Guide Comprehensive Update**: Fine-grained review and corrections throughout:
-  - **Popup Controls**: Fixed header buttons order to match actual default (Volume Icon first, ABTC Logo last/locked)
-  - **Audio Mode Buttons**: Renamed "Tab Capture vs Web Audio Toggle" to "Audio Mode Buttons", documented three separate buttons
-  - **Extension Icon Badge**: Added "!" badge indicator documentation for Tab Capture activation
-  - **Header Layout**: Added note about ABTC Logo being locked at end
-  - **Popup Sections Customization**: Added new section documenting the popup sections reordering feature
-  - **Context Menu**: Fixed "Mute/Unmute Other Tabs" → "Toggle Focus Mode", updated Balance and Range preset names
-  - All sections verified against current feature set
+- **User Guide**: Comprehensive update with popup sections, audio mode buttons, and permissions documentation
 
 ---
+
+## [4.1.0] - Release - 2026-01-18
 
 ## [4.1.68] - Release - 2026-01-20
 

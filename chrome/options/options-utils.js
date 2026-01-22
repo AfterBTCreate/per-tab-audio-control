@@ -66,7 +66,7 @@ function formatLastUsed(lastUsed) {
 
 // Clamp volume input to valid range (1-500)
 function clampVolumeInput(input) {
-  let value = parseInt(input.value);
+  let value = parseInt(input.value, 10);
   if (isNaN(value) || value < 1) value = 1;
   if (value > 500) value = 500;
   input.value = value;
@@ -74,7 +74,7 @@ function clampVolumeInput(input) {
 
 // Clamp input to valid range based on level and range config
 function clampRangeInput(input, level, ranges) {
-  let value = parseInt(input.value);
+  let value = parseInt(input.value, 10);
   const range = ranges[level];
   if (isNaN(value) || value < range.min) value = range.min;
   if (value > range.max) value = range.max;

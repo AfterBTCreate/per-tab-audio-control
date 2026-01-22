@@ -126,7 +126,7 @@ function updateUI(volume) {
 
   // Update preset buttons
   presetButtons.forEach(btn => {
-    const btnVolume = parseInt(btn.dataset.volume);
+    const btnVolume = parseInt(btn.dataset.volume, 10);
     btn.classList.toggle('active', btnVolume === volume);
   });
 
@@ -138,8 +138,12 @@ function updateUI(volume) {
     if (!easterEgg404Timer) {
       easterEgg404Timer = setTimeout(async () => {
         // Only show if audio is actually playing
-        if (typeof isTabAudible === 'function' && await isTabAudible()) {
-          showStatus('Volume not found... just kidding', 'info', 4000);
+        try {
+          if (typeof isTabAudible === 'function' && await isTabAudible()) {
+            showStatus('Volume not found... just kidding', 'info', 4000);
+          }
+        } catch (e) {
+          // isTabAudible may fail if tab is closed or restricted - ignore silently
         }
         easterEgg404Timer = null;
       }, 4000);
@@ -160,8 +164,9 @@ async function setVolume(volume, isMuteToggle = false) {
   if (isRestrictedPage) return;
 
   // Validate tab ID to prevent silent failures during rapid popup opens
-  if (!currentTabId) {
-    console.warn('[TabVolume Popup] Cannot set volume: tab not initialized yet');
+  // Must be a positive integer (0, negative, NaN, undefined all rejected)
+  if (!Number.isInteger(currentTabId) || currentTabId <= 0) {
+    console.warn('[TabVolume Popup] Cannot set volume: invalid tab ID', currentTabId);
     return;
   }
 
@@ -188,10 +193,13 @@ async function setVolume(volume, isMuteToggle = false) {
   currentVolume = volume;
   updateUI(volume);
 
-  // Show one-time warning for boosted volume levels
-  if (volume > EXTREME_VOLUME_THRESHOLD && !extremeVolumeWarningShown) {
-    extremeVolumeWarningShown = true;
-    showStatus('High volume can damage hearing and speakers. Use at your own risk.', 'warning', 5000);
+  // Show one-time warning for boosted volume levels (persists across popup opens via chrome.storage.session)
+  if (volume > EXTREME_VOLUME_THRESHOLD) {
+    const result = await browserAPI.storage.session.get('extremeVolumeWarningShown');
+    if (!result.extremeVolumeWarningShown) {
+      await browserAPI.storage.session.set({ extremeVolumeWarningShown: true });
+      showStatus('High volume can damage hearing and speakers. Use at your own risk.', 'warning', 5000);
+    }
   }
 
   // Add visual feedback
@@ -237,7 +245,7 @@ volumeSlider.addEventListener('input', (e) => {
 // Preset button handlers
 presetButtons.forEach(btn => {
   btn.addEventListener('click', () => {
-    const volume = parseInt(btn.dataset.volume);
+    const volume = parseInt(btn.dataset.volume, 10);
 
     // Toggle mute
     if (volume === 0) {
