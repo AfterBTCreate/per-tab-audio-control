@@ -265,16 +265,22 @@ async function applyTrebleGain(gain) {
 // Bass slider input handler
 if (bassSlider) {
   bassSlider.addEventListener('input', (e) => {
-    const gain = parseInt(e.target.value, 10);
-    if (!isNaN(gain)) applyBassGain(gain);
+    const rawGain = parseInt(e.target.value, 10);
+    if (isNaN(rawGain)) return;
+    // Clamp to valid range (-24 to +24 dB)
+    const gain = Math.max(-24, Math.min(24, rawGain));
+    applyBassGain(gain);
   });
 }
 
 // Treble slider input handler
 if (trebleSlider) {
   trebleSlider.addEventListener('input', (e) => {
-    const gain = parseInt(e.target.value, 10);
-    if (!isNaN(gain)) applyTrebleGain(gain);
+    const rawGain = parseInt(e.target.value, 10);
+    if (isNaN(rawGain)) return;
+    // Clamp to valid range (-24 to +24 dB)
+    const gain = Math.max(-24, Math.min(24, rawGain));
+    applyTrebleGain(gain);
   });
 }
 
@@ -318,8 +324,11 @@ async function applyVoiceGain(gain) {
 // Voice slider input handler
 if (voiceSlider) {
   voiceSlider.addEventListener('input', (e) => {
-    const gain = parseInt(e.target.value, 10);
-    if (!isNaN(gain)) applyVoiceGain(gain);
+    const rawGain = parseInt(e.target.value, 10);
+    if (isNaN(rawGain)) return;
+    // Clamp to valid range (-24 to +24 dB)
+    const gain = Math.max(-24, Math.min(24, rawGain));
+    applyVoiceGain(gain);
   });
 }
 
@@ -501,7 +510,7 @@ function getEffectGain(effect, level) {
 
   // Handle slider mode values (slider:VALUE format)
   if (level.startsWith('slider:')) {
-    return parseInt(level.split(':')[1]) || 0;
+    return parseInt(level.split(':')[1], 10) || 0;
   }
 
   // Handle bass cut levels

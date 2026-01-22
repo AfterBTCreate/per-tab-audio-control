@@ -450,30 +450,33 @@
   // This is critical for Firefox where content script can't enumerate devices
   // but page script can resolve device IDs by label
   window.addEventListener('__tabVolumeControl_deviceResolved', async function(e) {
-    if (e.detail && e.detail.deviceId) {
-      console.log('[TabVolume] Received resolved device ID from page script:', e.detail.deviceId);
+    // Validate event detail structure before using
+    if (!e.detail || typeof e.detail !== 'object') return;
+    if (typeof e.detail.deviceId !== 'string' || e.detail.deviceId.length === 0) return;
 
-      // Apply to hidden output audio elements (Firefox MediaStreamDestination workaround)
-      const elements = Array.from(document.querySelectorAll('audio, video'));
-      let successful = 0;
+    const deviceId = e.detail.deviceId;
+    console.log('[TabVolume] Received resolved device ID from page script:', deviceId);
 
-      for (const element of elements) {
-        const data = mediaGainNodes.get(element);
-        if (data && data.outputAudioElement) {
-          try {
-            await data.outputAudioElement.setSinkId(e.detail.deviceId);
-            console.log('[TabVolume] Applied resolved device ID to output audio element: success');
-            successful++;
-          } catch (err) {
-            console.log('[TabVolume] Applied resolved device ID to output audio element: failed', err.name);
-          }
+    // Apply to hidden output audio elements (Firefox MediaStreamDestination workaround)
+    const elements = Array.from(document.querySelectorAll('audio, video'));
+    let successful = 0;
+
+    for (const element of elements) {
+      const data = mediaGainNodes.get(element);
+      if (data && data.outputAudioElement) {
+        try {
+          await data.outputAudioElement.setSinkId(deviceId);
+          console.log('[TabVolume] Applied resolved device ID to output audio element: success');
+          successful++;
+        } catch (err) {
+          console.log('[TabVolume] Applied resolved device ID to output audio element: failed', err.name);
         }
       }
+    }
 
-      if (successful > 0) {
-        currentDeviceId = e.detail.deviceId;
-        console.log('[TabVolume] Device switching via page script resolution: successful');
-      }
+    if (successful > 0) {
+      currentDeviceId = deviceId;
+      console.log('[TabVolume] Device switching via page script resolution: successful');
     }
   });
 
@@ -1509,7 +1512,7 @@
     if (request.type === 'SET_VOLUME') {
       // Validate volume is a number between 0 and 500
       if (!isValidNumber(request.volume, 0, 500)) {
-        sendResponse({ success: false, error: 'Invalid volume value' });
+        sendResponse({ success: false, error: 'Invalid volume (must be 0-500)' });
         return;
       }
       // Use native mode if globally enabled
@@ -1569,7 +1572,7 @@
     } else if (request.type === 'SET_BASS') {
       // Validate gain is a number between -24 and 24 dB
       if (!isValidNumber(request.gain, -24, 24)) {
-        sendResponse({ success: false, error: 'Invalid bass gain value' });
+        sendResponse({ success: false, error: 'Invalid bass gain (must be -24 to +24 dB)' });
         return;
       }
       applyBassBoost(request.gain);
@@ -1577,7 +1580,7 @@
     } else if (request.type === 'SET_TREBLE') {
       // Validate gain is a number between -24 and 24 dB
       if (!isValidNumber(request.gain, -24, 24)) {
-        sendResponse({ success: false, error: 'Invalid treble gain value' });
+        sendResponse({ success: false, error: 'Invalid treble gain (must be -24 to +24 dB)' });
         return;
       }
       applyTrebleBoost(request.gain);
@@ -1585,7 +1588,7 @@
     } else if (request.type === 'SET_VOICE') {
       // Validate gain is a number between 0 and 24 dB
       if (!isValidNumber(request.gain, 0, 24)) {
-        sendResponse({ success: false, error: 'Invalid voice gain value' });
+        sendResponse({ success: false, error: 'Invalid voice gain (must be 0 to +24 dB)' });
         return;
       }
       applyVoiceBoost(request.gain);
@@ -1594,7 +1597,7 @@
       // Validate pan is a number between -1 and 1 (or -100 to 100 for percentage)
       const pan = request.pan !== undefined ? request.pan : request.balance;
       if (!isValidNumber(pan, -100, 100)) {
-        sendResponse({ success: false, error: 'Invalid balance value' });
+        sendResponse({ success: false, error: 'Invalid balance (must be -100 to +100)' });
         return;
       }
       // Normalize to -1 to 1 range if given as percentage

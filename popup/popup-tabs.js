@@ -681,7 +681,7 @@ function updateDisabledDomainUI() {
     // Hide boost presets (200%+), show others
     const presetBtns = document.querySelectorAll('.preset-btn');
     presetBtns.forEach(btn => {
-      const volume = parseInt(btn.dataset.volume);
+      const volume = parseInt(btn.dataset.volume, 10);
       if (volume > 100) {
         btn.style.display = 'none';
       } else {

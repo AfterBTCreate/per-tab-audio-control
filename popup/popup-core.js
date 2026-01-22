@@ -84,7 +84,7 @@ const CLEANUP_DAYS = 90; // Rules unused for 90+ days
 
 // High volume warning
 const EXTREME_VOLUME_THRESHOLD = 100; // Show warning above 100% (boosted volume)
-let extremeVolumeWarningShown = false; // Track if warning already shown this session
+// Flag is loaded from chrome.storage.session in initVolumeWarningState()
 
 // Header layout customization defaults (must match options-constants.js)
 const DEFAULT_HEADER_LAYOUT = {

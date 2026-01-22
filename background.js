@@ -1263,7 +1263,8 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         title: tab.title,
         url: tab.url
       });
-    }).catch(() => {
+    }).catch((e) => {
+      log('GET_TAB_INFO failed for tabId', request.tabId, ':', e.message);
       sendResponse({ title: 'Unknown', url: '' });
     });
     return true;
@@ -1729,8 +1730,45 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return;
       }
 
+      // Validate tabId for all Tab Capture messages
+      if (!isValidTabId(request.tabId)) {
+        sendResponse({ success: false, error: 'Invalid tab ID' });
+        return;
+      }
+
+      // Validate type-specific parameters before forwarding
+      if (request.type === 'SET_TAB_CAPTURE_VOLUME') {
+        if (!Number.isFinite(request.volume) || request.volume < 0 || request.volume > 500) {
+          sendResponse({ success: false, error: 'Invalid volume value' });
+          return;
+        }
+      } else if (request.type === 'SET_TAB_CAPTURE_BASS' ||
+                 request.type === 'SET_TAB_CAPTURE_TREBLE' ||
+                 request.type === 'SET_TAB_CAPTURE_VOICE') {
+        if (!Number.isFinite(request.gainDb) || request.gainDb < -50 || request.gainDb > 50) {
+          sendResponse({ success: false, error: 'Invalid gain value' });
+          return;
+        }
+      } else if (request.type === 'SET_TAB_CAPTURE_BALANCE') {
+        if (!Number.isFinite(request.pan) || request.pan < -1 || request.pan > 1) {
+          sendResponse({ success: false, error: 'Invalid balance value' });
+          return;
+        }
+      } else if (request.type === 'SET_TAB_CAPTURE_DEVICE') {
+        if (request.deviceId !== null && typeof request.deviceId !== 'string') {
+          sendResponse({ success: false, error: 'Invalid device ID' });
+          return;
+        }
+      } else if (request.type === 'SET_TAB_CAPTURE_COMPRESSOR') {
+        const validPresets = ['off', 'podcast', 'movie', 'maximum'];
+        if (typeof request.preset !== 'string' || !validPresets.includes(request.preset)) {
+          sendResponse({ success: false, error: 'Invalid compressor preset' });
+          return;
+        }
+      }
+
       try {
-        // Route directly to offscreen
+        // Route to offscreen (parameters validated)
         const response = await chrome.runtime.sendMessage(request);
         sendResponse(response);
       } catch (e) {
