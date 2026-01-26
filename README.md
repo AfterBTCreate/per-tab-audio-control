@@ -61,7 +61,7 @@ Your audio settings stay on your device. This extension makes zero external netw
 ## Installation
 
 ### Chrome
-Submitted to Chrome Web Store (pending review).
+**[Install from Chrome Web Store](https://chromewebstore.google.com/detail/per-tab-audio-control/fhbglapkjnbiokdjlfbddcchakgpfijg)**
 
 ### Firefox
 Firefox support is in development. The codebase is compatible but some features require additional work.
