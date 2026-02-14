@@ -69,9 +69,6 @@ async function requestPermission() {
     // Update button
     grantBtn.textContent = 'Permission Granted';
 
-    // Notify background script that permission was granted
-    browserAPI.runtime.sendMessage({ type: 'PERMISSION_GRANTED' });
-
     // Start 30 second auto-close
     startAutoClose(30);
 

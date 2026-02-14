@@ -11,6 +11,20 @@
   if (window.__tabVolumeControlContentInjected) return;
   window.__tabVolumeControlContentInjected = true;
 
+  // ===== DUPLICATED CONSTANTS — KEEP IN SYNC =====
+  // Source of truth: shared/constants.js
+  // Also duplicated in: background.js, content/page-script.js, offscreen/offscreen.js
+  // Reason: Content script (ISOLATED world) can't access shared script tags
+  const VOLUME_DEFAULT = 100;
+  const VOLUME_MIN = 0;
+  const VOLUME_MAX = 500;
+  const EFFECT_RANGES = {
+    bass: { min: -24, max: 24 },
+    treble: { min: -24, max: 24 },
+    voice: { min: 0, max: 18 },
+    speed: { min: 0.05, max: 5 }
+  };
+
   // Debug flag - set to true for verbose logging during development
   const DEBUG = false;
   const log = (...args) => DEBUG && console.log('[Content]', ...args);
@@ -151,12 +165,104 @@
     return { success, isPlaying };
   }
 
+  // Find the primary media element using scoring heuristic
+  // Solves: Spotify has a Canvas <video> (short looping animation) alongside the actual <audio> track.
+  // Naive querySelectorAll('audio, video') picks the Canvas video for seekbar position/seeking.
+  // Scoring: <audio> +1000, playing +500, longer duration +up to 600 → audio always wins on music sites.
+  function findPrimaryMediaElement() {
+    const mediaElements = document.querySelectorAll('audio, video');
+    let best = null;
+    let bestScore = -1;
+    for (const el of mediaElements) {
+      if (!el.duration || !isFinite(el.duration) || el.duration <= 0) continue;
+      let score = 0;
+      // Prefer <audio> over <video> (audio elements are almost always the primary media on music sites)
+      if (el.tagName === 'AUDIO') score += 1000;
+      // Prefer playing over paused (actively playing element is more likely the intended target)
+      if (!el.paused) score += 500;
+      // Prefer longer duration (a 3-minute song beats a 10-second Canvas loop)
+      score += Math.min(el.duration, 600);
+      if (score > bestScore) {
+        bestScore = score;
+        best = el;
+      }
+    }
+    return best;
+  }
+
+  // Parse "M:SS" or "H:MM:SS" time string to seconds
+  function parseTimeString(str) {
+    if (!str || typeof str !== 'string') return null;
+    const parts = str.trim().split(':').map(Number);
+    if (parts.some(isNaN)) return null;
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    return null;
+  }
+
+  // Try to get media position from site-specific UI elements.
+  // Fallback for sites where the real audio element doesn't expose duration
+  // (e.g., Spotify uses EME/DRM — the <audio> element's duration is unreadable,
+  // so findPrimaryMediaElement() only finds the Canvas video loop).
+  // Mirrors the play/pause approach: read from the site's own controls.
+  function getPositionFromSiteUI() {
+    // Spotify: data-testid text elements show current time and duration
+    const posEl = document.querySelector('[data-testid="playback-position"]');
+    const durEl = document.querySelector('[data-testid="playback-duration"]');
+    if (posEl && durEl) {
+      const currentTime = parseTimeString(posEl.textContent);
+      const duration = parseTimeString(durEl.textContent);
+      if (currentTime !== null && duration !== null && duration > 0) {
+        // Determine play state from play/pause button aria-label
+        const playBtn = document.querySelector('[data-testid="control-button-playpause"]');
+        const ariaLabel = playBtn?.getAttribute('aria-label') || '';
+        const paused = !ariaLabel.toLowerCase().includes('pause');
+        return { currentTime, duration, paused };
+      }
+    }
+    return null;
+  }
+
+  // Try to seek using site-specific UI controls.
+  // Dispatches pointer events on the site's progress bar at the calculated position.
+  function seekViaSiteUI(targetTime) {
+    // Spotify: progress bar with aria-valuemax (in ms) or duration text
+    const progressBar = document.querySelector('[data-testid="progress-bar"]');
+    if (!progressBar) return false;
+
+    const rect = progressBar.getBoundingClientRect();
+    if (rect.width <= 0) return false;
+
+    // Get duration: prefer aria-valuemax (ms), fall back to duration text (seconds)
+    let durationSec = 0;
+    const ariaMax = parseFloat(progressBar.getAttribute('aria-valuemax'));
+    if (ariaMax && isFinite(ariaMax) && ariaMax > 0) {
+      durationSec = ariaMax / 1000;
+    } else {
+      const durEl = document.querySelector('[data-testid="playback-duration"]');
+      durationSec = durEl ? parseTimeString(durEl.textContent) : 0;
+    }
+    if (!durationSec || durationSec <= 0) return false;
+
+    const percentage = Math.max(0, Math.min(1, targetTime / durationSec));
+    const x = rect.left + rect.width * percentage;
+    const y = rect.top + rect.height / 2;
+
+    const eventInit = { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window };
+    progressBar.dispatchEvent(new PointerEvent('pointerdown', eventInit));
+    progressBar.dispatchEvent(new PointerEvent('pointerup', eventInit));
+    progressBar.dispatchEvent(new MouseEvent('click', eventInit));
+    return true;
+  }
+
   // Security: Validate hostname before using in storage keys
+  // KEEP IN SYNC with background.js sanitizeHostname() and page-script.js isValidHostname()
   function isValidHostname(hostname) {
     if (!hostname || typeof hostname !== 'string') return false;
     if (hostname.length > 253) return false;
+    hostname = hostname.toLowerCase();
     // Only allow valid hostname characters (alphanumeric, dots, hyphens)
-    return /^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$/.test(hostname) || /^[a-zA-Z0-9]$/.test(hostname);
+    return /^[a-z0-9][a-z0-9.-]*[a-z0-9]$/.test(hostname) || /^[a-z0-9]$/.test(hostname);
   }
 
   // CRITICAL: Synchronous disabled domain check BEFORE any setup
@@ -167,18 +273,28 @@
     const hostname = window.location.hostname;
     if (!isValidHostname(hostname)) {
       log('Invalid hostname, skipping disabled check');
+      throw new Error('skip'); // Jump to catch block — proceed with normal (non-disabled) path
     }
-    const disabledKey = '__tabVolumeControl_disabled_' + hostname;
+    const disabledKey = `__tabVolumeControl_disabled_${hostname}`;
     const isDisabled = localStorage.getItem(disabledKey) === 'true';
     if (isDisabled) {
       console.log('[TabVolume] content.js: Domain is DISABLED, setting up minimal handler');
       window.__tabVolumeContentDisabled = true; // Debug marker
 
       // Report media to background so disabled tabs show in tab navigation
+      let mediaReported = false;
       function reportMediaIfPresent() {
+        if (mediaReported) return;
         const mediaElements = document.querySelectorAll('audio, video');
         if (mediaElements.length > 0) {
-          browserAPI.runtime.sendMessage({ type: 'HAS_MEDIA' }).catch(() => {});
+          mediaReported = true;
+          try {
+            browserAPI.runtime.sendMessage({ type: 'HAS_MEDIA' }).catch(() => {});
+          } catch (e) {
+            // Extension context invalidated
+          }
+          // Disconnect after first media detection — no need to keep observing
+          observer.disconnect();
         }
       }
 
@@ -193,7 +309,9 @@
       const observer = new MutationObserver(() => {
         reportMediaIfPresent();
       });
-      observer.observe(document.documentElement, { childList: true, subtree: true });
+      if (!mediaReported) {
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+      }
 
       // Native mode: Set up message listener for basic volume and media control
       // No AudioContext, no enhancements - just native element.volume (0-100%)
@@ -208,7 +326,7 @@
         document.querySelectorAll('audio, video').forEach(el => {
           el.volume = normalizedVolume;
         });
-        console.log('[TabVolume] Native mode: Set volume to', cappedVolume + '%');
+        console.log(`[TabVolume] Native mode: Set volume to ${cappedVolume}%`);
       }
 
       // Watch for new media elements and apply native volume
@@ -229,6 +347,14 @@
           // Use ?? instead of || so volume 0 (mute) works correctly
           applyNativeVolume(request.volume ?? 100);
           sendResponse({ success: true });
+        } else if (request.type === 'SET_SPEED') {
+          // Playback speed works in native mode — it's a direct element property
+          const rate = Math.max(0.05, Math.min(5, request.rate || 1));
+          document.querySelectorAll('audio, video').forEach(el => {
+            el.preservesPitch = true;
+            el.playbackRate = rate;
+          });
+          sendResponse({ success: true });
         } else if (request.type === 'GET_NATIVE_MODE_STATUS') {
           // Report that we're in native mode (for popup UI)
           const mediaElements = document.querySelectorAll('audio, video');
@@ -241,6 +367,35 @@
         } else if (request.type === 'TOGGLE_PLAY_PAUSE') {
           const result = toggleMediaPlayPause();
           sendResponse({ success: result.success, isPlaying: result.isPlaying });
+        } else if (request.type === 'GET_MEDIA_POSITION') {
+          const el = findPrimaryMediaElement();
+          const sitePosition = getPositionFromSiteUI();
+          let position = el ? { currentTime: el.currentTime, duration: el.duration, paused: el.paused } : null;
+          // Prefer site UI if it reports a longer duration (real song vs Canvas loop)
+          if (sitePosition && (!position || sitePosition.duration > position.duration)) {
+            position = sitePosition;
+          }
+          if (position) {
+            sendResponse({ success: true, position });
+          }
+          return false;
+        } else if (request.type === 'SEEK_MEDIA') {
+          if (typeof request.time !== 'number' || !isFinite(request.time) || request.time < 0 || request.time > 86400) {
+            sendResponse({ success: false, error: 'Invalid seek time' });
+            return false;
+          }
+          const el = findPrimaryMediaElement();
+          const sitePosition = getPositionFromSiteUI();
+          let seeked = false;
+          // Prefer site UI seeking if it reports a longer duration
+          if (sitePosition && (!el || sitePosition.duration > el.duration)) {
+            seeked = seekViaSiteUI(request.time);
+          }
+          if (!seeked && el) {
+            el.currentTime = Math.min(request.time, el.duration);
+            seeked = true;
+          }
+          sendResponse({ success: seeked });
         }
         return false;
       });
@@ -286,13 +441,13 @@
     document.querySelectorAll('audio, video').forEach(el => {
       el.volume = normalizedVolume;
     });
-    console.log('[TabVolume] Native mode: Set volume to', cappedVolume + '%');
+    console.log(`[TabVolume] Native mode: Set volume to ${cappedVolume}%`);
   }
 
   async function isDomainDisabled() {
     try {
       const domain = window.location.hostname;
-      if (!domain) return false;
+      if (!domain || !isValidHostname(domain)) return false;
 
       const result = await browserAPI.storage.sync.get(['disabledDomains']);
       const disabledDomains = result.disabledDomains || [];
@@ -335,40 +490,20 @@
   let currentVoiceGain = 0; // dB
   let currentPan = 0; // -1 to 1 (left to right)
   let currentChannelMode = 'stereo'; // 'stereo', 'mono', 'swap'
+  let currentPlaybackRate = 1; // 0.05 to 5 (playback speed)
   let currentCompressor = 'off'; // 'off', 'podcast', 'movie', 'maximum'
   let compressorCompensation = 1.0; // Gain multiplier to offset compressor loudness increase
 
-  // Compressor compensation factors (reduce gain to maintain similar perceived loudness)
-  // Values are approximate - compression effect varies by content
+  // ===== COMPRESSOR COMPENSATION — KEEP IN SYNC =====
+  // Source of truth: THIS FILE (content/content.js)
+  // Also duplicated in: offscreen/offscreen.js
+  // Reduce gain to maintain similar perceived loudness (values are approximate)
   const COMPRESSOR_COMPENSATION = {
     off: 1.0,       // No compensation needed
     podcast: 0.80,  // -1.9dB - light compression
     movie: 0.65,    // -3.7dB - medium compression
     maximum: 0.50   // -6dB - heavy compression
   };
-
-  // Audio mode is now automatic based on device selection (per-tab)
-  // When a custom device is selected, mode = 'device' (100% max, uses setSinkId)
-  // When default device is used, mode = 'boost' (500% max, uses GainNode)
-  async function loadAudioMode() {
-    // Mode is determined by device selection, not global setting
-    // Check if this tab has a saved device
-    if (isFirefox) {
-      try {
-        const tabId = await getTabId();
-        if (tabId) {
-          const deviceKey = `tab_${tabId}_device`;
-          const result = await browserAPI.storage.local.get([deviceKey]);
-          audioMode = result[deviceKey] ? 'device' : 'boost';
-          console.log('[TabVolume] Audio mode (from device selection):', audioMode);
-        }
-      } catch (e) {
-        audioMode = 'boost';
-      }
-    } else {
-      audioMode = 'boost';
-    }
-  }
 
   // Helper to get current tab ID
   async function getTabId() {
@@ -396,10 +531,14 @@
     }));
   }
 
-  // Initialize page script with stored volume
+  // Nonce for authenticating frequency data requests to page-script.js
+  // Generated once at document_start, before any page scripts can intercept
+  const vizNonce = crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
+
+  // Initialize page script with stored volume (+ nonce for secure visualizer channel)
   function initPageScript(volume) {
     window.dispatchEvent(new CustomEvent('__tabVolumeControl_init', {
-      detail: createEventDetail({ volume })
+      detail: createEventDetail({ volume, vizNonce })
     }));
   }
 
@@ -444,6 +583,24 @@
     window.dispatchEvent(new CustomEvent('__tabVolumeControl_setChannelMode', {
       detail: createEventDetail({ mode })
     }));
+  }
+
+  // Send playback speed change to page script (MAIN world)
+  function sendSpeedToPage(rate) {
+    window.dispatchEvent(new CustomEvent('__tabVolumeControl_setSpeed', {
+      detail: createEventDetail({ rate })
+    }));
+  }
+
+  // Apply playback rate to all media elements directly
+  // playbackRate is a native HTMLMediaElement property — no Web Audio needed
+  function applyPlaybackRate(rate) {
+    currentPlaybackRate = rate;
+    document.querySelectorAll('audio, video').forEach(el => {
+      el.preservesPitch = true;
+      el.playbackRate = rate;
+    });
+    sendSpeedToPage(rate);
   }
 
   // Listen for resolved device ID from page script (MAIN world)
@@ -635,6 +792,12 @@
   }
 
   function processMediaElement(element) {
+    // Apply playback rate to all new elements regardless of mode
+    if (currentPlaybackRate !== 1) {
+      element.preservesPitch = true;
+      element.playbackRate = currentPlaybackRate;
+    }
+
     // In Tab Capture mode, don't route through AudioContext - let browser capture native audio
     // This avoids CORS issues with cross-origin media (e.g., Facebook Messenger, embedded videos)
     // Tab Capture handles volume boost/effects in the offscreen document
@@ -670,12 +833,12 @@
       console.log('[TabVolume] processMediaElement: routing', element.tagName, 'through AudioContext');
       const source = ctx.createMediaElementSource(element);
 
-      // Validate values to prevent non-finite errors
-      const safeBassGain = Number.isFinite(currentBassGain) ? currentBassGain : 0;
-      const safeTrebleGain = Number.isFinite(currentTrebleGain) ? currentTrebleGain : 0;
-      const safeVoiceGain = Number.isFinite(currentVoiceGain) ? currentVoiceGain : 0;
-      const safePan = Number.isFinite(currentPan) ? currentPan : 0;
-      const safeVolume = Number.isFinite(currentVolume) ? currentVolume : 100;
+      // Validate and clamp values to prevent non-finite or out-of-range errors
+      const safeBassGain = Math.max(-24, Math.min(24, Number.isFinite(currentBassGain) ? currentBassGain : 0));
+      const safeTrebleGain = Math.max(-24, Math.min(24, Number.isFinite(currentTrebleGain) ? currentTrebleGain : 0));
+      const safeVoiceGain = Math.max(0, Math.min(18, Number.isFinite(currentVoiceGain) ? currentVoiceGain : 0));
+      const safePan = Math.max(-1, Math.min(1, Number.isFinite(currentPan) ? currentPan : 0));
+      const safeVolume = Math.max(0, Math.min(500, Number.isFinite(currentVolume) ? currentVolume : 100));
 
       // Create bass filter (low shelf at 200Hz)
       const bassFilter = ctx.createBiquadFilter();
@@ -1348,7 +1511,7 @@
 
   // Periodic safety check for unprocessed media elements
   // Catches edge cases where MutationObserver might miss elements (e.g., Twitch ad transitions)
-  setInterval(() => {
+  const periodicCheckInterval = setInterval(() => {
     if (extensionDisabledOnDomain) return;
     document.querySelectorAll('audio, video').forEach(element => {
       // Skip if already processed
@@ -1445,7 +1608,8 @@
         console.log('[TabVolume] Content script enumerated devices (with permission request):', devices);
       }
 
-      // Find device with matching label (case-insensitive, trimmed)
+      // Validate and find device with matching label (case-insensitive, trimmed)
+      if (typeof deviceLabel !== 'string' || deviceLabel.length > 500) return null;
       const normalizedTargetLabel = deviceLabel.toLowerCase().trim();
       const match = devices.find(d => d.label && d.label.toLowerCase().trim() === normalizedTargetLabel);
       if (match) {
@@ -1486,9 +1650,10 @@
   // were removed in v4.1.23 - all mode switches now refresh the page for reliability
   const VALID_MESSAGE_TYPES = [
     'SET_VOLUME', 'SET_DEVICE', 'GET_DEVICES', 'SET_BASS', 'SET_TREBLE', 'SET_VOICE',
-    'SET_BALANCE', 'SET_CHANNEL_MODE', 'SET_COMPRESSOR', 'GET_MEDIA_STATE',
-    'TOGGLE_PLAY_PAUSE', 'TOGGLE_PLAYBACK', 'GET_FREQUENCY_DATA',
-    'GET_NATIVE_MODE_STATUS', 'MUTE_MEDIA', 'UNMUTE_MEDIA'
+    'SET_BALANCE', 'SET_CHANNEL_MODE', 'SET_COMPRESSOR', 'SET_SPEED',
+    'TOGGLE_PLAY_PAUSE', 'TOGGLE_PLAYBACK',
+    'GET_MEDIA_POSITION', 'SEEK_MEDIA',
+    'GET_NATIVE_MODE_STATUS', 'UNMUTE_MEDIA'
   ];
 
   // Valid presets/modes
@@ -1511,7 +1676,7 @@
 
     if (request.type === 'SET_VOLUME') {
       // Validate volume is a number between 0 and 500
-      if (!isValidNumber(request.volume, 0, 500)) {
+      if (!isValidNumber(request.volume, VOLUME_MIN, VOLUME_MAX)) {
         sendResponse({ success: false, error: 'Invalid volume (must be 0-500)' });
         return;
       }
@@ -1567,28 +1732,30 @@
     } else if (request.type === 'GET_DEVICES') {
       enumerateAudioDevices(request.requestPermission).then(devices => {
         sendResponse({ devices });
+      }).catch(e => {
+        sendResponse({ devices: [], error: e.message });
       });
       return true;
     } else if (request.type === 'SET_BASS') {
       // Validate gain is a number between -24 and 24 dB
-      if (!isValidNumber(request.gain, -24, 24)) {
-        sendResponse({ success: false, error: 'Invalid bass gain (must be -24 to +24 dB)' });
+      if (!isValidNumber(request.gain, EFFECT_RANGES.bass.min, EFFECT_RANGES.bass.max)) {
+        sendResponse({ success: false, error: 'Invalid bass gain' });
         return;
       }
       applyBassBoost(request.gain);
       sendResponse({ success: true });
     } else if (request.type === 'SET_TREBLE') {
       // Validate gain is a number between -24 and 24 dB
-      if (!isValidNumber(request.gain, -24, 24)) {
-        sendResponse({ success: false, error: 'Invalid treble gain (must be -24 to +24 dB)' });
+      if (!isValidNumber(request.gain, EFFECT_RANGES.treble.min, EFFECT_RANGES.treble.max)) {
+        sendResponse({ success: false, error: 'Invalid treble gain' });
         return;
       }
       applyTrebleBoost(request.gain);
       sendResponse({ success: true });
     } else if (request.type === 'SET_VOICE') {
       // Validate gain is a number between 0 and 24 dB
-      if (!isValidNumber(request.gain, 0, 24)) {
-        sendResponse({ success: false, error: 'Invalid voice gain (must be 0 to +24 dB)' });
+      if (!isValidNumber(request.gain, EFFECT_RANGES.voice.min, EFFECT_RANGES.voice.max)) {
+        sendResponse({ success: false, error: 'Invalid voice gain' });
         return;
       }
       applyVoiceBoost(request.gain);
@@ -1600,8 +1767,8 @@
         sendResponse({ success: false, error: 'Invalid balance (must be -100 to +100)' });
         return;
       }
-      // Normalize to -1 to 1 range if given as percentage
-      const normalizedPan = Math.abs(pan) > 1 ? pan / 100 : pan;
+      // Normalize to -1 to 1 range if given as percentage, then clamp
+      const normalizedPan = Math.max(-1, Math.min(1, Math.abs(pan) > 1 ? pan / 100 : pan));
       applyBalance(normalizedPan);
       sendResponse({ success: true });
     } else if (request.type === 'SET_CHANNEL_MODE') {
@@ -1620,16 +1787,14 @@
       }
       applyCompressor(request.preset);
       sendResponse({ success: true });
-    } else if (request.type === 'GET_MEDIA_STATE') {
-      // Check if any media is currently playing
-      const mediaElements = document.querySelectorAll('audio, video');
-      let isPlaying = false;
-      mediaElements.forEach(element => {
-        if (!element.paused && element.readyState >= 1) {
-          isPlaying = true;
-        }
-      });
-      sendResponse({ isPlaying });
+    } else if (request.type === 'SET_SPEED') {
+      // Validate rate is a number between 0.05 and 5
+      if (!isValidNumber(request.rate, EFFECT_RANGES.speed.min, EFFECT_RANGES.speed.max)) {
+        sendResponse({ success: false, error: 'Invalid speed (must be 0.05 to 5)' });
+        return;
+      }
+      applyPlaybackRate(request.rate);
+      sendResponse({ success: true });
     } else if (request.type === 'TOGGLE_PLAY_PAUSE') {
       // Toggle play/pause using fallback methods (works on Spotify, YouTube, etc.)
       const result = toggleMediaPlayPause();
@@ -1639,80 +1804,37 @@
       // Uses same fallback methods as TOGGLE_PLAY_PAUSE
       const result = toggleMediaPlayPause();
       sendResponse({ success: result.success, action: result.isPlaying ? 'playing' : 'paused' });
-    } else if (request.type === 'GET_FREQUENCY_DATA') {
-      // Get frequency and waveform data from the first media element with an analyser
-      const mediaElements = document.querySelectorAll('audio, video');
-      let frequencyData = null;
-      let waveformData = null;
-      let isPlaying = false;
-
-      // Check if any media is playing
-      for (const element of mediaElements) {
-        if (!element.paused && element.readyState >= 2) {
-          isPlaying = true;
-          break;
-        }
+    } else if (request.type === 'GET_MEDIA_POSITION') {
+      const el = findPrimaryMediaElement();
+      const sitePosition = getPositionFromSiteUI();
+      let position = el ? { currentTime: el.currentTime, duration: el.duration, paused: el.paused } : null;
+      // Prefer site UI if it reports a longer duration (real song vs Canvas loop)
+      if (sitePosition && (!position || sitePosition.duration > position.duration)) {
+        position = sitePosition;
       }
-
-      for (const element of mediaElements) {
-        const data = mediaGainNodes.get(element);
-        if (data && data.analyser && !element.paused) {
-          const bufferLength = data.analyser.frequencyBinCount;
-          const freqArray = new Uint8Array(bufferLength);
-          const waveArray = new Uint8Array(bufferLength);
-          data.analyser.getByteFrequencyData(freqArray);
-          data.analyser.getByteTimeDomainData(waveArray);
-          frequencyData = Array.from(freqArray);
-          waveformData = Array.from(waveArray);
-          break;
-        }
+      // Only respond if this frame has media — let other frames respond otherwise
+      // (prevents frames without media from stealing the response in multi-frame pages)
+      if (position) {
+        sendResponse({ success: true, position });
       }
-
-      // If no data from content script analyser, try page script (for Web Audio API sites like YouTube)
-      if (!frequencyData) {
-        // Request from page script with timeout
-        let responded = false;
-        const responseHandler = (e) => {
-          if (responded) return;
-          responded = true;
-          window.removeEventListener('__tabVolumeControl_frequencyDataResponse', responseHandler);
-          sendResponse({
-            frequencyData: e.detail?.frequencyData || null,
-            waveformData: e.detail?.waveformData || null,
-            isPlaying
-          });
-        };
-        window.addEventListener('__tabVolumeControl_frequencyDataResponse', responseHandler);
-
-        // Request data from page script
-        window.dispatchEvent(new CustomEvent('__tabVolumeControl_getFrequencyData', {
-          detail: createEventDetail({})
-        }));
-
-        // Timeout after 50ms - if no response, return null
-        setTimeout(() => {
-          if (!responded) {
-            responded = true;
-            window.removeEventListener('__tabVolumeControl_frequencyDataResponse', responseHandler);
-            sendResponse({ frequencyData: null, waveformData: null, isPlaying });
-          }
-        }, 50);
-
-        return true; // Keep channel open for async response
+      return false;
+    } else if (request.type === 'SEEK_MEDIA') {
+      if (!isValidNumber(request.time, 0, 86400)) {
+        sendResponse({ success: false, error: 'Invalid seek time' });
+        return;
       }
-
-      sendResponse({ frequencyData, waveformData, isPlaying });
-    } else if (request.type === 'MUTE_MEDIA') {
-      // Mute all media elements directly (backup for browser tab mute)
-      const mediaElements = document.querySelectorAll('audio, video');
-      let mutedCount = 0;
-      for (const element of mediaElements) {
-        if (!element.muted) {
-          element.muted = true;
-          mutedCount++;
-        }
+      const el = findPrimaryMediaElement();
+      const sitePosition = getPositionFromSiteUI();
+      let seeked = false;
+      // Prefer site UI seeking if it reports a longer duration
+      if (sitePosition && (!el || sitePosition.duration > el.duration)) {
+        seeked = seekViaSiteUI(request.time);
       }
-      sendResponse({ success: true, mutedCount });
+      if (!seeked && el) {
+        el.currentTime = Math.min(request.time, el.duration);
+        seeked = true;
+      }
+      sendResponse({ success: seeked });
     } else if (request.type === 'UNMUTE_MEDIA') {
       // Unmute all media elements directly
       const mediaElements = document.querySelectorAll('audio, video');
@@ -1843,7 +1965,7 @@
       // This ensures the flag persists even if localStorage was cleared
       try {
         const domain = window.location.hostname;
-        localStorage.setItem('__tabVolumeControl_disabled_' + domain, 'true');
+        localStorage.setItem(`__tabVolumeControl_disabled_${domain}`, 'true');
       } catch (e) {
         // localStorage might be blocked
       }
@@ -1859,6 +1981,35 @@
       isTabCaptureMode = true;
       console.log('[TabVolume] Tab Capture mode active - content script will not process media elements');
       // Note: We don't return here - we still need to set up message listeners and report media
+
+      // Workaround: Tab Capture prevents true fullscreen on video elements.
+      // Detect fullscreen changes and ask background to toggle browser fullscreen (F11 equivalent).
+      // Listens in all frames to support cross-origin iframes that don't propagate
+      // fullscreenchange to the parent. To prevent duplicate messages in same-origin cases:
+      // - Skip when fullscreenElement is an <iframe> (the child frame sends its own message)
+      // - Track per-frame state so only the frame that sent 'true' sends the matching 'false'
+      let weTriggeredFullscreen = false;
+      document.addEventListener('fullscreenchange', () => {
+        try {
+          if (document.fullscreenElement) {
+            // Skip if the fullscreen element is an iframe — the child frame handles it
+            if (document.fullscreenElement.tagName === 'IFRAME') return;
+            weTriggeredFullscreen = true;
+            browserAPI.runtime.sendMessage({
+              type: 'FULLSCREEN_CHANGE',
+              isFullscreen: true
+            }).catch(() => {});
+          } else if (weTriggeredFullscreen) {
+            weTriggeredFullscreen = false;
+            browserAPI.runtime.sendMessage({
+              type: 'FULLSCREEN_CHANGE',
+              isFullscreen: false
+            }).catch(() => {});
+          }
+        } catch (e) {
+          // Extension context invalidated (extension was reloaded/updated)
+        }
+      });
     }
 
     // Check for global native mode setting
@@ -1897,7 +2048,11 @@
         // Report media presence to background (for tab navigation)
         const mediaElements = document.querySelectorAll('audio, video');
         if (mediaElements.length > 0) {
-          browserAPI.runtime.sendMessage({ type: 'HAS_MEDIA' }).catch(() => {});
+          try {
+            browserAPI.runtime.sendMessage({ type: 'HAS_MEDIA' }).catch(() => {});
+          } catch (e) {
+            // Extension context invalidated
+          }
         }
 
         return; // Skip full audio processing setup
@@ -1955,7 +2110,11 @@
     const mediaElements = document.querySelectorAll('audio, video');
     if (mediaElements.length > 0) {
       hasReportedMedia = true;
-      browserAPI.runtime.sendMessage({ type: 'HAS_MEDIA' }).catch(() => {});
+      try {
+        browserAPI.runtime.sendMessage({ type: 'HAS_MEDIA' }).catch(() => {});
+      } catch (e) {
+        // Extension context invalidated
+      }
     }
   }
 
@@ -1980,7 +2139,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       initialize();
       checkAndReportMedia();
-      mediaObserver.observe(document.body, { childList: true, subtree: true });
+      if (document.body) {
+        mediaObserver.observe(document.body, { childList: true, subtree: true });
+      }
     });
   } else {
     initialize();
@@ -1993,6 +2154,31 @@
   window.addEventListener('load', () => {
     processAllMedia();
     checkAndReportMedia();
+  });
+
+  // Clean up resources when navigating away to prevent memory leaks
+  window.addEventListener('pagehide', () => {
+    // Disconnect MutationObservers
+    observer.disconnect();
+    mediaObserver.disconnect();
+
+    // Clear periodic media check interval
+    clearInterval(periodicCheckInterval);
+
+    // Close AudioContext if created
+    if (audioContext) {
+      try {
+        audioContext.close();
+      } catch (e) {
+        // May already be closed
+      }
+      audioContext = null;
+    }
+
+    // Remove user interaction listeners (may have already been removed after first interaction)
+    document.removeEventListener('click', trackUserInteraction);
+    document.removeEventListener('keydown', trackUserInteraction);
+    document.removeEventListener('touchstart', trackUserInteraction);
   });
 
 })();

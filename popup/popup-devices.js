@@ -252,7 +252,7 @@ async function loadAudioDevices(requestPermission = false) {
     console.error('[TabVolume Popup] Error getting audio devices:', e);
     if (requestPermission) {
       refreshDevicesBtn.classList.remove('spinning');
-      showError('Could not load audio devices. Check browser permissions.');
+      showError('Cannot load devices. Check permissions.');
     }
   }
 }
@@ -357,7 +357,7 @@ async function setOutputDevice(deviceId) {
     console.log('[TabVolume Popup] SET_DEVICE response:', response);
   } catch (e) {
     console.error('[TabVolume Popup] SET_DEVICE failed:', e.message);
-    showError('Could not change audio device. Try refreshing the page.');
+    showError('Device change failed. Refresh page.');
   }
 }
 

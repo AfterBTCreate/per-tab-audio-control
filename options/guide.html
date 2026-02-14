@@ -135,39 +135,38 @@
         <div class="info-box">
           <h4>Header Buttons (Left to Right, Default Order)</h4>
           <ul class="feature-list">
-            <li><strong>Volume Icon</strong> — Shows current volume state (muted, low, medium, high, boosted); animated waves indicate volume level</li>
-            <li><strong>Tab Capture</strong> — Enables Tab Capture audio mode (Chrome only); green when active</li>
-            <li><strong>Web Audio</strong> — Enables Web Audio mode; orange when active</li>
-            <li><strong>Disable</strong> — Disables audio processing on the current domain; red when active, limits volume to 0-100%</li>
+            <li><strong>ABTC Logo</strong> — After Bedtime Creations logo (locked at start, cannot be moved)</li>
+            <li><strong>Brand Text</strong> — "After Bedtime Creations" text (locked at start, cannot be moved)</li>
+            <li><strong>Audio Mode</strong> — Cycles through Tab Capture (blue), Web Audio (orange), and Disable (red) modes. Click to switch. Firefox skips Tab Capture.</li>
             <li><strong>Focus</strong> — Mutes all other browser tabs (optional, can be hidden)</li>
             <li><strong>Basic/Advanced Toggle</strong> — Switches between Basic (volume only) and Advanced (all features) modes</li>
-            <li><strong>Shortcuts</strong> — Shows configured keyboard shortcuts (optional, can be hidden)</li>
             <li><strong>Theme</strong> — Switches between morning/bedtime themes (optional, can be hidden)</li>
             <li><strong>Settings</strong> — Opens the settings page</li>
-            <li><strong>ABTC Logo</strong> — After Bedtime Creations branding (locked at end, cannot be moved)</li>
+            <li><strong>Volume Icon</strong> — Shows current volume state (muted, low, medium, high, boosted); animated waves indicate volume level (optional, can be hidden)</li>
           </ul>
-          <p style="margin-top: 8px;"><em>Note: The order of header icons can be customized in Settings → Header Layout. Focus, Shortcuts, and Theme can be hidden. The ABTC Logo is always last.</em></p>
+          <p style="margin-top: 8px;"><em>Note: The order of header icons can be customized in Settings → Header Layout. Focus, Theme, and Volume Icon can be hidden. The ABTC Logo and Brand Text are locked at the start. Spacers are placed between groups by default. Keyboard shortcuts are shown in the popup footer.</em></p>
         </div>
 
         <div class="info-box">
-          <h4>Audio Mode Buttons</h4>
-          <p>Three separate buttons control the audio processing mode:</p>
+          <h4>Audio Mode Toggle</h4>
+          <p>A single toggle button cycles through three audio processing modes:</p>
           <ul class="feature-list">
-            <li><strong>Tab Capture</strong> — Captures audio at browser level (Chrome only). Most reliable, works on all sites. <em>Default on Chrome.</em></li>
-            <li><strong>Web Audio</strong> — Hooks into page audio directly. May not work on sites with CORS restrictions. <em>Default on Firefox.</em></li>
-            <li><strong>Disable</strong> — Uses native browser audio. Maximum compatibility but limits volume to 0-100% with no effects.</li>
+            <li><strong>Tab Capture</strong> (blue) — Captures audio at browser level (Chrome only). Most reliable, works on all sites. <em>Default on Chrome.</em></li>
+            <li><strong>Web Audio</strong> (orange) — Hooks into page audio directly. May not work on sites with CORS restrictions. <em>Default on Firefox.</em></li>
+            <li><strong>Disable</strong> (red) — Uses native browser audio. Maximum compatibility but limits volume to 0-100% with no effects.</li>
           </ul>
-          <p style="margin-top: 8px;">Your preference is saved per-site. The active mode button is highlighted (green/orange/red). Tab Capture is not available on Firefox.</p>
+          <p style="margin-top: 8px;">Click the button to cycle to the next mode. Your preference is saved per-site. On Firefox, Tab Capture is skipped.</p>
         </div>
 
         <div class="info-box">
           <h4>Volume Row Controls</h4>
           <p>Below the visualizer, the volume row contains these controls (left to right):</p>
           <ul class="feature-list">
+            <li><strong>▶ (Play/Pause)</strong> — Toggle media playback on the current tab</li>
+            <li><strong>← (Left Arrow)</strong> — Switch to previous audio tab</li>
             <li><strong>− (Minus)</strong> — Decrease volume by your configured step (default 1%)</li>
             <li><strong>Percentage Display</strong> — Shows current volume (0-500%)</li>
             <li><strong>+ (Plus)</strong> — Increase volume by your configured step (default 1%)</li>
-            <li><strong>← (Left Arrow)</strong> — Switch to previous audio tab</li>
             <li><strong>→ (Right Arrow)</strong> — Switch to next audio tab</li>
             <li><strong>↺ (Reset)</strong> — Reset current tab to default settings</li>
           </ul>
@@ -175,25 +174,36 @@
         </div>
 
         <div class="info-box">
-          <h4>Reset Tab Button</h4>
-          <p>The reset button (↺) in the volume row resets all audio settings for the currently selected tab to their defaults:</p>
+          <h4>Extension Icon Badge</h4>
+          <p>The extension icon in your browser toolbar displays badges to show status at a glance:</p>
           <ul class="feature-list">
-            <li><strong>Volume</strong> → 100%</li>
-            <li><strong>Balance</strong> → Center (0)</li>
-            <li><strong>Channel Mode</strong> → Stereo</li>
-            <li><strong>Compressor</strong> → Off</li>
-            <li><strong>Voice/Bass/Treble</strong> → Off</li>
-            <li><strong>Output Device</strong> → Default</li>
+            <li><strong style="background: #000; color: #fff; padding: 1px 4px; border-radius: 2px;">0% - 500%</strong> — Current volume level. Muted (0%) shows a red badge. Badge appearance can be changed in Settings → Appearance → Badge Style.</li>
+            <li><strong style="background: #4A90D9; color: #fff; padding: 1px 4px; border-radius: 2px;">!</strong> — <strong>Blue:</strong> Tab Capture needs activation (Chrome only). Click the extension or use a keyboard shortcut to enable.</li>
+            <li><strong style="background: #D94A4A; color: #fff; padding: 1px 4px; border-radius: 2px;">!</strong> — <strong>Red:</strong> A site rule exists for this page but hasn't been applied yet. Click the extension to apply it.</li>
+            <li><strong style="background: #fbbf24; color: #000; padding: 1px 4px; border-radius: 2px;">!</strong> — <strong>Yellow:</strong> Restricted browser page (e.g., chrome:// or about: pages) where audio control is not available.</li>
           </ul>
-          <p style="margin-top: 8px;"><strong>When audio processing is disabled:</strong> Only resets volume to 100% (other settings are not available).</p>
         </div>
 
         <div class="info-box">
-          <h4>Extension Icon Badge</h4>
-          <p>The extension icon in your browser toolbar displays badges:</p>
+          <h4>Badge Style Options</h4>
+          <p>Customize the volume badge appearance in Settings → Appearance → Badge Style:</p>
           <ul class="feature-list">
-            <li><strong style="background: #000; color: #fff; padding: 1px 4px; border-radius: 2px;">0% - 500%</strong> — Current volume level (shown when Tab Capture is active)</li>
-            <li><strong style="background: #f59e0b; color: #000; padding: 1px 4px; border-radius: 2px;">!</strong> — Tab Capture needs activation (Chrome only). Click the extension or use a keyboard shortcut to enable.</li>
+            <li><strong>Light on Dark</strong> (default) — White text on black background</li>
+            <li><strong>Dark on Light</strong> — Black text on white background</li>
+            <li><strong>Volume Color</strong> — Background color matches volume level: blue (1-50%), green (51-100%), yellow (101-200%), orange (201-350%), purple (351-500%). Muted (0%) is always red.</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Volume Color Indicators</h4>
+          <p>The volume percentage display and slider in the popup use color coding to indicate the current level:</p>
+          <ul class="feature-list">
+            <li><strong style="color: #ef4444;">Red</strong> — Muted (0%)</li>
+            <li><strong style="color: #60a5fa;">Blue</strong> — Reduced (1-50%)</li>
+            <li><strong style="color: #4ade80;">Green</strong> — Normal (51-100%)</li>
+            <li><strong style="color: #facc15;">Yellow</strong> — Boosted (101-200%)</li>
+            <li><strong style="color: #fb923c;">Orange</strong> — High (201-350%)</li>
+            <li><strong style="color: #a855f7;">Purple</strong> — Ultra (351-500%)</li>
           </ul>
         </div>
 
@@ -202,23 +212,39 @@
           <p>Customize the popup header in Settings → Header Layout:</p>
           <ul class="feature-list">
             <li><strong>Drag to reorder</strong> — Rearrange icons by dragging them to new positions</li>
-            <li><strong>Hide optional icons</strong> — Focus, Shortcuts, and Theme can be hidden</li>
-            <li><strong>Spacers</strong> — Add up to 3 spacers to create visual groupings between icons</li>
-            <li><strong>ABTC Logo</strong> — Locked at the end, cannot be moved or hidden</li>
+            <li><strong>Hide optional icons</strong> — Focus, Theme, and Volume Icon can be hidden</li>
+            <li><strong>Spacers</strong> — Add up to 4 spacers to create visual groupings between icons</li>
+            <li><strong>Locked items</strong> — ABTC Logo, first spacer, and Brand Text are locked at the start and cannot be moved or hidden</li>
           </ul>
-          <p style="margin-top: 8px;"><em>Required icons (Tab Capture, Web Audio, Disable, Basic/Advanced, Settings, Volume Icon) cannot be hidden.</em></p>
+          <p style="margin-top: 8px;"><em>Required icons (Audio Mode, Basic/Advanced, Settings) cannot be hidden but can be reordered.</em></p>
         </div>
 
         <div class="info-box">
           <h4>Popup Sections Customization</h4>
-          <p>Customize which sections appear in the popup in Settings → Popup Sections:</p>
+          <p>Customize which sections appear in the popup in Settings → Advanced Controls:</p>
           <ul class="feature-list">
-            <li><strong>Balance</strong> — Balance slider and Stereo/Mono/Swap controls</li>
-            <li><strong>Enhancements</strong> — Bass, Treble, Voice, and Range controls</li>
+            <li><strong>Balance</strong> — Balance slider/presets and Stereo/Mono/Swap controls</li>
+            <li><strong>Speed</strong> — Playback speed presets/slider (0.05x to 5x)</li>
+            <li><strong>Bass</strong> — Bass boost/cut (-24 to +24 dB)</li>
+            <li><strong>Treble</strong> — Treble boost/cut (-24 to +24 dB)</li>
+            <li><strong>Voice</strong> — Voice clarity boost (0 to +18 dB)</li>
+            <li><strong>Range</strong> — Dynamic range compression (Off/Podcast/Movie/Max)</li>
             <li><strong>Output</strong> — Audio output device selector</li>
             <li><strong>Site Rule</strong> — Add site-specific volume rules</li>
           </ul>
           <p style="margin-top: 8px;"><em>Drag to reorder sections. At least one section must remain visible.</em></p>
+        </div>
+
+        <div class="info-box">
+          <h4>Sliders vs Presets (S/P Toggle)</h4>
+          <p>Six controls support dual presentation modes — preset buttons or continuous sliders:</p>
+          <ul class="feature-list">
+            <li><strong>Speed, Bass, Treble, Voice, Range, Balance</strong> — Each has an independent S/P toggle</li>
+            <li><strong>S (Sliders)</strong> — Continuous slider with value display and reset button</li>
+            <li><strong>P (Presets)</strong> — Quick-select buttons (e.g., Off/Low/Medium/High)</li>
+            <li><strong>All Sliders / All Presets</strong> — Bulk-set all items at once</li>
+          </ul>
+          <p style="margin-top: 8px;"><em>Toggle per-item in Settings → Advanced Controls using the S/P button next to each item. Your preference syncs across devices.</em></p>
         </div>
       </div>
     </div>
@@ -246,9 +272,11 @@
             <li><strong>Treble Boost</strong> — Off, plus your custom Low/Medium/High values</li>
             <li><strong>Treble Cut</strong> — Off, plus your custom Low/Medium/High values</li>
             <li><strong>Voice Boost</strong> — Off, plus your custom Low/Medium/High values</li>
+            <li><strong>Speed</strong> — Normal (1x), Slow (Low/Medium/High), Fast (Low/Medium/High)</li>
             <li><strong>Range</strong> — Off, Podcast, Movie, Maximum (dynamic range compression)</li>
             <li><strong>Pause/Play</strong> — Toggle media playback on the current tab</li>
             <li><strong>Toggle Focus Mode</strong> — Mute/unmute all other browser tabs</li>
+            <li><strong>Reset Tab to Defaults</strong> — Reset volume, EQ, speed, and all effects to defaults</li>
             <li><strong>Disable Audio Processing</strong> — Disable audio processing, use native browser audio</li>
             <li><strong>Enable Tab Capture Mode</strong> — Use Tab Capture for this domain (Chrome only)</li>
             <li><strong>Enable Web Audio Mode</strong> — Use Web Audio for this domain</li>
@@ -306,12 +334,23 @@
         <div class="info-box">
           <h4>Switching Modes</h4>
           <ul class="feature-list">
-            <li><strong>Tab Capture button</strong> — Click in header to enable Tab Capture mode (Chrome only, green when active)</li>
+            <li><strong>Tab Capture button</strong> — Click in header to enable Tab Capture mode (Chrome only, blue when active)</li>
             <li><strong>Web Audio button</strong> — Click in header to enable Web Audio mode (orange when active)</li>
             <li><strong>Disable button (⊘)</strong> — Click in header to disable audio processing (red when active)</li>
             <li><strong>Context menu</strong> — Right-click and select the audio mode option</li>
           </ul>
           <p style="margin-top: 8px;">Your preference is saved per-site. The page refreshes when switching modes.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Fullscreen Support (Tab Capture)</h4>
+          <p>Chrome's Tab Capture API prevents video elements from entering true fullscreen on their own. The extension works around this by automatically switching the browser window to fullscreen (equivalent to pressing F11) when a video requests fullscreen.</p>
+          <ul class="feature-list">
+            <li><strong>How it works</strong> — When you click a video's fullscreen button, the extension detects the request and toggles browser fullscreen instead. The video fills your entire screen as expected.</li>
+            <li><strong>Exiting fullscreen</strong> — Press Escape or the video's exit fullscreen button. The browser window returns to its previous state (maximized or normal).</li>
+            <li><strong>Troubleshooting</strong> — If fullscreen gets stuck or doesn't exit cleanly, press <strong>F11</strong> to manually toggle browser fullscreen.</li>
+          </ul>
+          <p style="margin-top: 8px;"><em>This workaround only applies to Tab Capture mode on Chrome. Web Audio mode and Firefox handle fullscreen natively without any workaround.</em></p>
         </div>
       </div>
     </div>
@@ -357,17 +396,19 @@
             <li><strong>Dots</strong> — Bouncing frequency dots</li>
             <li><strong>Off</strong> — Disable visualization</li>
           </ul>
-          <p style="margin-top: 8px;">Set your default style in the Visualizer settings section, or cycle through styles by clicking and holding the visualizer.</p>
+          <p style="margin-top: 8px;">Set your default style in the Visualizer settings section, or cycle through styles by clicking and holding the visualizer. You can also set a custom visualizer color in Settings → Appearance → Visualizer using the color picker.</p>
         </div>
 
         <div class="info-box">
           <h4>Tab Title Location</h4>
           <p>Choose where to display the current tab's title:</p>
           <ul class="feature-list">
-            <li><strong>Inside visualizer</strong> — Shows title and URL overlaid on the visualizer (default)</li>
-            <li><strong>Below visualizer</strong> — Shows just the title in a separate row below the visualizer</li>
+            <li><strong>Inside</strong> — Shows title and URL overlaid on the visualizer (default)</li>
+            <li><strong>Below</strong> — Shows just the title in a separate row below the visualizer</li>
+            <li><strong>Above</strong> — Shows the title above the visualizer</li>
+            <li><strong>Hidden</strong> — Hides the tab title entirely</li>
           </ul>
-          <p style="margin-top: 8px;">Configure this in Settings → Appearance → Visualizer.</p>
+          <p style="margin-top: 8px;">Configure this in Settings → Appearance → Tab Title Location. When the visualizer is hidden, "Inside" and "Below" are automatically disabled.</p>
         </div>
 
         <div class="info-box">
@@ -417,6 +458,44 @@
             <li>This can occasionally happen when switching audio modes or reconnecting to Tab Capture</li>
             <li>The audio controls continue to work normally even if the visualizer glitches</li>
           </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Playback Seekbar -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Playback Seekbar</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">When media with a known duration is playing (audio or video), a seekbar appears below the visualizer.</p>
+
+        <div class="info-box">
+          <h4>Seekbar Controls</h4>
+          <ul class="feature-list">
+            <li><strong>Drag the slider</strong> — Seek to any position in the media</li>
+            <li><strong>Arrow keys</strong> — Fine-grained seeking when the slider is focused</li>
+            <li><strong>Left time</strong> — Shows current playback position (or total duration when time remaining is selected)</li>
+            <li><strong>Right time</strong> — Shows total duration (or time remaining as -M:SS when toggled)</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Time Display Toggle</h4>
+          <p>Click the right-side time display to toggle between two modes:</p>
+          <ul class="feature-list">
+            <li><strong>Current time mode</strong> (default) — Left shows elapsed time, right shows total duration</li>
+            <li><strong>Time remaining mode</strong> — Left shows total duration, right shows countdown (e.g., -1:20)</li>
+          </ul>
+          <p style="margin-top: 8px;">Your preference is saved and persists across sessions. You can also toggle this in Settings → Appearance → Playback Seekbar.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Visibility</h4>
+          <p>The seekbar automatically appears when media with a duration is detected and hides otherwise. You can hide the seekbar entirely in Settings → Appearance → Playback Seekbar.</p>
         </div>
       </div>
     </div>
@@ -491,14 +570,23 @@
         </div>
 
         <div class="info-box">
-          <h4>Balance Slider</h4>
-          <p>Adjusts the left/right audio balance. Useful for:</p>
+          <h4>Balance Controls</h4>
+          <p>Adjusts the left/right audio balance. Two modes are available:</p>
           <ul class="feature-list">
-            <li>Compensating for hearing differences between ears</li>
-            <li>Adjusting for off-center speaker placement</li>
-            <li>Isolating one channel to hear specific instruments</li>
+            <li><strong>Slider mode (S)</strong> — Continuous slider from full left (-100) to full right (+100). Scroll wheel supported.</li>
+            <li><strong>Presets mode (P)</strong> — Three buttons: Left, Center, Right. Quick one-click panning.</li>
           </ul>
-          <p style="margin-top: 8px;"><strong>Tip:</strong> Use your mouse scroll wheel over the balance area to quickly adjust.</p>
+          <p style="margin-top: 8px;">Useful for compensating for hearing differences, off-center speakers, or isolating channels. S/M/Swap and reset buttons are available in both modes.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Balance Presets Customization</h4>
+          <p>In Settings → Presets → Balance Presets, you can customize how far the Left and Right buttons pan:</p>
+          <ul class="feature-list">
+            <li><strong>Left (1-100)</strong> — How far left the "Left" button pans (default: 100)</li>
+            <li><strong>Right (1-100)</strong> — How far right the "Right" button pans (default: 100)</li>
+            <li><strong>Center</strong> — Always resets balance to 0 (not customizable)</li>
+          </ul>
         </div>
       </div>
     </div>
@@ -541,6 +629,48 @@
             <li>Video calls where participants are hard to hear</li>
           </ul>
         </div>
+
+        <div class="info-box">
+          <h4>Slider vs Preset Mode</h4>
+          <p>Bass, Treble, and Voice each support two control modes:</p>
+          <ul class="feature-list">
+            <li><strong>Presets (P)</strong> — 7 buttons for bass/treble (-24, -12, -6, Off, +6, +12, +24 dB) or 4 buttons for voice (Off, +4, +10, +18 dB)</li>
+            <li><strong>Slider (S)</strong> — Continuous adjustment with dB value display and reset button. Scroll wheel supported.</li>
+          </ul>
+          <p style="margin-top: 8px;"><em>Preset button values are customizable in Settings → Presets.</em></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Speed Control -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Speed Control</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Adjust playback speed from 0.05x (very slow) to 5x (very fast). Useful for lectures, podcasts, and language learning.</p>
+
+        <div class="info-box">
+          <h4>Slider vs Preset Mode</h4>
+          <p>Speed supports two control modes:</p>
+          <ul class="feature-list">
+            <li><strong>Presets (P)</strong> — 7 buttons: 3 slow speeds, 1x (off), 3 fast speeds. Default slow: 0.75x, 0.50x, 0.25x. Default fast: 1.25x, 1.50x, 2.00x.</li>
+            <li><strong>Slider (S)</strong> — Continuous slider with non-linear scale. Center is 1x. Fine control near normal speed, wider range at extremes.</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Customizing Speed Presets</h4>
+          <p>In Settings → Presets → Speed Presets:</p>
+          <ul class="feature-list">
+            <li><strong>Slow 1-3</strong> — Left-side buttons (0.05 to 0.99x)</li>
+            <li><strong>Fast 1-3</strong> — Right-side buttons (1.01 to 5.00x)</li>
+          </ul>
+          <p style="margin-top: 8px;"><em>The center "1x" button always resets to normal speed.</em></p>
+        </div>
       </div>
     </div>
 
@@ -571,6 +701,16 @@
         </div>
 
         <p class="section-note"><strong>Note:</strong> Bass, Treble, and Voice Boost are automatically disabled when the compressor is active to prevent audio artifacts.</p>
+
+        <div class="info-box">
+          <h4>Slider vs Preset Mode</h4>
+          <p>Range supports two control modes:</p>
+          <ul class="feature-list">
+            <li><strong>Presets (P)</strong> — Four buttons: Off, Podcast, Movie, Max (default)</li>
+            <li><strong>Slider (S)</strong> — 4-position snap slider with color-coded gradient. Snaps to Off/Podcast/Movie/Max positions.</li>
+          </ul>
+          <p style="margin-top: 8px;"><em>Unlike other sliders, the Range slider is not continuous — it snaps between the 4 preset positions. Scroll wheel steps between positions.</em></p>
+        </div>
 
         <div class="info-box">
           <h4>Automatic Loudness Compensation</h4>
@@ -633,6 +773,7 @@
           <p>When you create a site rule, it captures ALL your current settings:</p>
           <ul class="feature-list">
             <li>Volume level, balance, and channel mode</li>
+            <li>Playback speed</li>
             <li>Audio effects (compressor, voice, bass, treble)</li>
             <li>Output device selection</li>
           </ul>
@@ -672,13 +813,16 @@
         <div class="info-box">
           <h4>What Syncs</h4>
           <ul class="feature-list">
-            <li>All preset values (volume, bass, treble, voice, volume steps)</li>
+            <li>All preset values (volume, bass, treble, voice, speed, balance, volume steps)</li>
             <li>Site rules</li>
             <li>Audio mode overrides (Tab Capture, Web Audio, and Disabled mode sites)</li>
             <li>Default audio mode setting</li>
-            <li>Theme, visualizer style, EQ mode, Basic/Advanced mode</li>
+            <li>Theme, visualizer style and color, badge style, tab title location</li>
+            <li>Seekbar visibility and time display preference</li>
+            <li>EQ mode (sliders/presets), Basic/Advanced mode</li>
             <li>Header layout customization</li>
-            <li>Popup sections layout</li>
+            <li>Popup sections layout (order, hidden, slider/preset per section)</li>
+            <li>Keyboard shortcuts footer visibility</li>
             <li>UI state (expanded/collapsed sections)</li>
           </ul>
         </div>
@@ -686,8 +830,9 @@
         <div class="info-box">
           <h4>What Stays Local</h4>
           <ul class="feature-list">
-            <li>Default audio device (different hardware per device)</li>
-            <li>Current tab volumes (session-specific)</li>
+            <li>Default audio device and "use last device" preference (different hardware per device)</li>
+            <li>Current tab volumes and effects (session-specific)</li>
+            <li>Visualizer style and color (cached locally for fast startup, also synced)</li>
           </ul>
         </div>
 
@@ -695,6 +840,43 @@
           <h4>Browser Compatibility</h4>
           <p>Sync works with Chrome, Firefox, Brave, Vivaldi, and Edge when signed into their respective accounts.</p>
           <p style="margin-top: 8px;"><strong>Important:</strong> Cross-browser sync is not possible — Chrome syncs to Chrome, Firefox to Firefox, etc.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Management -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Data Management</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Backup, restore, and reset your extension settings from the Data Management section in Settings.</p>
+
+        <div class="info-box">
+          <h4>Backup All Data</h4>
+          <p>Downloads a CSV file containing all your settings:</p>
+          <ul class="feature-list">
+            <li>All presets (volume, bass, treble, voice, speed, balance, volume steps)</li>
+            <li>Site rules and audio mode overrides</li>
+            <li>Appearance settings (theme, visualizer, badge style, seekbar, header layout, popup sections)</li>
+            <li>Default audio mode and popup mode</li>
+            <li>Default output device selection</li>
+          </ul>
+          <p style="margin-top: 8px;"><em>Useful for transferring settings between browsers (since cross-browser sync is not possible) or as a safety net before making changes.</em></p>
+        </div>
+
+        <div class="info-box">
+          <h4>Restore from Backup</h4>
+          <p>Import a previously saved CSV backup file. All settings in the file will be applied, overwriting current values. The page reloads automatically after a successful restore.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Reset All Settings</h4>
+          <p>Resets everything to factory defaults. This cannot be undone. All presets, site rules, appearance settings, audio mode overrides, and layout customizations are removed.</p>
+          <p style="margin-top: 8px;"><strong>Note:</strong> Keyboard shortcuts and microphone permissions are managed by the browser and cannot be reset by the extension.</p>
         </div>
       </div>
     </div>
@@ -730,7 +912,7 @@
             <li><strong>Scripting</strong> — Inject audio processing scripts into pages</li>
             <li><strong>Offscreen</strong> — Process Tab Capture audio in background (Chrome only)</li>
             <li><strong>Context Menus</strong> — Provide right-click menu options</li>
-            <li><strong>Microphone (optional)</strong> — Only used to list output devices, never records audio</li>
+            <li><strong>Microphone (browser prompt)</strong> — Not a manifest permission. The browser may prompt for microphone access when listing audio output devices. This is only used to enumerate devices — the extension never records audio.</li>
           </ul>
         </div>
       </div>
@@ -762,8 +944,11 @@
             <li><strong>Tab</strong> — Move between controls</li>
             <li><strong>Enter/Space</strong> — Activate buttons</li>
             <li><strong>Arrow keys</strong> — Adjust sliders</li>
-            <li><strong>Global shortcuts</strong> — Volume up/down/mute from any tab</li>
+            <li><strong>Alt+Shift+Up</strong> — Increase volume (global, works from any tab)</li>
+            <li><strong>Alt+Shift+Down</strong> — Decrease volume (global, works from any tab)</li>
+            <li><strong>Alt+Shift+M</strong> — Toggle mute (global, works from any tab)</li>
           </ul>
+          <p style="margin-top: 8px;"><em>Global keyboard shortcuts can be customized in your browser's extension shortcut settings (Chrome: chrome://extensions/shortcuts, Firefox: about:addons → gear icon → Manage Extension Shortcuts).</em></p>
         </div>
       </div>
     </div>

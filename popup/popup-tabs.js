@@ -26,7 +26,7 @@ async function checkFocusState() {
 // Show permanent focus reminder status (uses showStatus with duration=0 for persistence)
 function showFocusReminder() {
   if (isFocusActive) {
-    showStatus('Active Tab Audio ON - Audio follows active tab', 'info', 0);
+    showStatus('Active Tab Audio ON', 'info', 0);
   }
 }
 
@@ -55,7 +55,7 @@ async function toggleFocusMode() {
         isFocusActive = true;
         focusBtn.classList.add('active');
         if (result.mutedCount > 0) {
-          showStatus(`Active Tab Audio: Muted ${result.mutedCount} other tab${result.mutedCount !== 1 ? 's' : ''}`, 'success', 2000);
+          showStatus(`Muted ${result.mutedCount} other tab${result.mutedCount !== 1 ? 's' : ''}`, 'success', 2000);
         } else {
           showStatus('Active Tab Audio enabled', 'info', 2000);
         }
@@ -104,7 +104,7 @@ async function resetTabToDefaults() {
   try {
     // Reset volume to 100% using the proper function
     // This handles: state update, UI update, badge update, message to content script
-    await setVolume(100);
+    await setVolume(VOLUME_DEFAULT);
 
     // In native mode, only volume is available - skip other resets
     if (!isDomainDisabled) {
@@ -125,6 +125,9 @@ async function resetTabToDefaults() {
       await applyEffect('bass', 'off');
       await applyEffect('treble', 'off');
       await applyEffect('voice', 'off');
+
+      // Reset playback speed to 1x
+      await applySpeedPreset('off');
 
       // Update EQ sliders UI (in case slider mode is active)
       updateEqSlidersUI();
@@ -202,7 +205,7 @@ async function loadTabSettings() {
     tabId: currentTabId
   });
 
-  currentVolume = response.volume !== undefined ? response.volume : 100;
+  currentVolume = response.volume !== undefined ? response.volume : VOLUME_DEFAULT;
 
   // Load previous volume from storage for unmute functionality
   const prevKey = getTabStorageKey(currentTabId, TAB_STORAGE.PREV);
@@ -210,7 +213,7 @@ async function loadTabSettings() {
   if (prevResult[prevKey] !== undefined) {
     previousVolume = prevResult[prevKey];
   } else {
-    previousVolume = 100;
+    previousVolume = VOLUME_DEFAULT;
   }
 
   updateUI(currentVolume);
@@ -232,6 +235,7 @@ async function loadTabSettings() {
 async function switchToTab(tabIndex) {
   if (audibleTabs.length === 0) return;
 
+  const previousTabId = currentTabId;
   currentTabIndex = tabIndex;
   const tab = audibleTabs[currentTabIndex];
   currentTabId = tab.id;
@@ -240,6 +244,14 @@ async function switchToTab(tabIndex) {
   // Immediately clear UI state from previous tab
   clearStatus();
   document.body.classList.remove('audio-blocked');
+
+  // Reset seekbar for new tab
+  if (typeof resetSeekbar === 'function') resetSeekbar();
+
+  // Check for DRM-protected streaming sites
+  if (isDrmSite(currentTabUrl)) {
+    showStatus('DRM site — playback control & visualizer may be limited', 'info', 8000);
+  }
 
   // Update tab counter display
   updateTabNavigation();
@@ -265,14 +277,53 @@ async function switchToTab(tabIndex) {
     resetVisualizerState();
   }
 
+  // Apply any pending site rule when switching tabs within popup
+  await browserAPI.runtime.sendMessage({
+    type: 'APPLY_PENDING_SITE_RULE',
+    tabId: currentTabId
+  }).catch(() => {});
+
   // Load settings for this tab
   await loadTabSettings();
 
-  // Load visualizer type (global setting)
+  // Load visualizer type and custom color (global settings)
   await loadVisualizerType();
+  await loadVisualizerColor();
 
-  // NOTE: autoStartTabCaptureIfNeeded removed - resetVisualizerState() now properly
-  // handles Tab Capture auto-start via GET_EFFECTIVE_MODE
+  // Restart seekbar polling for new tab
+  if (typeof startSeekbarPolling === 'function') startSeekbarPolling();
+
+  // If focus mode is active, mute/unmute AFTER everything else is loaded
+  // (placed last so resetVisualizerState/loadTabSettings can't undo the muting)
+  if (isFocusActive && previousTabId && previousTabId !== currentTabId) {
+    console.log('[TabVolume] Focus mode tab switch:', previousTabId, '→', currentTabId);
+    // Unmute the new tab first
+    try {
+      await browserAPI.tabs.update(currentTabId, { muted: false });
+    } catch (e) {
+      console.debug('[TabVolume] Failed to unmute new tab:', e);
+    }
+    // Use the proven MUTE_OTHER_TABS path (same handler as Focus button click)
+    try {
+      const result = await browserAPI.runtime.sendMessage({
+        type: 'MUTE_OTHER_TABS',
+        currentTabId: currentTabId
+      });
+      // Re-show focus reminder (clearStatus earlier removed it)
+      showFocusReminder();
+      if (!result || !result.success) {
+        console.debug('[TabVolume] MUTE_OTHER_TABS returned failure, disabling focus mode');
+        isFocusActive = false;
+        if (focusBtn) focusBtn.classList.remove('active');
+        clearFocusReminder();
+      }
+    } catch (e) {
+      console.debug('[TabVolume] MUTE_OTHER_TABS failed:', e);
+      isFocusActive = false;
+      if (focusBtn) focusBtn.classList.remove('active');
+      clearFocusReminder();
+    }
+  }
 }
 
 // Toggle play/pause on current tab's media
@@ -336,8 +387,7 @@ async function goToCurrentTab() {
 // Media toggle button handler
 const mediaToggleBtn = document.getElementById('mediaToggleBtn');
 if (mediaToggleBtn) {
-  mediaToggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // Prevent triggering visualizer click
+  mediaToggleBtn.addEventListener('click', () => {
     togglePlayPause();
   });
 }
@@ -348,8 +398,8 @@ nextTabBtn.addEventListener('click', nextTab);
 
 // Keyboard navigation for tabs (Left/Right arrow) and play/pause (Space)
 document.addEventListener('keydown', (e) => {
-  // Don't trigger if focus is on an input element
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  // Don't trigger if focus is on an interactive element
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') return;
 
   if (e.key === 'ArrowLeft') {
     e.preventDefault();
@@ -373,23 +423,35 @@ async function updateShortcutHints() {
     const shortcutsVolDown = document.getElementById('shortcutsVolDown');
     if (!shortcutsMute || !shortcutsVolUp || !shortcutsVolDown) return;
 
-    let volumeUpKey = '';
-    let volumeDownKey = '';
-    let muteKey = '';
+    // Suggested keys from manifest (fallback when not bound)
+    const suggestedKeys = {
+      'volume-up': 'Alt+Shift+Up',
+      'volume-down': 'Alt+Shift+Down',
+      'toggle-mute': 'Alt+Shift+M'
+    };
+
+    let volumeUp = { key: '', suggested: false };
+    let volumeDown = { key: '', suggested: false };
+    let mute = { key: '', suggested: false };
 
     commands.forEach(command => {
-      if (command.name === 'volume-up' && command.shortcut) {
-        volumeUpKey = command.shortcut;
-      } else if (command.name === 'volume-down' && command.shortcut) {
-        volumeDownKey = command.shortcut;
-      } else if (command.name === 'toggle-mute' && command.shortcut) {
-        muteKey = command.shortcut;
+      if (command.name === 'volume-up') {
+        volumeUp = command.shortcut
+          ? { key: command.shortcut, suggested: false }
+          : { key: suggestedKeys['volume-up'], suggested: true };
+      } else if (command.name === 'volume-down') {
+        volumeDown = command.shortcut
+          ? { key: command.shortcut, suggested: false }
+          : { key: suggestedKeys['volume-down'], suggested: true };
+      } else if (command.name === 'toggle-mute') {
+        mute = command.shortcut
+          ? { key: command.shortcut, suggested: false }
+          : { key: suggestedKeys['toggle-mute'], suggested: true };
       }
     });
 
     // Format shortcut for display (replace Up/Down with arrows)
     const formatKey = (key) => {
-      if (!key) return 'Not set';
       return key
         .replace(/Up Arrow/gi, '↑')
         .replace(/Down Arrow/gi, '↓')
@@ -397,10 +459,20 @@ async function updateShortcutHints() {
         .replace(/\+Down$/i, '+↓');
     };
 
-    // Set the key portion of each shortcut
-    shortcutsVolUp.textContent = formatKey(volumeUpKey);
-    shortcutsVolDown.textContent = formatKey(volumeDownKey);
-    shortcutsMute.textContent = formatKey(muteKey);
+    // Apply text and dim style for unbound (suggested) shortcuts
+    const applyShortcut = (el, info) => {
+      el.textContent = formatKey(info.key);
+      el.classList.toggle('shortcut-suggested', info.suggested);
+      if (info.suggested) {
+        el.title = 'Not bound — set in chrome://extensions/shortcuts';
+      } else {
+        el.title = '';
+      }
+    };
+
+    applyShortcut(shortcutsVolUp, volumeUp);
+    applyShortcut(shortcutsVolDown, volumeDown);
+    applyShortcut(shortcutsMute, mute);
   } catch (err) {
     console.debug('Could not fetch keyboard shortcuts:', err);
   }
@@ -408,24 +480,6 @@ async function updateShortcutHints() {
 
 // Update shortcuts on load
 updateShortcutHints();
-
-// Shortcuts popover toggle
-const shortcutsBtn = document.getElementById('shortcutsBtn');
-const shortcutsPopover = document.getElementById('shortcutsPopover');
-
-if (shortcutsBtn && shortcutsPopover) {
-  shortcutsBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    shortcutsPopover.classList.toggle('visible');
-  });
-
-  // Close popover when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!shortcutsPopover.contains(e.target) && e.target !== shortcutsBtn) {
-      shortcutsPopover.classList.remove('visible');
-    }
-  });
-}
 
 // ==================== Disable Domain Feature ====================
 
@@ -475,7 +529,7 @@ async function syncLocalStorageFlag(shouldBeDisabled) {
       target: { tabId: currentTabId },
       world: 'MAIN',
       func: (d, shouldBeDisabled) => {
-        const key = '__tabVolumeControl_disabled_' + d;
+        const key = `__tabVolumeControl_disabled_${d}`;
         const flagExists = localStorage.getItem(key) === 'true';
 
         if (!shouldBeDisabled && flagExists) {
@@ -519,57 +573,38 @@ async function syncLocalStorageFlag(shouldBeDisabled) {
 }
 
 // ==================== Audio Mode UI Updates ====================
-// Three separate controls:
-// 1. Tab Capture Button - activates Tab Capture mode (Chrome only)
-// 2. Web Audio Button - activates Web Audio mode
-// 3. Bypass Button - disables audio processing entirely
+// Single cycling toggle: Tab Capture → Web Audio → Disable (Chrome)
+//                        Web Audio → Disable (Firefox)
 
-// Update the Audio Mode buttons UI (Tab Capture / Web Audio)
+// Track current effective mode for cycling
+let currentEffectiveMode = 'webaudio';
+
+// Update the Audio Mode toggle UI
 async function updateAudioModeButtonsUI() {
+  if (!audioModeToggle) return;
+
   const isFirefox = typeof browser !== 'undefined';
 
-  // Remove all state classes first from all three audio mode buttons
-  if (tabCaptureBtn) {
-    tabCaptureBtn.classList.remove('active');
-  }
-  if (webAudioBtn) {
-    webAudioBtn.classList.remove('active');
-  }
-  if (disableDomainBtn) {
-    disableDomainBtn.classList.remove('active');
-  }
+  // Remove all mode classes
+  audioModeToggle.classList.remove('mode-tabcapture', 'mode-webaudio', 'mode-off');
 
-  // If Disable mode is active, show it as active and update tooltips
+  // Determine the current mode
   if (isDomainDisabled) {
-    if (disableDomainBtn) {
-      disableDomainBtn.classList.add('active');
-      disableDomainBtn.title = 'Disable mode (active) - click Tab Capture or Web Audio to switch';
-    }
-    if (tabCaptureBtn) {
-      tabCaptureBtn.title = 'Switch to Tab Capture mode';
-    }
-    if (webAudioBtn) {
-      webAudioBtn.title = 'Switch to Web Audio mode';
-    }
+    currentEffectiveMode = 'off';
+    audioModeToggle.classList.add('mode-off');
+    audioModeToggle.title = 'Disable mode (click to switch)';
     return;
   }
 
-  // Update Disable button tooltip when not active
-  if (disableDomainBtn) {
-    disableDomainBtn.title = 'Disable audio processing';
-  }
-
-  // Firefox: Tab Capture not available - always show Web Audio active
-  // (Tab Capture button is hidden via CSS on Firefox)
+  // Firefox: always Web Audio
   if (isFirefox) {
-    if (webAudioBtn) {
-      webAudioBtn.classList.add('active');
-      webAudioBtn.title = 'Web Audio mode (active)';
-    }
+    currentEffectiveMode = 'webaudio';
+    audioModeToggle.classList.add('mode-webaudio');
+    audioModeToggle.title = 'Web Audio mode (click to switch)';
     return;
   }
 
-  // Chrome: Get effective mode from background (considers default + overrides)
+  // Chrome: Get effective mode from background
   const hostname = extractDomain(currentTabUrl);
   let effectiveMode = 'webaudio';
 
@@ -588,23 +623,14 @@ async function updateAudioModeButtonsUI() {
     }
   }
 
-  // Update button states based on effective mode
+  currentEffectiveMode = effectiveMode;
+
   if (effectiveMode === 'tabcapture') {
-    if (tabCaptureBtn) {
-      tabCaptureBtn.classList.add('active');
-      tabCaptureBtn.title = 'Tab Capture mode (active)';
-    }
-    if (webAudioBtn) {
-      webAudioBtn.title = 'Switch to Web Audio mode';
-    }
+    audioModeToggle.classList.add('mode-tabcapture');
+    audioModeToggle.title = 'Tab Capture mode (click to switch)';
   } else {
-    if (webAudioBtn) {
-      webAudioBtn.classList.add('active');
-      webAudioBtn.title = 'Web Audio mode (active)';
-    }
-    if (tabCaptureBtn) {
-      tabCaptureBtn.title = 'Switch to Tab Capture mode';
-    }
+    audioModeToggle.classList.add('mode-webaudio');
+    audioModeToggle.title = 'Web Audio mode (click to switch)';
   }
 }
 
@@ -615,7 +641,6 @@ async function updateAudioModeToggleUI() {
 
 // Update the Disable button UI (now handled by updateAudioModeButtonsUI)
 async function updateDisableButtonUI() {
-  // All three audio mode buttons are now updated together
   await updateAudioModeButtonsUI();
 }
 
@@ -652,7 +677,7 @@ function updateRestrictedPageUI() {
 // When in native mode, show limited controls (0-100% only, no enhancements)
 // Native mode = manual disable OR auto-detected fallback (future feature)
 function updateDisabledDomainUI() {
-  const volumeDisplay = document.querySelector('.volume-display');
+  const volumeRow = document.querySelector('.volume-row');
   const nativeModeStatus = document.getElementById('nativeModeStatus');
   const sliderContainer = document.querySelector('.slider-container');
   const presets = document.querySelector('.presets');
@@ -660,7 +685,7 @@ function updateDisabledDomainUI() {
 
   // Elements to completely hide in native mode (require AudioContext)
   const elementsToHideInNativeMode = [
-    document.querySelector('.balance-container'),
+    document.querySelector('.balance-row'),
     document.querySelector('.enhancements-section'),
     document.querySelector('.device-selector'),
     document.querySelector('.add-rule-section')
@@ -670,7 +695,7 @@ function updateDisabledDomainUI() {
     // NATIVE MODE: Show limited controls
 
     // Show volume display
-    if (volumeDisplay) volumeDisplay.style.display = '';
+    if (volumeRow) volumeRow.style.display = '';
 
     // Show slider container
     if (sliderContainer) sliderContainer.style.display = '';
@@ -707,9 +732,9 @@ function updateDisabledDomainUI() {
     });
 
     // Cap current volume at 100% if higher, and refresh slider (mapping changes in native mode)
-    if (currentVolume > 100) {
-      currentVolume = 100;
-      setVolume(100);
+    if (currentVolume > VOLUME_DEFAULT) {
+      currentVolume = VOLUME_DEFAULT;
+      setVolume(VOLUME_DEFAULT);
     }
     // Always refresh UI to update slider position for linear mapping
     updateUI(currentVolume);
@@ -718,7 +743,7 @@ function updateDisabledDomainUI() {
     // FULL MODE: Show all controls
 
     // Show volume display
-    if (volumeDisplay) volumeDisplay.style.display = '';
+    if (volumeRow) volumeRow.style.display = '';
 
     // Show slider container
     if (sliderContainer) sliderContainer.style.display = '';
@@ -768,9 +793,9 @@ function updateDisabledDomainUI() {
 async function getDefaultAudioMode() {
   try {
     const result = await browserAPI.storage.sync.get(['defaultAudioMode']);
-    return result.defaultAudioMode || 'tabcapture';
+    return result.defaultAudioMode || DEFAULT_AUDIO_MODE;
   } catch (e) {
-    return 'tabcapture';
+    return DEFAULT_AUDIO_MODE;
   }
 }
 
@@ -805,11 +830,6 @@ async function isDomainInOverrideList(domain, overrideMode) {
   } catch (e) {
     return false;
   }
-}
-
-// Legacy wrapper - check if domain is in Web Audio override list
-async function isDomainInAutoMode(domain) {
-  return isDomainInOverrideList(domain, 'webaudio');
 }
 
 // Add domain to an override list for the current default mode
@@ -847,20 +867,9 @@ async function removeFromOverrideList(domain, overrideMode) {
   }
 }
 
-// Legacy wrappers for compatibility
-async function addDomainToAutoMode(domain) {
-  await addToOverrideList(domain, 'webaudio');
-}
-
-async function removeDomainFromAutoMode(domain) {
-  await removeFromOverrideList(domain, 'webaudio');
-}
-
 // ==================== Audio Mode Handlers ====================
-// Three separate controls:
-// 1. tabCaptureBtn - Switch to Tab Capture mode
-// 2. webAudioBtn - Switch to Web Audio mode
-// 3. disableDomainBtn - Toggle Bypass mode on/off
+// Single toggle cycles through: Tab Capture → Web Audio → Disable (Chrome)
+//                                Web Audio → Disable (Firefox)
 
 // Storage key for remembering last active mode (Tab Capture or Web Audio) per domain
 const LAST_ACTIVE_MODE_KEY = 'lastActiveMode';
@@ -870,18 +879,27 @@ async function getLastActiveMode(domain) {
   try {
     const result = await browserAPI.storage.local.get([LAST_ACTIVE_MODE_KEY]);
     const lastActiveModes = result[LAST_ACTIVE_MODE_KEY] || {};
-    return lastActiveModes[domain] || 'tabcapture';
+    return lastActiveModes[domain] || DEFAULT_AUDIO_MODE;
   } catch (e) {
     return 'tabcapture';
   }
 }
 
-// Save last active mode for a domain
+// Save last active mode for a domain (capped at 500 entries to prevent unbounded growth)
 async function saveLastActiveMode(domain, mode) {
   try {
     const result = await browserAPI.storage.local.get([LAST_ACTIVE_MODE_KEY]);
     const lastActiveModes = result[LAST_ACTIVE_MODE_KEY] || {};
     lastActiveModes[domain] = mode;
+    // Prune oldest entries if map exceeds 500 domains
+    const keys = Object.keys(lastActiveModes);
+    if (keys.length > 500) {
+      // Remove earliest entries (first inserted keys come first in Object.keys)
+      const excess = keys.length - 500;
+      for (let i = 0; i < excess; i++) {
+        delete lastActiveModes[keys[i]];
+      }
+    }
     await browserAPI.storage.local.set({ [LAST_ACTIVE_MODE_KEY]: lastActiveModes });
   } catch (e) {
     console.error('[TabVolume Popup] Failed to save last active mode:', e);
@@ -939,7 +957,7 @@ async function activateTabCaptureMode() {
         target: { tabId: currentTabId },
         world: 'MAIN',
         func: (d) => {
-          localStorage.removeItem('__tabVolumeControl_disabled_' + d);
+          localStorage.removeItem(`__tabVolumeControl_disabled_${d}`);
         },
         args: [domain]
       });
@@ -1019,7 +1037,7 @@ async function activateWebAudioMode() {
         target: { tabId: currentTabId },
         world: 'MAIN',
         func: (d) => {
-          localStorage.removeItem('__tabVolumeControl_disabled_' + d);
+          localStorage.removeItem(`__tabVolumeControl_disabled_${d}`);
         },
         args: [domain]
       });
@@ -1098,7 +1116,7 @@ async function activateDisableMode() {
     'offDefault_tabCaptureSites',
     'offDefault_webAudioSites'
   ]);
-  const defaultMode = settings.defaultAudioMode || 'tabcapture';
+  const defaultMode = settings.defaultAudioMode || DEFAULT_AUDIO_MODE;
 
   if (defaultMode === 'native') {
     // Default is Off - remove from any override lists to let default Off apply
@@ -1143,7 +1161,7 @@ async function activateDisableMode() {
       target: { tabId: currentTabId },
       world: 'MAIN',
       func: (d) => {
-        localStorage.setItem('__tabVolumeControl_disabled_' + d, 'true');
+        localStorage.setItem(`__tabVolumeControl_disabled_${d}`, 'true');
       },
       args: [domain]
     });
@@ -1162,19 +1180,29 @@ async function activateDisableMode() {
 }
 
 
-// Tab Capture button handler
-if (tabCaptureBtn) {
-  tabCaptureBtn.addEventListener('click', activateTabCaptureMode);
-}
+// Audio mode toggle handler - cycles through modes
+if (audioModeToggle) {
+  audioModeToggle.addEventListener('click', () => {
+    const isFirefox = typeof browser !== 'undefined';
 
-// Web Audio button handler
-if (webAudioBtn) {
-  webAudioBtn.addEventListener('click', activateWebAudioMode);
-}
-
-// Disable domain button handler (activates Disable mode)
-if (disableDomainBtn) {
-  disableDomainBtn.addEventListener('click', activateDisableMode);
+    // Cycle order: Chrome: tabcapture → webaudio → off → tabcapture
+    //              Firefox: webaudio → off → webaudio
+    if (isFirefox) {
+      if (currentEffectiveMode === 'webaudio') {
+        activateDisableMode();
+      } else {
+        activateWebAudioMode();
+      }
+    } else {
+      if (currentEffectiveMode === 'tabcapture') {
+        activateWebAudioMode();
+      } else if (currentEffectiveMode === 'webaudio') {
+        activateDisableMode();
+      } else {
+        activateTabCaptureMode();
+      }
+    }
+  });
 }
 
 // ==================== Storage Quota Management ====================
@@ -1187,10 +1215,10 @@ async function showQuotaWarningIfNeeded() {
   const percentDisplay = Math.round(percentUsed * 100);
 
   if (percentUsed >= QUOTA_CRITICAL_THRESHOLD) {
-    showStatus(`Storage ${percentDisplay}% full. Remove unused rules to add new ones.`, 'error', 0);
+    showStatus(`Storage ${percentDisplay}% full. Remove old rules.`, 'error', 0);
     showCleanupButton(true);
   } else if (percentUsed >= QUOTA_WARNING_THRESHOLD) {
-    showStatus(`Storage ${percentDisplay}% full. Consider cleaning up old site rules.`, 'warning', 0);
+    showStatus(`Storage ${percentDisplay}% full. Clean up old rules.`, 'warning', 0);
     showCleanupButton(true);
   } else {
     showCleanupButton(false);
@@ -1276,7 +1304,7 @@ async function addSiteRule() {
   if (existingIndex === -1) {
     const { percentUsed } = await checkStorageQuota();
     if (percentUsed >= QUOTA_CRITICAL_THRESHOLD) {
-      showError('Cannot add rule. Storage full. Clean up old rules first.', 0);
+      showError('Storage full. Remove old rules first.', 0);
       showCleanupButton(true);
       return;
     }
@@ -1305,6 +1333,9 @@ async function addSiteRule() {
   if (currentChannelMode !== 'stereo') {
     newRule.channelMode = currentChannelMode;
   }
+  if (currentSpeedLevel !== 'off') {
+    newRule.speed = currentSpeedLevel;
+  }
 
   if (existingIndex !== -1) {
     // Update existing rule
@@ -1318,6 +1349,12 @@ async function addSiteRule() {
   const saveResult = await safeStorageSet({ siteVolumeRules: rules });
   if (saveResult.success) {
     showStatus(existingIndex !== -1 ? 'Site rule updated' : 'Site rule saved', 'success');
+    // Mark rule as applied for this tab (current settings already match the rule)
+    const hostname = extractDomain(currentTabUrl);
+    if (hostname) {
+      const ruleAppliedKey = getTabStorageKey(currentTabId, TAB_STORAGE.RULE_APPLIED);
+      await browserAPI.storage.local.set({ [ruleAppliedKey]: hostname });
+    }
   }
   // If failed, safeStorageSet already showed error message
 }
@@ -1376,6 +1413,12 @@ async function init() {
     currentTabId = tab.id;
     currentTabUrl = tab.url || '';
 
+    // Apply any pending site rule for this tab (changes badge from red ! to volume)
+    await browserAPI.runtime.sendMessage({
+      type: 'APPLY_PENDING_SITE_RULE',
+      tabId: currentTabId
+    }).catch(() => {});
+
     // Check and restore focus state (button highlight + status reminder)
     await checkFocusState();
 
@@ -1398,13 +1441,19 @@ async function init() {
     if (isRestrictedPage) {
       // Show combined message if Active Tab Audio is on, otherwise just restricted page warning
       if (isFocusActive) {
-        showStatus('Active Tab Audio ON | Audio controls unavailable on this page', 'info', 0);
+        showStatus('Active Tab Audio ON | No audio control here', 'info', 0);
       } else {
-        showStatus('Audio control not available on browser pages', 'warning', 0);
+        showStatus('No audio control on browser pages', 'warning', 0);
       }
       updateRestrictedPageUI();
+      updateDisableButtonUI(); // Show audio mode icon even on restricted pages
       document.body.classList.remove('initializing');
       return; // Don't try to load settings or start visualizer
+    }
+
+    // Check for DRM-protected streaming sites
+    if (isDrmSite(currentTabUrl)) {
+      showStatus('DRM site — playback control & visualizer may be limited', 'info', 8000);
     }
 
     // Load all settings for this tab
@@ -1429,7 +1478,13 @@ async function init() {
     // Start visualizer (must be after currentTabId is set)
     // Use setTimeout to ensure canvas has been laid out
     await loadVisualizerType();
+    await loadVisualizerColor();
     setTimeout(startVisualizer, 50);
+
+    // Start seekbar polling (must be after currentTabId is set)
+    if (typeof startSeekbarPolling === 'function') {
+      setTimeout(startSeekbarPolling, 100);
+    }
 
     // NOTE: autoStartTabCaptureIfNeeded removed - it used legacy storage check
     // and caused race conditions with startVisualizer() which now properly handles
@@ -1438,8 +1493,13 @@ async function init() {
     // Show focus reminder last - ensures it appears after all other status messages
     // This is called at the end of init so it won't be overwritten by init status messages
     showFocusReminder();
+
+    // Easter egg: Check if valentine message should be shown
+    checkValentineOverlay();
   } catch (e) {
     console.error('[TabVolume Popup] Init error:', e);
+    // Remove initializing class so error UI is visible (initializing hides status-message)
+    document.body.classList.remove('initializing');
     tabTitle.textContent = 'Unable to access tab';
     tabUrl.textContent = 'Extension may not work on this page';
     showError('Cannot control audio on this page', 0); // Persistent error
@@ -1469,6 +1529,33 @@ browserAPI.tabs.onRemoved.addListener((tabId) => {
     window.clearBlockedTabCache(tabId);
   }
 });
+
+// ==================== Easter Egg: Valentine Overlay ====================
+
+// Check if valentine overlay should be shown on this popup open
+async function checkValentineOverlay() {
+  try {
+    const result = await browserAPI.storage.session.get('valentineReady');
+    if (result.valentineReady) {
+      const overlay = document.getElementById('valentineOverlay');
+      if (overlay) {
+        overlay.classList.remove('hidden');
+        await browserAPI.storage.session.remove('valentineReady');
+      }
+    }
+  } catch (e) {
+    // Silently ignore - easter egg is non-critical
+  }
+}
+
+// Valentine dismiss button
+const valentineDismissBtn = document.getElementById('valentineDismiss');
+if (valentineDismissBtn) {
+  valentineDismissBtn.addEventListener('click', () => {
+    const overlay = document.getElementById('valentineOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  });
+}
 
 // Initialize
 init();

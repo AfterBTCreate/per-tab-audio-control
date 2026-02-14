@@ -148,7 +148,7 @@ const defaultDeviceStatus = document.getElementById('defaultDeviceStatus');
 // Show default device status message
 function showDefaultDeviceStatus(message, isError = false) {
   defaultDeviceStatus.textContent = message;
-  defaultDeviceStatus.className = 'status ' + (isError ? 'error' : 'success');
+  defaultDeviceStatus.className = `status ${isError ? 'error' : 'success'}`;
 
   setTimeout(() => {
     defaultDeviceStatus.className = 'status';
@@ -162,7 +162,11 @@ async function loadDefaultDeviceSettings() {
 }
 
 // Load devices into the default device dropdown
+let deviceLoadingInProgress = false;
 async function loadDefaultDeviceDropdown(savedDevice) {
+  if (deviceLoadingInProgress) return;
+  deviceLoadingInProgress = true;
+  try {
   // Clear and show loading state
   while (defaultDeviceSelect.firstChild) {
     defaultDeviceSelect.removeChild(defaultDeviceSelect.firstChild);
@@ -240,6 +244,9 @@ async function loadDefaultDeviceDropdown(savedDevice) {
     if (matchedDevice) {
       defaultDeviceSelect.value = matchedDevice.deviceId;
     }
+  }
+  } finally {
+    deviceLoadingInProgress = false;
   }
 }
 
@@ -326,6 +333,26 @@ if (isFirefox) {
   openShortcutsFirefox.style.display = 'none';
 }
 
+// Suggested keys from manifest (fallback when not bound)
+const suggestedKeys = {
+  'volume-up': 'Alt+Shift+Up',
+  'volume-down': 'Alt+Shift+Down',
+  'toggle-mute': 'Alt+Shift+M'
+};
+
+// Apply shortcut text and styling to an element
+function applyShortcutDisplay(el, shortcut, suggestedKey) {
+  if (shortcut) {
+    el.textContent = shortcut;
+    el.classList.remove('not-set');
+    el.title = '';
+  } else {
+    el.textContent = suggestedKey + ' (not bound)';
+    el.classList.add('not-set');
+    el.title = 'Not bound — set in chrome://extensions/shortcuts';
+  }
+}
+
 // Load and display current shortcuts
 async function loadShortcuts() {
   try {
@@ -335,29 +362,11 @@ async function loadShortcuts() {
       const shortcut = command.shortcut || null;
 
       if (command.name === 'volume-up') {
-        if (shortcut) {
-          shortcutVolumeUp.textContent = shortcut;
-          shortcutVolumeUp.classList.remove('not-set');
-        } else {
-          shortcutVolumeUp.textContent = 'Not set';
-          shortcutVolumeUp.classList.add('not-set');
-        }
+        applyShortcutDisplay(shortcutVolumeUp, shortcut, suggestedKeys['volume-up']);
       } else if (command.name === 'volume-down') {
-        if (shortcut) {
-          shortcutVolumeDown.textContent = shortcut;
-          shortcutVolumeDown.classList.remove('not-set');
-        } else {
-          shortcutVolumeDown.textContent = 'Not set';
-          shortcutVolumeDown.classList.add('not-set');
-        }
+        applyShortcutDisplay(shortcutVolumeDown, shortcut, suggestedKeys['volume-down']);
       } else if (command.name === 'toggle-mute') {
-        if (shortcut) {
-          shortcutToggleMute.textContent = shortcut;
-          shortcutToggleMute.classList.remove('not-set');
-        } else {
-          shortcutToggleMute.textContent = 'Not set';
-          shortcutToggleMute.classList.add('not-set');
-        }
+        applyShortcutDisplay(shortcutToggleMute, shortcut, suggestedKeys['toggle-mute']);
       }
     });
   } catch (err) {

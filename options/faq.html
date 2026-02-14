@@ -356,7 +356,7 @@
         </div>
         <div class="info-box">
           <h4>How to know when Tab Capture needs enabling</h4>
-          <p>Look for the <strong>!</strong> badge on the extension icon — this indicates Tab Capture isn't active on the current tab yet. Click the extension or use a keyboard shortcut to enable it.</p>
+          <p>Look for the <strong>blue !</strong> badge on the extension icon — this indicates Tab Capture isn't active on the current tab yet. Click the extension or use a keyboard shortcut to enable it. (See the badge question below for all badge types.)</p>
         </div>
         <div class="info-box">
           <h4>How it works</h4>
@@ -369,12 +369,47 @@
         </div>
         <div class="info-box">
           <h4>Tip</h4>
-          <p>You only need to open the popup once per tab. After that, Tab Capture remains active even when the popup is closed, and the <strong>!</strong> badge will disappear.</p>
+          <p>You only need to open the popup once per tab. After that, Tab Capture remains active even when the popup is closed, and the <strong>blue !</strong> badge will disappear.</p>
         </div>
       </div>
     </div>
 
-    <!-- Q9: What syncs -->
+    <!-- Q9: Badge colors -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>What do the colored ! badges on the extension icon mean?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">The extension icon shows different colored <strong>!</strong> badges to indicate the current state. These are checked in priority order.</p>
+        <div class="info-box">
+          <h4>Blue ! — Tab Capture pending (Chrome only)</h4>
+          <p>Tab Capture needs a user gesture to activate on this tab. Click the extension icon or use a keyboard shortcut to enable it. Once activated, the badge changes to the normal volume display.</p>
+        </div>
+        <div class="info-box">
+          <h4>Red ! — Site rule pending (Chrome only)</h4>
+          <p>A saved site rule is waiting to be applied. This appears instead of the blue badge when a site rule exists for the current domain, since the rule can't apply until Tab Capture is activated. Click the extension icon to apply both.</p>
+        </div>
+        <div class="info-box">
+          <h4>Yellow ! — Restricted page</h4>
+          <p>The extension can't run on this page type. This appears on browser-internal pages like <code>chrome://</code>, <code>about:</code>, extension pages, and browser stores. Audio control isn't available on these pages.</p>
+        </div>
+        <div class="info-box">
+          <h4>Volume percentage badge (normal state)</h4>
+          <p>When none of the above conditions apply, the icon shows the current tab's volume percentage. The badge color depends on your badge style setting in Settings:</p>
+          <ul class="feature-list">
+            <li><strong>Light on Dark</strong> — White text on black background (default)</li>
+            <li><strong>Dark on Light</strong> — Black text on white background</li>
+            <li><strong>Volume Color</strong> — Color changes with volume level (blue → green → yellow → orange → purple)</li>
+          </ul>
+          <p style="margin-top: 8px;">At 0% (muted), the badge always turns red regardless of style.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q10: What syncs -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
         <span>What settings sync across my devices?</span>
@@ -387,12 +422,14 @@
         <div class="info-box">
           <h4>Synced settings</h4>
           <ul class="feature-list">
-            <li>All preset values (volume, bass, treble, voice, volume steps)</li>
-            <li>Site rules</li>
+            <li>All preset values (volume, bass, treble, voice, speed, balance, volume steps)</li>
+            <li>Site rules and disabled domains list</li>
             <li>Audio mode overrides (Tab Capture, Web Audio, and Disabled sites)</li>
             <li>Default audio mode</li>
-            <li>Theme, visualizer style, EQ mode, Basic/Advanced mode</li>
+            <li>Theme, visualizer style/color, EQ mode, Basic/Advanced mode, badge style</li>
             <li>Header layout and popup sections customization</li>
+            <li>Visibility preferences (visualizer, seekbar, shortcuts footer)</li>
+            <li>Seekbar time display (total/remaining), tab info location</li>
             <li>UI state (expanded/collapsed sections)</li>
           </ul>
         </div>
@@ -425,7 +462,7 @@
           <ul class="feature-list">
             <li><strong>Reset current tab</strong> — Click the ↺ button in the header area. Resets volume, balance, channel mode, all effects, and output device to defaults.</li>
             <li><strong>Reset balance</strong> — Click the ⟲ button next to the balance slider</li>
-            <li><strong>Reset individual effects</strong> — Click the ⟲ button next to each effect slider (bass, treble, voice)</li>
+            <li><strong>Reset individual effects</strong> — Click the ⟲ button next to each effect slider (speed, bass, treble, voice, range)</li>
           </ul>
         </div>
         <div class="info-box">
@@ -439,14 +476,96 @@
           <h4>What "Reset All Settings" clears</h4>
           <ul class="feature-list">
             <li>All preset values back to defaults</li>
-            <li>All site rules deleted</li>
+            <li>All site rules and disabled domains deleted</li>
             <li>All audio mode overrides cleared (Tab Capture, Web Audio, Disabled sites)</li>
             <li>Default audio mode reset</li>
-            <li>Theme, visualizer, EQ mode, Basic/Advanced mode reset to defaults</li>
+            <li>Theme, visualizer style/color, EQ mode, Basic/Advanced mode, badge style reset to defaults</li>
             <li>Header layout and popup sections reset to default</li>
+            <li>Visibility preferences reset (visualizer, seekbar, shortcuts footer)</li>
+            <li>Seekbar time display, tab info location reset to defaults</li>
             <li>Default audio device setting cleared</li>
           </ul>
           <p style="margin-top: 8px;"><strong>Note:</strong> Keyboard shortcuts and microphone permissions are managed by your browser. See Settings → Browser Settings to manage these.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q12: Keyboard shortcuts -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Does the extension have keyboard shortcuts?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Yes — three global keyboard shortcuts work from any tab without opening the popup.</p>
+        <div class="info-box">
+          <h4>Default shortcuts</h4>
+          <ul class="feature-list">
+            <li><strong>Alt+Shift+Up</strong> — Increase volume</li>
+            <li><strong>Alt+Shift+Down</strong> — Decrease volume</li>
+            <li><strong>Alt+Shift+M</strong> — Toggle mute</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Customizing shortcuts</h4>
+          <ul class="feature-list">
+            <li><strong>Chrome:</strong> Go to <code>chrome://extensions/shortcuts</code></li>
+            <li><strong>Firefox:</strong> Go to <code>about:addons</code> → gear icon → Manage Extension Shortcuts</li>
+          </ul>
+          <p style="margin-top: 8px;">You can change these to any key combination that doesn't conflict with browser or system shortcuts.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q13: DRM / protected sites -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Does the extension work on Spotify, Netflix, and other DRM sites?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Yes, with some limitations depending on the audio mode.</p>
+        <div class="info-box">
+          <h4>Tab Capture mode (Chrome, recommended)</h4>
+          <p>Works best on DRM sites. Tab Capture captures audio at the browser level, so DRM restrictions don't affect it. Volume boost, effects, and visualizer all work.</p>
+        </div>
+        <div class="info-box">
+          <h4>Web Audio mode</h4>
+          <p>May have limited functionality on DRM-protected content. Audio elements using Encrypted Media Extensions (EME) can restrict access to the audio stream, preventing boost and effects from being applied.</p>
+        </div>
+        <div class="info-box">
+          <h4>Playback controls</h4>
+          <p>Play/pause and seeking work on Spotify and similar sites by interacting with the site's own UI controls, since the underlying audio elements may not be directly accessible.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q14: Privacy -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Does the extension collect any data?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">No. The extension has no analytics, no tracking, and makes no external network requests.</p>
+        <div class="info-box">
+          <h4>What stays local</h4>
+          <ul class="feature-list">
+            <li>All settings are stored in your browser's local and sync storage</li>
+            <li>No data is ever sent to external servers</li>
+            <li>No third-party libraries, scripts, or dependencies</li>
+            <li>Microphone permission is only used to list audio output devices — no audio is ever recorded or transmitted</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Sync storage</h4>
+          <p>If you're signed into your browser, settings sync through your browser account (Chrome Sync or Firefox Sync). This is handled entirely by the browser — the extension doesn't manage or access your account.</p>
         </div>
       </div>
     </div>

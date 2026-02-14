@@ -10,7 +10,8 @@ const visualizerCtx = visualizerCanvas ? visualizerCanvas.getContext('2d') : nul
 let visualizerAnimationId = null;
 let lastFrequencyData = null;
 let lastWaveformData = null;
-let visualizerType = 'bars'; // 'bars', 'waveform', 'mirrored', 'curve', 'dots', 'off'
+let visualizerType = DEFAULTS.visualizerType; // 'bars', 'waveform', 'mirrored', 'curve', 'dots', 'off'
+let customVisualizerColor = null;
 
 // Port-based streaming (more efficient than polling)
 let visualizerPort = null;
@@ -94,18 +95,28 @@ async function loadVisualizerType() {
     if (result.visualizerType) {
       visualizerType = result.visualizerType;
     } else {
-      // No saved preference - use default 'bars'
+      // No saved preference - use default
       // This also fixes the case where visualizerType was set to 'off' by auto-disable
-      visualizerType = 'bars';
+      visualizerType = DEFAULTS.visualizerType;
     }
     // Update indicator visibility based on loaded preference
     updateVisualizerUnavailableMessage();
   } catch (e) {}
 }
 
+// Load custom visualizer color preference
+async function loadVisualizerColor() {
+  try {
+    const result = await browserAPI.storage.local.get(['visualizerColor']);
+    customVisualizerColor = result.visualizerColor || null;
+  } catch (e) {}
+}
+
 // Save visualizer type preference (global - same for all tabs)
 async function saveVisualizerType() {
   try {
+    // Save to both sync (for options page) and local (for fast popup access)
+    await browserAPI.storage.sync.set({ visualizerType: visualizerType });
     await browserAPI.storage.local.set({ visualizerType: visualizerType });
   } catch (e) {}
 }
@@ -197,10 +208,12 @@ function getVisualizerColor() {
 
   if (currentVolume === 0) {
     return isLightMode ? '#dc2626' : '#ef4444'; // muted - red
-  } else if (currentVolume <= 50) {
-    return isLightMode ? '#22c55e' : '#4ade80'; // low - green
+  }
+  if (customVisualizerColor) return customVisualizerColor;
+  if (currentVolume <= 50) {
+    return isLightMode ? '#2563eb' : '#60a5fa'; // low - blue
   } else if (currentVolume <= 100) {
-    return isLightMode ? '#2563eb' : '#60a5fa'; // normal - blue
+    return isLightMode ? '#22c55e' : '#4ade80'; // normal - green
   } else if (currentVolume <= 200) {
     return isLightMode ? '#eab308' : '#facc15'; // high - yellow
   } else if (currentVolume <= 350) {
@@ -239,12 +252,12 @@ function drawBars(frequencyData) {
     const dataIndex = Math.floor(i * maxIndex / barCount);
     const value = frequencyData[dataIndex] || 0;
 
-    // Amplify and normalize (boost sensitivity)
-    const amplified = Math.min(255, value * 2.5);
+    // Normalize with mild amplification (full bars at ~300%+ volume, moderate at 100%)
+    const amplified = Math.min(255, value * 1.2);
     const normalized = amplified / 255;
 
     // Apply slight curve for more dynamic response
-    const curved = Math.pow(normalized, 0.7);
+    const curved = Math.pow(normalized, 0.85);
 
     // Calculate bar height (full height available)
     const barHeight = curved * height * 0.95;
@@ -336,10 +349,10 @@ function drawMirroredBars(frequencyData) {
     const dataIndex = Math.floor(i * maxIndex / barCount);
     const value = frequencyData[dataIndex] || 0;
 
-    // Amplify for sensitivity
-    const amplified = Math.min(255, value * 2.5);
+    // Normalize with mild amplification (full bars at ~300%+ volume, moderate at 100%)
+    const amplified = Math.min(255, value * 1.2);
     const normalized = amplified / 255;
-    const curved = Math.pow(normalized, 0.7);
+    const curved = Math.pow(normalized, 0.85);
 
     // Calculate bar height (half height since mirrored)
     const barHeight = curved * centerY * 0.9;
@@ -377,9 +390,10 @@ function drawCurve(frequencyData) {
     const dataIndex = Math.floor(i * maxIndex / pointCount);
     const value = frequencyData[dataIndex] || 0;
 
-    const amplified = Math.min(255, value * 2.5);
+    // Normalize with mild amplification (full bars at ~300%+ volume, moderate at 100%)
+    const amplified = Math.min(255, value * 1.2);
     const normalized = amplified / 255;
-    const curved = Math.pow(normalized, 0.7);
+    const curved = Math.pow(normalized, 0.85);
 
     const x = (i / (pointCount - 1)) * width;
     const y = height - (curved * height * 0.9);
@@ -467,10 +481,10 @@ function drawDots(frequencyData) {
     const dataIndex = Math.floor(i * maxIndex / dotCount);
     const value = frequencyData[dataIndex] || 0;
 
-    // Amplify for sensitivity
-    const amplified = Math.min(255, value * 2.5);
+    // Normalize with mild amplification (full dots at ~300%+ volume, moderate at 100%)
+    const amplified = Math.min(255, value * 1.2);
     const normalized = amplified / 255;
-    const curved = Math.pow(normalized, 0.6);
+    const curved = Math.pow(normalized, 0.85);
 
     // Calculate dot size based on frequency
     const radius = minRadius + (curved * (maxRadius - minRadius));
@@ -587,7 +601,7 @@ async function updateVisualizerUnavailableMessage() {
   // Show helpful message without the "Enable Tab Capture" button (it won't help here)
   if (activeTabPermissionError && !isDomainDisabled) {
     showEnablePrompt = false; // Don't show the button - it won't work
-    showStatus('Open popup on this tab first to enable Tab Capture', 'info', 0);
+    showStatus('Open popup on this tab to enable Tab Capture', 'info', 0);
     document.body.classList.add('audio-blocked');
     if (unavailableMsg) {
       unavailableMsg.classList.add('visible');
@@ -596,7 +610,7 @@ async function updateVisualizerUnavailableMessage() {
     // Chrome: show status message + Tab Capture button at bottom + indicator
     // Only show if NOT in Off mode (isDomainDisabled) - Off mode is intentional, not an error
     showEnablePrompt = true;
-    showStatus('Extension cannot access audio on this site.', 'info', 0);
+    showStatus('Cannot access audio on this site', 'info', 0);
     document.body.classList.add('audio-blocked');
     if (enableTabCaptureBtn) {
       enableTabCaptureBtn.classList.remove('hidden');
@@ -607,7 +621,7 @@ async function updateVisualizerUnavailableMessage() {
   } else if (visualizerAutoDisabled && isFirefoxBrowser && !isDomainDisabled) {
     // Firefox: show status message + Native Mode button at bottom + indicator (only if not already in native mode)
     showEnablePrompt = true;
-    showStatus('Extension cannot access audio on this site.', 'info', 0);
+    showStatus('Cannot access audio on this site', 'info', 0);
     document.body.classList.add('audio-blocked');
     if (nativeModeBtn) {
       nativeModeBtn.classList.remove('hidden');
@@ -793,7 +807,9 @@ async function startTabCapture() {
               break;
             }
           } else {
-            validFrameCount = 0; // Reset if we get empty frame
+            // Don't fully reset — analyser smoothing causes transient empty frames
+            // Only penalize by decrementing (floor at 0) instead of full reset
+            if (validFrameCount > 0) validFrameCount--;
           }
         }
       } catch (e) {
@@ -830,7 +846,7 @@ async function startTabCapture() {
     // Save preference for this site (but not when Tab Capture is the default mode,
     // and not in native mode - Tab Capture is only needed because of native mode)
     const settings = await browserAPI.storage.sync.get(['defaultAudioMode']);
-    const defaultMode = settings.defaultAudioMode || 'tabcapture';
+    const defaultMode = settings.defaultAudioMode || DEFAULT_AUDIO_MODE;
     if (defaultMode !== 'tabcapture' && !isDomainDisabled) {
       await saveTabCapturePreference(true);
     }
@@ -1000,13 +1016,13 @@ if (enableNativeModeBtn) {
     e.stopPropagation();
     enableNativeModeBtn.classList.add('hidden');
 
-    // Call toggleDomainDisabled to enable Native Mode
-    // This function is defined in popup-tabs.js
-    if (typeof toggleDomainDisabled === 'function') {
-      await toggleDomainDisabled();
+    // Call activateDisableMode to enable Native Mode
+    // This function is defined in popup-tabs.js (loaded after this file)
+    if (typeof activateDisableMode === 'function') {
+      await activateDisableMode();
       // The page will reload after toggling, so no need to update UI
     } else {
-      console.error('[Visualizer] toggleDomainDisabled not available');
+      console.error('[Visualizer] activateDisableMode not available');
       showStatus('Failed to enable Native Mode', 'error', 3000);
     }
   });
@@ -1365,6 +1381,17 @@ async function checkAndReconnectPersistentCapture() {
     blockedTabsCache.set(currentTabId, false); // Tab is no longer blocked
     clearStatus(); // Clear any blocked status message
 
+    // Verify capture is still active (guard against TOCTOU race)
+    const verifyResponse = await browserAPI.runtime.sendMessage({
+      type: 'GET_PERSISTENT_VISUALIZER_STATUS',
+      tabId: currentTabId
+    });
+    if (!verifyResponse || !verifyResponse.isActive) {
+      persistentCaptureActive = false;
+      tabCaptureActive = false;
+      return false;
+    }
+
     // WARMUP: Poll multiple times before starting the render loop
     // This ensures the analyser's data has stabilized (smoothingTimeConstant needs a few reads)
     // and prevents strobing when reconnecting to already-playing audio
@@ -1694,4 +1721,6 @@ window.addEventListener('beforeunload', () => {
   disconnectVisualizerPort();
   // Stop visualizer animation
   stopVisualizer();
+  // Stop seekbar polling
+  if (typeof stopSeekbarPolling === 'function') stopSeekbarPolling();
 });

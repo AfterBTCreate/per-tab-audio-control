@@ -3,7 +3,11 @@
 
 /* Tab Info Wrapper */
 .tab-info-wrapper {
-  margin-bottom: 2px;
+  margin-bottom: 6px;
+}
+
+body.visualizer-hidden .tab-info-wrapper {
+  display: none;
 }
 
 .tab-nav-btn {
@@ -56,36 +60,6 @@
   opacity: 0.35;
   z-index: 10;
   cursor: pointer;
-}
-
-/* Media Toggle Button (play/pause) - full height left strip */
-.media-toggle-btn {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 12;
-  width: 32px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #0f1621;
-  border: none;
-  border-right: 1px solid #5a7a9a;
-  color: #7a8fa5;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  border-radius: 7px 0 0 7px;
-}
-
-.media-toggle-btn:hover {
-  background: #1a2744;
-  color: #f0f0f0;
-}
-
-.media-toggle-btn:active {
-  background: #1e2d4d;
 }
 
 /* Visualizer Unavailable Indicator */
@@ -206,7 +180,6 @@ body.light-mode .visualizer-enable:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 4px;
-  margin-left: 28px;
   padding-right: 50px;
   position: relative;
   z-index: 1;
@@ -218,7 +191,6 @@ body.light-mode .visualizer-enable:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-left: 28px;
   position: relative;
   z-index: 1;
 }
@@ -281,28 +253,22 @@ body.light-mode .tab-url {
   display: block;
 }
 
+.tab-title-external.above {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
+}
+
 body.light-mode .tab-title-external {
   color: #6b5d52;
   border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 
+body.light-mode .tab-title-external.above {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
 body.light-mode .tab-counter {
   color: #8b7a6a;
-}
-
-body.light-mode .media-toggle-btn {
-  background: #faf5ef;
-  border-right-color: #d4c4b0;
-  color: #6b5d52;
-}
-
-body.light-mode .media-toggle-btn:hover {
-  background: #f5ede3;
-  color: #2d2520;
-}
-
-body.light-mode .media-toggle-btn:active {
-  background: #efe7dd;
 }
 
 body.light-mode .visualizer-unavailable {

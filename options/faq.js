@@ -12,6 +12,8 @@ async function loadTheme() {
   // Default to dark mode for new users (only add light-mode if explicitly set)
   if (result.theme === 'light') {
     document.body.classList.add('light-mode');
+  } else {
+    document.body.classList.remove('light-mode');
   }
 }
 
@@ -92,3 +94,12 @@ document.getElementById('expandAllToggle').addEventListener('click', toggleAllSe
 
 // Initialize expand all button state
 updateExpandAllButton();
+
+// ==================== Live Theme Sync ====================
+
+// Listen for theme changes from other extension pages
+browserAPI.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.theme) {
+    loadTheme();
+  }
+});

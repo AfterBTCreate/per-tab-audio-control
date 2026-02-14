@@ -40,6 +40,12 @@ function getValidatedHostname(url) {
   }
 }
 
+// Validate hostname string (returns boolean)
+// KEEP IN SYNC with content.js isValidHostname() and page-script.js isValidHostname()
+function isValidHostname(hostname) {
+  return sanitizeHostname(hostname) !== null;
+}
+
 // Validate effect value is within range
 function validateEffectValue(value, effectType) {
   const range = EFFECT_RANGES[effectType];

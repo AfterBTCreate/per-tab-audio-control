@@ -5,12 +5,16 @@
 .presets {
   display: flex;
   gap: 6px;
+  margin-bottom: 10px;
+}
+
+body.basic-mode .presets {
   margin-bottom: 4px;
 }
 
 .preset-btn {
   flex: 1;
-  padding: 7px 6px;
+  padding: 3px 6px;
   background: #0f1621;
   border: 1px solid #5a7a9a;
   border-radius: 6px;
@@ -42,37 +46,37 @@
 }
 
 .preset-btn.reduced {
-  background: linear-gradient(135deg, #1a1a2a 0%, #0d0d1a 100%);
-  border-color: #2a2a4a;
-  color: #60a5fa;
-}
-
-.preset-btn.reduced:hover {
-  background: linear-gradient(135deg, #2a2a3a 0%, #1a1a2a 100%);
-  border-color: #3a3a5a;
-}
-
-.preset-btn.reduced.active {
-  background: #60a5fa;
-  color: #0d0d0d;
-  border-color: #60a5fa;
-}
-
-.preset-btn.boost {
   background: linear-gradient(135deg, #1a2a1a 0%, #0d1a0d 100%);
   border-color: #2a4a2a;
   color: #4ade80;
 }
 
-.preset-btn.boost:hover {
+.preset-btn.reduced:hover {
   background: linear-gradient(135deg, #2a3a2a 0%, #1a2a1a 100%);
   border-color: #3a5a3a;
 }
 
-.preset-btn.boost.active {
+.preset-btn.reduced.active {
   background: #4ade80;
   color: #0d0d0d;
   border-color: #4ade80;
+}
+
+.preset-btn.boost {
+  background: linear-gradient(135deg, #1a1a2a 0%, #0d0d1a 100%);
+  border-color: #2a2a4a;
+  color: #60a5fa;
+}
+
+.preset-btn.boost:hover {
+  background: linear-gradient(135deg, #2a2a3a 0%, #1a1a2a 100%);
+  border-color: #3a3a5a;
+}
+
+.preset-btn.boost.active {
+  background: #60a5fa;
+  color: #0d0d0d;
+  border-color: #60a5fa;
 }
 
 .preset-btn.high {
@@ -178,35 +182,35 @@ body.light-mode .preset-btn.active {
 }
 
 body.light-mode .preset-btn.reduced {
-  background: linear-gradient(135deg, #e8eeff 0%, #dce6ff 100%);
-  border-color: #c0d0ff;
-  color: #3b82f6;
-}
-
-body.light-mode .preset-btn.reduced:hover {
-  background: linear-gradient(135deg, #dce6ff 0%, #c8d8ff 100%);
-}
-
-body.light-mode .preset-btn.reduced.active {
-  background: #3b82f6;
-  color: #ffffff;
-  border-color: #3b82f6;
-}
-
-body.light-mode .preset-btn.boost {
   background: linear-gradient(135deg, #e8ffef 0%, #dcffe6 100%);
   border-color: #a0e0b0;
   color: #22c55e;
 }
 
-body.light-mode .preset-btn.boost:hover {
+body.light-mode .preset-btn.reduced:hover {
   background: linear-gradient(135deg, #dcffe6 0%, #c8ffd8 100%);
 }
 
-body.light-mode .preset-btn.boost.active {
+body.light-mode .preset-btn.reduced.active {
   background: #22c55e;
   color: #ffffff;
   border-color: #22c55e;
+}
+
+body.light-mode .preset-btn.boost {
+  background: linear-gradient(135deg, #e8eeff 0%, #dce6ff 100%);
+  border-color: #c0d0ff;
+  color: #3b82f6;
+}
+
+body.light-mode .preset-btn.boost:hover {
+  background: linear-gradient(135deg, #dce6ff 0%, #c8d8ff 100%);
+}
+
+body.light-mode .preset-btn.boost.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
 }
 
 body.light-mode .preset-btn.high {

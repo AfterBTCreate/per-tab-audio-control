@@ -1,18 +1,17 @@
 // Per-Tab Audio Control - Options Constants
-// Shared constants and browser API compatibility layer
+// Options-page-specific constants (ranges, labels, UI config)
+// Note: All default values are centralized in shared/constants.js (DEFAULTS object)
 // Note: browserAPI, isFirefox loaded from ../shared/browser-api.js
+// Note: DEFAULT_AUDIO_MODE, DEFAULT_VOLUME_STEPS loaded from ../shared/constants.js
 
-// Default audio mode (Chrome: tabcapture, Firefox: auto)
-const DEFAULT_AUDIO_MODE = isFirefox ? 'auto' : 'tabcapture';
+// Default preset aliases for options page (reference DEFAULTS)
+const DEFAULT_PRESETS = DEFAULTS.volumePresets;
+const DEFAULT_BASS_PRESETS = DEFAULTS.bassBoostPresets;
+const DEFAULT_TREBLE_PRESETS = DEFAULTS.trebleBoostPresets;
+const DEFAULT_VOICE_PRESETS = DEFAULTS.voiceBoostPresets;
+const DEFAULT_BASS_CUT_PRESETS = DEFAULTS.bassCutPresets;
+const DEFAULT_TREBLE_CUT_PRESETS = DEFAULTS.trebleCutPresets;
 
-// Default presets
-const DEFAULT_PRESETS = [50, 100, 200, 300, 500];
-const DEFAULT_BASS_PRESETS = [6, 12, 24]; // Low, Medium, High in dB (max 24)
-const DEFAULT_TREBLE_PRESETS = [6, 12, 24]; // Low, Medium, High in dB (max 24)
-const DEFAULT_VOICE_PRESETS = [4, 10, 18]; // Low, Medium, High in dB (max 18)
-const DEFAULT_BASS_CUT_PRESETS = [-6, -12, -24];
-const DEFAULT_TREBLE_CUT_PRESETS = [-6, -12, -24];
-// Note: DEFAULT_VOLUME_STEPS is defined in shared/constants.js
 const VOLUME_STEP_RANGE = { min: 1, max: 20 };
 
 // Level-specific ranges to maintain Low < Medium < High meaning
@@ -49,6 +48,20 @@ const VOICE_BOOST_RANGES = {
   high: { min: 13, max: 18 }
 };
 
+const DEFAULT_SPEED_SLOW_PRESETS = DEFAULTS.speedSlowPresets;
+const DEFAULT_SPEED_FAST_PRESETS = DEFAULTS.speedFastPresets;
+
+const SPEED_SLOW_RANGES = {
+  low: { min: 0.70, max: 0.95 },
+  medium: { min: 0.30, max: 0.65 },
+  high: { min: 0.05, max: 0.25 }
+};
+const SPEED_FAST_RANGES = {
+  low: { min: 1.05, max: 1.45 },
+  medium: { min: 1.50, max: 2.45 },
+  high: { min: 2.50, max: 5.00 }
+};
+
 // Storage quota constants
 const SYNC_QUOTA_BYTES = 102400; // chrome.storage.sync quota is ~100KB
 const QUOTA_WARNING_THRESHOLD = 0.80; // 80%
@@ -56,52 +69,39 @@ const QUOTA_CRITICAL_THRESHOLD = 0.90; // 90%
 const CLEANUP_DAYS = 90; // Rules unused for 90+ days
 
 // Header layout customization constants
-const DEFAULT_HEADER_LAYOUT = {
-  order: ['spacer1', 'logo', 'tabCapture', 'webAudio', 'offMode', 'focus', 'spacer2', 'modeToggle', 'shortcuts', 'theme', 'settings', 'spacer3', 'companyLogo'],
-  hidden: [],
-  spacerCount: 3
-};
-const HIDEABLE_HEADER_ITEMS = ['focus', 'shortcuts', 'theme'];
-const REQUIRED_HEADER_ITEMS = ['tabCapture', 'webAudio', 'offMode', 'modeToggle', 'settings', 'logo'];
-const LOCKED_HEADER_ITEMS = ['companyLogo']; // Items that cannot be moved (ABTC logo stays at end)
-const MAX_SPACERS = 3;
+const DEFAULT_HEADER_LAYOUT = DEFAULTS.headerLayout;
+const HIDEABLE_HEADER_ITEMS = ['focus', 'theme', 'logo'];
+const REQUIRED_HEADER_ITEMS = ['audioMode', 'modeToggle', 'settings'];
+const LOCKED_HEADER_ITEMS = ['companyLogo', 'spacer1', 'brandText'];
+const MAX_SPACERS = 4;
 const HEADER_ITEM_LABELS = {
   companyLogo: 'ABTC Logo',
-  tabCapture: 'Tab Capture',
-  webAudio: 'Web Audio',
-  offMode: 'Disable',
+  brandText: 'Brand Text',
+  audioMode: 'Audio Mode',
   focus: 'Focus',
   spacer1: 'Spacer',
   modeToggle: 'Basic/Advanced Toggle',
-  shortcuts: 'Shortcuts',
   theme: 'Theme',
   settings: 'Settings',
   logo: 'Volume Icon'
 };
 
-// Popup sections layout customization constants
-const DEFAULT_POPUP_SECTIONS_LAYOUT = {
-  order: ['balance', 'enhancements', 'output', 'siteRule'],
-  hidden: []
-};
+// Popup sections layout customization constants (individual advanced controls)
+const DEFAULT_POPUP_SECTIONS_LAYOUT = DEFAULTS.popupSectionsLayout;
 
 const POPUP_SECTION_DATA = {
-  balance: { name: 'Balance', description: 'Balance slider and Stereo/Mono/Swap controls' },
-  enhancements: { name: 'Enhancements', description: 'Bass, Treble, Voice, and Range controls' },
+  balance: { name: 'Balance', description: 'Audio balance and channel controls' },
+  bass: { name: 'Bass', description: 'Low frequency adjustment' },
+  treble: { name: 'Treble', description: 'High frequency adjustment' },
+  voice: { name: 'Voice', description: 'Vocal clarity enhancement' },
+  range: { name: 'Range', description: 'Dynamic range compression' },
+  speed: { name: 'Speed', description: 'Playback speed control' },
   output: { name: 'Output', description: 'Audio output device selector' },
-  siteRule: { name: 'Site Rule', description: 'Add site-specific volume rules' }
+  siteRule: { name: 'Site Rule', description: 'Site-specific audio rules' }
 };
 
-// Map section IDs to popup data-section-id attributes
-const POPUP_SECTION_ID_MAP = {
-  balance: 'balance',
-  enhancements: 'enhancements',
-  output: 'output',
-  siteRule: 'addSite'  // The popup uses 'addSite' for the site rule section
-};
+const HIDEABLE_POPUP_SECTIONS = ['balance', 'bass', 'treble', 'voice', 'range', 'speed', 'output', 'siteRule'];
+const MIN_VISIBLE_POPUP_SECTIONS = 1; // At least one control must be visible
 
-const HIDEABLE_POPUP_SECTIONS = ['balance', 'enhancements', 'output', 'siteRule'];
-const MIN_VISIBLE_POPUP_SECTIONS = 1; // At least one section must be visible
-
-// Visualizer settings
-const DEFAULT_TAB_INFO_LOCATION = 'inside'; // 'inside' = in visualizer, 'below' = below visualizer
+// Items that support both presets and sliders mode (have .eq-presets-mode and .eq-slider-mode rows)
+const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance']);

@@ -121,6 +121,12 @@
   color: #ffffff;
 }
 
+.faq-subsection-header:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+  border-radius: 4px;
+}
+
 .faq-subsection-header .collapse-icon {
   transition: transform 0.2s ease;
   color: #7a8fa5;
@@ -171,6 +177,11 @@
   border-color: #7a9ab8;
 }
 
+.faq-expand-all:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+}
+
 /* Collapsible Sections */
 .section.collapsible {
   transition: background 0.15s ease;
@@ -198,6 +209,12 @@
 
 .section.collapsible:hover .collapse-icon {
   color: #b8d4e8;
+}
+
+.section.collapsible .section-header:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+  border-radius: 4px;
 }
 
 .section.collapsible .collapse-icon {
@@ -303,6 +320,18 @@ body.light-mode .faq-subsection-header {
 
 body.light-mode .faq-subsection-header:hover {
   color: #1a1510;
+}
+
+body.light-mode .faq-subsection-header:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+body.light-mode .faq-expand-all:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+body.light-mode .section.collapsible .section-header:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
 body.light-mode .faq-subsection-header .collapse-icon {

@@ -10,19 +10,14 @@ const HEADER_ITEM_DATA = {
     icon: '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="5"><rect x="10" y="10" width="80" height="80" rx="8"/><line x1="50" y1="10" x2="50" y2="90" stroke-width="3"/><line x1="10" y1="50" x2="90" y2="50" stroke-width="3"/><text x="30" y="40" font-family="sans-serif" font-size="22" font-weight="600" fill="currentColor" stroke="none" text-anchor="middle">A</text><text x="70" y="40" font-family="sans-serif" font-size="22" font-weight="600" fill="currentColor" stroke="none" text-anchor="middle">B</text><text x="30" y="80" font-family="sans-serif" font-size="22" font-weight="600" fill="currentColor" stroke="none" text-anchor="middle">C</text></svg>',
     type: 'companyLogo'
   },
-  tabCapture: {
-    name: 'Tab Capture',
+  brandText: {
+    name: 'Brand Text',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>',
+    type: 'brandText'
+  },
+  audioMode: {
+    name: 'Audio Mode',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>',
-    type: 'button'
-  },
-  webAudio: {
-    name: 'Web Audio',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h2l2-4 3 8 3-8 2 4h4"/></svg>',
-    type: 'button'
-  },
-  offMode: {
-    name: 'Disable',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5"/></svg>',
     type: 'button'
   },
   focus: {
@@ -33,11 +28,6 @@ const HEADER_ITEM_DATA = {
   modeToggle: {
     name: 'Basic/Advanced',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>',
-    type: 'button'
-  },
-  shortcuts: {
-    name: 'Shortcuts',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10H6.01M10 10H10.01M14 10H14.01M18 10H18.01M8 14H16"/></svg>',
     type: 'button'
   },
   theme: {
@@ -117,22 +107,23 @@ async function loadHeaderLayout() {
       saveHeaderLayout();
     }
 
-    // Migration: audioMode → tabCapture + webAudio (v4.1.19)
-    const needsAudioModeMigration = currentLayout.order.some(id => id === 'audioMode');
-    if (needsAudioModeMigration) {
-      // Replace audioMode with tabCapture and webAudio
-      const newOrder = [];
-      for (const id of currentLayout.order) {
-        if (id === 'audioMode') {
-          newOrder.push('tabCapture', 'webAudio');
-        } else {
-          newOrder.push(id);
-        }
+    // Migration: remove shortcuts from header (v4.3.21 - moved to popup footer)
+    if (currentLayout.order.includes('shortcuts')) {
+      currentLayout.order = currentLayout.order.filter(id => id !== 'shortcuts');
+      currentLayout.hidden = currentLayout.hidden.filter(id => id !== 'shortcuts');
+      saveHeaderLayout();
+    }
+
+    // Migration: tabCapture + webAudio + offMode → audioMode (v4.3.21)
+    const audioModeItems = ['tabCapture', 'webAudio', 'offMode'];
+    const hasOldAudioItems = currentLayout.order.some(id => audioModeItems.includes(id));
+    if (hasOldAudioItems) {
+      const insertIdx = currentLayout.order.findIndex(id => audioModeItems.includes(id));
+      currentLayout.order = currentLayout.order.filter(id => !audioModeItems.includes(id));
+      if (insertIdx >= 0 && !currentLayout.order.includes('audioMode')) {
+        currentLayout.order.splice(insertIdx, 0, 'audioMode');
       }
-      currentLayout.order = newOrder;
-      // Remove audioMode from hidden if it was there (both new buttons should be visible)
-      currentLayout.hidden = currentLayout.hidden.filter(id => id !== 'audioMode');
-      // Save the migrated layout
+      currentLayout.hidden = currentLayout.hidden.filter(id => !audioModeItems.includes(id));
       saveHeaderLayout();
     }
 
@@ -190,9 +181,12 @@ function rebuildPreview() {
     if (isSpacer(id)) {
       const spacer = document.createElement('div');
       spacer.className = 'header-spacer-item';
-      spacer.draggable = true;
+      const isLockedSpacer = typeof LOCKED_HEADER_ITEMS !== 'undefined' && LOCKED_HEADER_ITEMS.includes(id);
+      spacer.draggable = !isLockedSpacer;
+      if (isLockedSpacer) spacer.classList.add('locked-item');
       spacer.dataset.id = id;
-      spacer.innerHTML = `<span class="tooltip">Spacer (flex)</span>${SPACER_ICON}`;
+      // Note: innerHTML is safe here - SPACER_ICON is a hardcoded constant, not user input
+      spacer.innerHTML = `<span class="tooltip">Spacer${isLockedSpacer ? ' (locked)' : ' (flex)'}</span>${SPACER_ICON}`;
       wrapper.appendChild(spacer);
     } else {
       const data = HEADER_ITEM_DATA[id];
@@ -304,29 +298,32 @@ function setupDragListeners() {
         return;
       }
 
-      // Remove from old position
-      currentLayout.order.splice(fromIndex, 1);
+      try {
+        // Remove from old position
+        currentLayout.order.splice(fromIndex, 1);
 
-      // Calculate new index
-      let newIndex = currentLayout.order.indexOf(dropTargetId);
-      if (dropPosition === 'after') {
-        newIndex++;
-      }
-
-      // Ensure locked items stay at position 0
-      if (typeof LOCKED_HEADER_ITEMS !== 'undefined') {
-        const lockedCount = LOCKED_HEADER_ITEMS.length;
-        if (newIndex < lockedCount) {
-          newIndex = lockedCount;
+        // Calculate new index
+        let newIndex = currentLayout.order.indexOf(dropTargetId);
+        if (dropPosition === 'after') {
+          newIndex++;
         }
+
+        // Ensure locked items stay at position 0
+        if (typeof LOCKED_HEADER_ITEMS !== 'undefined') {
+          const lockedCount = LOCKED_HEADER_ITEMS.length;
+          if (newIndex < lockedCount) {
+            newIndex = lockedCount;
+          }
+        }
+
+        // Insert at new position
+        currentLayout.order.splice(newIndex, 0, draggedId);
+
+        saveHeaderLayout();
+        rebuildPreview();
+      } finally {
+        clearIndicators();
       }
-
-      // Insert at new position
-      currentLayout.order.splice(newIndex, 0, draggedId);
-
-      clearIndicators();
-      saveHeaderLayout();
-      rebuildPreview();
     });
   });
 }
@@ -353,7 +350,8 @@ function setupSpacerControls() {
 }
 
 function setSpacerCount(count) {
-  currentLayout.spacerCount = Math.min(Math.max(0, count), MAX_SPACERS);
+  // Minimum 1 spacer (spacer1 is locked between logo and brand text)
+  currentLayout.spacerCount = Math.min(Math.max(1, count), MAX_SPACERS);
 
   // Add spacers to order if they don't exist
   for (let i = 1; i <= currentLayout.spacerCount; i++) {
@@ -366,8 +364,9 @@ function setSpacerCount(count) {
       if (prevSpacerIndex !== -1) {
         currentLayout.order.splice(prevSpacerIndex + 1, 0, spacerId);
       } else {
-        const middleIndex = Math.floor(currentLayout.order.length / 2);
-        currentLayout.order.splice(middleIndex, 0, spacerId);
+        // Insert after locked items if no previous spacer found
+        const lockedCount = typeof LOCKED_HEADER_ITEMS !== 'undefined' ? LOCKED_HEADER_ITEMS.length : 0;
+        currentLayout.order.splice(lockedCount, 0, spacerId);
       }
     }
   }
@@ -453,7 +452,7 @@ function showLayoutStatus(message, isError = false) {
   if (!statusElement) return;
 
   statusElement.textContent = message;
-  statusElement.className = 'status ' + (isError ? 'error' : 'success');
+  statusElement.className = `status ${isError ? 'error' : 'success'}`;
 
   setTimeout(() => {
     statusElement.className = 'status';
