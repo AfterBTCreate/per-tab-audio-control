@@ -32,13 +32,12 @@ body.initializing {
   min-height: auto;
 }
 
-body.initializing .volume-display,
+body.initializing .volume-adjust-btn,
+body.initializing .volume-value,
 body.initializing .slider-container,
 body.initializing .presets,
-body.initializing .balance-container,
+body.initializing .balance-row,
 body.initializing .enhancements-section,
-body.initializing .device-selector,
-body.initializing .add-rule-section,
 body.initializing .status-message {
   display: none;
 }
@@ -97,6 +96,20 @@ body.initializing .status-message {
   display: none;
 }
 
+/* Brand Text */
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+  font-size: 10px;
+  font-weight: 500;
+  color: #5a7a9a;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  user-select: none;
+}
+
 /* Header Buttons */
 .header-btn {
   background: transparent;
@@ -117,10 +130,9 @@ body.initializing .status-message {
   border-color: #7a9ab8;
 }
 
-/* All utility buttons - muted gray (focus, basic/advanced, shortcuts, theme, settings) */
+/* All utility buttons - muted gray (focus, basic/advanced, theme, settings) */
 #focusBtn,
 #modeToggle,
-#shortcutsBtn,
 #themeToggle,
 #settingsBtn {
   background: #5a5a5a;
@@ -130,7 +142,6 @@ body.initializing .status-message {
 
 #focusBtn:hover,
 #modeToggle:hover,
-#shortcutsBtn:hover,
 #themeToggle:hover,
 #settingsBtn:hover {
   background: #4a4a4a;
@@ -208,6 +219,10 @@ body.light-mode .brand-logo .logo-light {
   display: block;
 }
 
+body.light-mode .brand-text {
+  color: #8b7a6a;
+}
+
 body.light-mode .global-label {
   color: #6b5d52;
 }
@@ -226,7 +241,6 @@ body.light-mode .header-btn:hover {
 /* Light mode: All utility buttons - muted brown/gray */
 body.light-mode #focusBtn,
 body.light-mode #modeToggle,
-body.light-mode #shortcutsBtn,
 body.light-mode #themeToggle,
 body.light-mode #settingsBtn {
   background: #8b7355;
@@ -236,34 +250,28 @@ body.light-mode #settingsBtn {
 
 body.light-mode #focusBtn:hover,
 body.light-mode #modeToggle:hover,
-body.light-mode #shortcutsBtn:hover,
 body.light-mode #themeToggle:hover,
 body.light-mode #settingsBtn:hover {
   background: #7a6245;
   border-color: #7a6245;
 }
 
-/* Light mode: Audio mode buttons */
-body.light-mode .audio-mode-btn {
-  background: #8b7355;
-  border-color: #8b7355;
-  color: #ffffff;
-}
-
-body.light-mode .audio-mode-btn:hover {
-  background: #7a6245;
-  border-color: #7a6245;
-}
-
-body.light-mode #tabCaptureBtn.active {
+/* Light mode: Audio mode toggle */
+body.light-mode .audio-mode-toggle.mode-tabcapture {
   background: #4a6a9a;
   border-color: #4a6a9a;
   color: #ffffff;
 }
 
-body.light-mode #webAudioBtn.active {
+body.light-mode .audio-mode-toggle.mode-webaudio {
   background: #b86e2d;
   border-color: #b86e2d;
+  color: #ffffff;
+}
+
+body.light-mode .audio-mode-toggle.mode-off {
+  background: #8b4040;
+  border-color: #8b4040;
   color: #ffffff;
 }
 
@@ -271,17 +279,6 @@ body.light-mode #focusBtn.active {
   background: #4a7a5c;
   border-color: #4a7a5c;
   color: #ffffff;
-}
-
-body.light-mode #disableDomainBtn.active {
-  background: #8b4040;
-  border-color: #8b4040;
-  color: #ffffff;
-}
-
-body.light-mode #disableDomainBtn.active:hover {
-  background: #7a3636;
-  border-color: #7a3636;
 }
 
 body.light-mode #themeToggle .icon-sun {
@@ -317,42 +314,63 @@ body.basic-mode .full-mode-only {
   display: none !important;
 }
 
-/* ==================== Audio Mode Buttons (Tab Capture / Web Audio) ==================== */
-
-/* Default inactive state for both buttons - muted gray */
-.audio-mode-btn {
-  background: #5a5a5a;
-  border-color: #5a5a5a;
-  color: #ffffff;
+body.basic-mode {
+  min-height: auto;
 }
 
-.audio-mode-btn:hover {
-  background: #4a4a4a;
-  border-color: #4a4a4a;
+/* ==================== Audio Mode Toggle (Tab Capture / Web Audio / Disable) ==================== */
+
+/* Hide all mode icons by default, show active one via JS class */
+.audio-mode-toggle .mode-icon {
+  display: none;
 }
 
-/* Tab Capture button - active state (blue) */
-#tabCaptureBtn.active {
+/* Tab Capture mode (blue) */
+.audio-mode-toggle.mode-tabcapture {
   background: #4a6a9a;
   border-color: #4a6a9a;
   color: #ffffff;
 }
 
-#tabCaptureBtn.active:hover {
+.audio-mode-toggle.mode-tabcapture:hover {
   background: #3d5a85;
   border-color: #3d5a85;
 }
 
-/* Web Audio button - active state (orange) */
-#webAudioBtn.active {
+.audio-mode-toggle.mode-tabcapture .mode-tabcapture {
+  display: block;
+}
+
+/* Web Audio mode (orange) */
+.audio-mode-toggle.mode-webaudio {
   background: #b86e2d;
   border-color: #b86e2d;
   color: #ffffff;
 }
 
-#webAudioBtn.active:hover {
+.audio-mode-toggle.mode-webaudio:hover {
   background: #a05f25;
   border-color: #a05f25;
+}
+
+.audio-mode-toggle.mode-webaudio .mode-webaudio {
+  display: block;
+}
+
+/* Disable mode (red) */
+.audio-mode-toggle.mode-off {
+  background: #8b4040;
+  border-color: #8b4040;
+  color: #ffffff;
+}
+
+.audio-mode-toggle.mode-off:hover {
+  background: #7a3636;
+  border-color: #7a3636;
+}
+
+.audio-mode-toggle.mode-off .mode-off {
+  display: block;
 }
 
 /* Focus button - active state (green) */
@@ -367,35 +385,17 @@ body.basic-mode .full-mode-only {
   border-color: #3d6a4d;
 }
 
-/* Firefox: Hide Tab Capture button (not available) */
-body.is-firefox #tabCaptureBtn {
-  display: none;
-}
-
-/* Disable button - active state (red) */
-#disableDomainBtn.active {
-  background: #8b4040;
-  border-color: #8b4040;
-  color: #ffffff;
-}
-
-#disableDomainBtn.active:hover {
-  background: #7a3636;
-  border-color: #7a3636;
-}
-
 /* ==================== Audio Blocked State ==================== */
 /* When extension cannot access audio on a site, grey out controls */
 
 /* Grey out and disable volume controls */
-body.audio-blocked .volume-display,
+body.audio-blocked .volume-adjust-btn,
+body.audio-blocked .volume-value,
+body.audio-blocked #resetTabBtn,
 body.audio-blocked .slider-container,
 body.audio-blocked .presets,
-body.audio-blocked .balance-container,
-body.audio-blocked .enhancements-section,
-body.audio-blocked .device-selector,
-body.audio-blocked .add-rule-section,
-body.audio-blocked #resetTabBtn {
+body.audio-blocked .balance-row,
+body.audio-blocked .enhancements-section {
   opacity: 0.35;
   pointer-events: none;
   filter: grayscale(0.5);
@@ -419,4 +419,113 @@ body.audio-blocked #enableNativeModeBtn {
   opacity: 1;
   pointer-events: auto;
   filter: none;
+}
+
+/* ==================== Valentine Easter Egg Overlay ==================== */
+
+.valentine-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 10, 25, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: valentineFadeIn 1s ease;
+}
+
+.valentine-overlay.hidden {
+  display: none !important;
+}
+
+@keyframes valentineFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.valentine-content {
+  text-align: center;
+  padding: 24px 16px;
+  animation: valentineSlideUp 0.8s ease 0.3s both;
+}
+
+@keyframes valentineSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.valentine-hearts {
+  font-size: 16px;
+  color: #e74c6f;
+  letter-spacing: 8px;
+  margin: 8px 0;
+  animation: valentinePulse 2s ease-in-out infinite;
+}
+
+@keyframes valentinePulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.valentine-message {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #f0e6f0;
+  font-style: italic;
+  max-width: 280px;
+  margin: 12px auto;
+}
+
+.valentine-signature {
+  font-size: 12px;
+  color: #e74c6f;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+.valentine-dismiss {
+  background: transparent;
+  border: 1px solid #e74c6f;
+  color: #e74c6f;
+  font-size: 16px;
+  padding: 6px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.valentine-dismiss:hover {
+  background: #e74c6f;
+  color: #ffffff;
+}
+
+/* Light mode valentine overlay */
+body.light-mode .valentine-overlay {
+  background: rgba(245, 230, 220, 0.97);
+}
+
+body.light-mode .valentine-message {
+  color: #4a2030;
+}
+
+body.light-mode .valentine-hearts {
+  color: #c93060;
+}
+
+body.light-mode .valentine-signature {
+  color: #c93060;
+}
+
+body.light-mode .valentine-dismiss {
+  border-color: #c93060;
+  color: #c93060;
+}
+
+body.light-mode .valentine-dismiss:hover {
+  background: #c93060;
+  color: #ffffff;
 }

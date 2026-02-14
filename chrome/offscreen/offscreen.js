@@ -13,7 +13,23 @@ log('Document loaded');
 // Track visualizer captures per tab (can have multiple tabs captured)
 const visualizerCaptures = new Map(); // tabId -> { audioContext, analyser, stream, freqArray, waveArray }
 
-// Compressor compensation factors (reduce gain to maintain similar perceived loudness)
+// ===== DUPLICATED CONSTANTS — KEEP IN SYNC =====
+// Source of truth: shared/constants.js
+// Also duplicated in: background.js, content/content.js, content/page-script.js
+// Reason: Offscreen document can't access shared script tags
+const VOLUME_DEFAULT = 100;
+const VOLUME_MIN = 0;
+const VOLUME_MAX = 500;
+const EFFECT_RANGES = {
+  bass: { min: -24, max: 24 },
+  treble: { min: -24, max: 24 },
+  voice: { min: 0, max: 18 },
+  speed: { min: 0.05, max: 5 }
+};
+
+// ===== COMPRESSOR COMPENSATION — KEEP IN SYNC =====
+// Source of truth: content/content.js
+// Reduce gain to maintain similar perceived loudness (values are approximate)
 const COMPRESSOR_COMPENSATION = {
   off: 1.0,       // No compensation needed
   podcast: 0.80,  // -1.9dB - light compression
@@ -73,28 +89,23 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     // ==================== Tab Capture Audio Control ====================
     case 'SET_TAB_CAPTURE_VOLUME':
-      setTabCaptureVolume(message.tabId, message.volume);
-      sendResponse({ success: true });
+      sendResponse({ success: setTabCaptureVolume(message.tabId, message.volume) });
       return false;
 
     case 'SET_TAB_CAPTURE_BASS':
-      setTabCaptureBass(message.tabId, message.gain);
-      sendResponse({ success: true });
+      sendResponse({ success: setTabCaptureBass(message.tabId, message.gain) });
       return false;
 
     case 'SET_TAB_CAPTURE_TREBLE':
-      setTabCaptureTreble(message.tabId, message.gain);
-      sendResponse({ success: true });
+      sendResponse({ success: setTabCaptureTreble(message.tabId, message.gain) });
       return false;
 
     case 'SET_TAB_CAPTURE_VOICE':
-      setTabCaptureVoice(message.tabId, message.gain);
-      sendResponse({ success: true });
+      sendResponse({ success: setTabCaptureVoice(message.tabId, message.gain) });
       return false;
 
     case 'SET_TAB_CAPTURE_BALANCE':
-      setTabCaptureBalance(message.tabId, message.pan);
-      sendResponse({ success: true });
+      sendResponse({ success: setTabCaptureBalance(message.tabId, message.pan) });
       return false;
 
     case 'SET_TAB_CAPTURE_DEVICE':
@@ -102,8 +113,11 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case 'SET_TAB_CAPTURE_COMPRESSOR':
-      setTabCaptureCompressor(message.tabId, message.preset);
-      sendResponse({ success: true });
+      sendResponse({ success: setTabCaptureCompressor(message.tabId, message.preset) });
+      return false;
+
+    case 'SET_TAB_CAPTURE_CHANNEL_MODE':
+      sendResponse({ success: setTabCaptureChannelMode(message.tabId, message.mode) });
       return false;
 
     case 'GET_TAB_CAPTURE_MODE':
@@ -125,25 +139,28 @@ function isValidTabId(tabId) {
 }
 
 function isValidVolume(volume) {
-  return Number.isFinite(volume) && volume >= 0 && volume <= 500;
+  return Number.isFinite(volume) && volume >= VOLUME_MIN && volume <= VOLUME_MAX;
 }
 
-function isValidGainDb(gainDb) {
-  return Number.isFinite(gainDb) && gainDb >= -50 && gainDb <= 50;
+function isValidGainDb(gainDb, effectType) {
+  const range = effectType === 'voice' ? EFFECT_RANGES.voice : EFFECT_RANGES.bass;
+  return Number.isFinite(gainDb) && gainDb >= range.min && gainDb <= range.max;
 }
 
 function isValidPan(pan) {
   return Number.isFinite(pan) && pan >= -1 && pan <= 1;
 }
 
+const VALID_CHANNEL_MODES = ['stereo', 'mono', 'swap'];
+
 function setTabCaptureVolume(tabId, volume) {
   if (!isValidTabId(tabId) || !isValidVolume(volume)) {
     console.warn('[Offscreen] Invalid params for setTabCaptureVolume:', { tabId, volume });
-    return;
+    return false;
   }
 
   const capture = visualizerCaptures.get(tabId);
-  if (!capture || !capture.gainNode) return;
+  if (!capture || !capture.gainNode) return true;
 
   try {
     // Track current volume for compressor compensation
@@ -166,82 +183,102 @@ function setTabCaptureVolume(tabId, volume) {
     }
 
     log('Set volume for tab', tabId, ':', volume, '(compensated:', compensatedGain.toFixed(3), ')');
+    return true;
   } catch (e) {
     console.error('[Offscreen] Error setting volume:', e);
+    return false;
   }
 }
 
 function setTabCaptureBass(tabId, gainDb) {
-  if (!isValidTabId(tabId) || !isValidGainDb(gainDb)) {
+  if (!isValidTabId(tabId) || !isValidGainDb(gainDb, 'bass')) {
     console.warn('[Offscreen] Invalid params for setTabCaptureBass:', { tabId, gainDb });
-    return;
+    return false;
   }
 
   const capture = visualizerCaptures.get(tabId);
-  if (!capture || !capture.bassFilter) return;
+  if (!capture || !capture.bassFilter) return true;
 
   try {
     capture.bassFilter.gain.setTargetAtTime(gainDb, capture.audioContext.currentTime, 0.03);
     log('Set bass for tab', tabId, ':', gainDb);
+    return true;
   } catch (e) {
     console.error('[Offscreen] Error setting bass:', e);
+    return false;
   }
 }
 
 function setTabCaptureTreble(tabId, gainDb) {
-  if (!isValidTabId(tabId) || !isValidGainDb(gainDb)) {
+  if (!isValidTabId(tabId) || !isValidGainDb(gainDb, 'treble')) {
     console.warn('[Offscreen] Invalid params for setTabCaptureTreble:', { tabId, gainDb });
-    return;
+    return false;
   }
 
   const capture = visualizerCaptures.get(tabId);
-  if (!capture || !capture.trebleFilter) return;
+  if (!capture || !capture.trebleFilter) return true;
 
   try {
     capture.trebleFilter.gain.setTargetAtTime(gainDb, capture.audioContext.currentTime, 0.03);
     log('Set treble for tab', tabId, ':', gainDb);
+    return true;
   } catch (e) {
     console.error('[Offscreen] Error setting treble:', e);
+    return false;
   }
 }
 
 function setTabCaptureVoice(tabId, gainDb) {
-  if (!isValidTabId(tabId) || !isValidGainDb(gainDb)) {
+  if (!isValidTabId(tabId) || !isValidGainDb(gainDb, 'voice')) {
     console.warn('[Offscreen] Invalid params for setTabCaptureVoice:', { tabId, gainDb });
-    return;
+    return false;
   }
 
   const capture = visualizerCaptures.get(tabId);
-  if (!capture || !capture.voiceFilter) return;
+  if (!capture || !capture.voiceFilter) return true;
 
   try {
     capture.voiceFilter.gain.setTargetAtTime(gainDb, capture.audioContext.currentTime, 0.03);
     log('Set voice for tab', tabId, ':', gainDb);
+    return true;
   } catch (e) {
     console.error('[Offscreen] Error setting voice:', e);
+    return false;
   }
 }
 
 function setTabCaptureBalance(tabId, pan) {
   if (!isValidTabId(tabId) || !isValidPan(pan)) {
     console.warn('[Offscreen] Invalid params for setTabCaptureBalance:', { tabId, pan });
-    return;
+    return false;
   }
 
   const capture = visualizerCaptures.get(tabId);
-  if (!capture || !capture.stereoPanner) return;
+  if (!capture || !capture.stereoPanner) return true;
 
   try {
     capture.stereoPanner.pan.setTargetAtTime(pan, capture.audioContext.currentTime, 0.03);
     log('Set balance for tab', tabId, ':', pan);
+    return true;
   } catch (e) {
     console.error('[Offscreen] Error setting balance:', e);
+    return false;
   }
 }
 
 function setTabCaptureCompressor(tabId, preset) {
+  if (!isValidTabId(tabId)) {
+    console.warn('[Offscreen] Invalid tabId for setTabCaptureCompressor:', tabId);
+    return false;
+  }
+  const validPresets = ['off', 'podcast', 'movie', 'maximum'];
+  if (!validPresets.includes(preset)) {
+    console.warn('[Offscreen] Invalid compressor preset:', preset);
+    return false;
+  }
+
   const capture = visualizerCaptures.get(tabId);
-  if (!capture || !capture.compressor) return;
+  if (!capture || !capture.compressor) return true;
 
   try {
     const compressor = capture.compressor;
@@ -266,9 +303,9 @@ function setTabCaptureCompressor(tabId, preset) {
       case 'maximum':
         compressor.threshold.setTargetAtTime(-40, currentTime, 0.03);
         compressor.knee.setTargetAtTime(5, currentTime, 0.03);
-        compressor.ratio.setTargetAtTime(12, currentTime, 0.03);
+        compressor.ratio.setTargetAtTime(10, currentTime, 0.03);
         compressor.attack.setTargetAtTime(0.001, currentTime, 0.03);
-        compressor.release.setTargetAtTime(0.15, currentTime, 0.03);
+        compressor.release.setTargetAtTime(0.1, currentTime, 0.03);
         break;
       case 'off':
       default:
@@ -297,8 +334,57 @@ function setTabCaptureCompressor(tabId, preset) {
     }
 
     log('Set compressor for tab', tabId, ':', preset);
+    return true;
   } catch (e) {
     console.error('[Offscreen] Error setting compressor:', e);
+    return false;
+  }
+}
+
+function setTabCaptureChannelMode(tabId, mode) {
+  if (!isValidTabId(tabId)) {
+    console.warn('[Offscreen] Invalid tabId for setTabCaptureChannelMode:', tabId);
+    return false;
+  }
+  if (!VALID_CHANNEL_MODES.includes(mode)) {
+    console.warn('[Offscreen] Invalid channel mode:', mode);
+    return false;
+  }
+
+  const capture = visualizerCaptures.get(tabId);
+  if (!capture || !capture.channelGains) return true;
+
+  try {
+    const { ll, lr, rl, rr } = capture.channelGains;
+    const t = capture.audioContext.currentTime;
+    const tc = 0.03;
+
+    switch (mode) {
+      case 'stereo':
+        ll.gain.setTargetAtTime(1, t, tc);
+        lr.gain.setTargetAtTime(0, t, tc);
+        rl.gain.setTargetAtTime(0, t, tc);
+        rr.gain.setTargetAtTime(1, t, tc);
+        break;
+      case 'mono':
+        ll.gain.setTargetAtTime(0.5, t, tc);
+        lr.gain.setTargetAtTime(0.5, t, tc);
+        rl.gain.setTargetAtTime(0.5, t, tc);
+        rr.gain.setTargetAtTime(0.5, t, tc);
+        break;
+      case 'swap':
+        ll.gain.setTargetAtTime(0, t, tc);
+        lr.gain.setTargetAtTime(1, t, tc);
+        rl.gain.setTargetAtTime(1, t, tc);
+        rr.gain.setTargetAtTime(0, t, tc);
+        break;
+    }
+
+    log('Set channel mode for tab', tabId, ':', mode);
+    return true;
+  } catch (e) {
+    console.error('[Offscreen] Error setting channel mode:', e);
+    return false;
   }
 }
 
@@ -321,7 +407,7 @@ async function setTabCaptureDevice(tabId, deviceId, deviceLabel) {
 
     // If deviceId is empty but we have a label, try to find the device by label
     let targetDeviceId = deviceId;
-    if (!targetDeviceId && deviceLabel) {
+    if (!targetDeviceId && deviceLabel && typeof deviceLabel === 'string' && deviceLabel.length <= 500) {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const matchingDevice = devices.find(d =>
         d.kind === 'audiooutput' && d.label === deviceLabel
@@ -397,8 +483,8 @@ async function handleStartVisualizerCapture(streamId, tabId) {
   log('Starting visualizer capture for tab:', tabId);
 
   // Validate streamId before attempting capture
-  if (!streamId || typeof streamId !== 'string') {
-    console.error('[Offscreen] Invalid streamId provided:', streamId);
+  if (!streamId || typeof streamId !== 'string' || streamId.length > 500) {
+    console.error('[Offscreen] Invalid streamId provided');
     return { success: false, error: 'Invalid streamId' };
   }
 
@@ -464,6 +550,28 @@ async function handleStartVisualizerCapture(streamId, tabId) {
     compressor.attack.value = 0.003;
     compressor.release.value = 0.25;
 
+    // Channel mode matrix (stereo/mono/swap)
+    const channelSplitter = audioContext.createChannelSplitter(2);
+    const channelMerger = audioContext.createChannelMerger(2);
+    const llGain = audioContext.createGain(); // Left → Left
+    const lrGain = audioContext.createGain(); // Left → Right
+    const rlGain = audioContext.createGain(); // Right → Left
+    const rrGain = audioContext.createGain(); // Right → Right
+    // Default: stereo (straight through)
+    llGain.gain.value = 1;
+    lrGain.gain.value = 0;
+    rlGain.gain.value = 0;
+    rrGain.gain.value = 1;
+    // Wire the matrix: split → route through gains → merge
+    channelSplitter.connect(llGain, 0); // Left channel out
+    channelSplitter.connect(rlGain, 1); // Right channel out
+    llGain.connect(channelMerger, 0, 0);  // L→L into left
+    rlGain.connect(channelMerger, 0, 0);  // R→L into left
+    channelSplitter.connect(lrGain, 0); // Left channel out
+    channelSplitter.connect(rrGain, 1); // Right channel out
+    lrGain.connect(channelMerger, 0, 1);  // L→R into right
+    rrGain.connect(channelMerger, 0, 1);  // R→R into right
+
     // Stereo panner for balance
     const stereoPanner = audioContext.createStereoPanner();
     stereoPanner.pan.value = 0;
@@ -491,12 +599,13 @@ async function handleStartVisualizerCapture(streamId, tabId) {
     const destination = audioContext.createMediaStreamDestination();
 
     // Connect processing chain:
-    // source → bass → treble → voice → compressor → panner → gain → limiter → analyser → destination
+    // source → bass → treble → voice → compressor → channelMatrix → panner → gain → limiter → analyser → destination
     source.connect(bassFilter);
     bassFilter.connect(trebleFilter);
     trebleFilter.connect(voiceFilter);
     voiceFilter.connect(compressor);
-    compressor.connect(stereoPanner);
+    compressor.connect(channelSplitter);
+    channelMerger.connect(stereoPanner);
     stereoPanner.connect(gainNode);
     gainNode.connect(limiter);
     limiter.connect(analyser);
@@ -525,12 +634,21 @@ async function handleStartVisualizerCapture(streamId, tabId) {
       voiceFilter,
       compressor,
       stereoPanner,
+      channelGains: { ll: llGain, lr: lrGain, rl: rlGain, rr: rrGain },
       limiter,
       freqArray,
       waveArray,
       // Track current values for compensation
       currentVolume: 100,
       currentCompressor: 'off'
+    });
+
+    // Clean up if stream tracks end unexpectedly (e.g., tab navigates or closes)
+    stream.getTracks().forEach(track => {
+      track.addEventListener('ended', () => {
+        log('Stream track ended for tab', tabId, '- cleaning up');
+        handleStopVisualizerCapture(tabId);
+      });
     });
 
     log('Visualizer capture started for tab', tabId);

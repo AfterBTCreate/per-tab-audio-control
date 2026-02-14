@@ -195,6 +195,11 @@
   border-color: #7a9ab8;
 }
 
+.settings-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+}
+
 .hint {
   font-size: 14px;
   color: #7a8fa5;
@@ -310,6 +315,11 @@
   border-color: #7a9ab8;
   transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.faq-link-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
 }
 
 .faq-link-icon {
@@ -451,6 +461,10 @@ body.light-mode .settings-link:hover {
   border-color: #c4b4a0;
 }
 
+body.light-mode .settings-link:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
 body.light-mode .hint {
   color: #8b7a6a;
 }
@@ -498,6 +512,10 @@ body.light-mode .faq-link-card:hover {
   background: linear-gradient(135deg, #f5ede3 0%, #ebe2d6 100%);
   border-color: #c4b4a0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .faq-link-card:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
 body.light-mode .faq-link-icon {
@@ -615,6 +633,11 @@ body.light-mode .faq-link-card:hover .faq-link-arrow {
   color: #ffffff;
 }
 
+.about-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+}
+
 .about-link.support-link {
   color: #ef4444;
 }
@@ -682,6 +705,10 @@ body.light-mode .about-link:hover {
   background: #ebe2d6;
   border-color: #c4b4a0;
   color: #2d2520;
+}
+
+body.light-mode .about-link:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
 body.light-mode .about-link.support-link {

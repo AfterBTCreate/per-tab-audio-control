@@ -5,7 +5,7 @@
 function showStatus(statusElement, message, type = 'success') {
   if (!statusElement) return;
   statusElement.textContent = message;
-  statusElement.className = 'status ' + type;
+  statusElement.className = `status ${type}`;
 
   setTimeout(() => {
     statusElement.className = 'status';
@@ -14,11 +14,11 @@ function showStatus(statusElement, message, type = 'success') {
 
 // Get volume color class based on level
 function getVolumeClass(volume) {
-  if (volume === 0) return 'muted';
-  if (volume >= 351) return 'ultra';
-  if (volume >= 201) return 'extreme';
-  if (volume >= 101) return 'high';
-  if (volume >= 51) return 'boosted';
+  if (volume === VOLUME_THRESHOLDS.MUTED) return 'muted';
+  if (volume >= VOLUME_THRESHOLDS.HIGH + 1) return 'ultra';
+  if (volume >= VOLUME_THRESHOLDS.BOOST + 1) return 'extreme';
+  if (volume >= VOLUME_THRESHOLDS.NORMAL + 1) return 'high';
+  if (volume >= VOLUME_THRESHOLDS.LOW + 1) return 'boosted';
   return 'reduced';
 }
 
@@ -78,5 +78,16 @@ function clampRangeInput(input, level, ranges) {
   const range = ranges[level];
   if (isNaN(value) || value < range.min) value = range.min;
   if (value > range.max) value = range.max;
+  input.value = value;
+}
+
+// Clamp float input to valid range (for speed presets with step 0.05)
+function clampFloatRangeInput(input, level, ranges) {
+  let value = parseFloat(input.value);
+  const range = ranges[level];
+  if (isNaN(value) || value < range.min) value = range.min;
+  if (value > range.max) value = range.max;
+  // Round to 2 decimal places
+  value = Math.round(value * 100) / 100;
   input.value = value;
 }

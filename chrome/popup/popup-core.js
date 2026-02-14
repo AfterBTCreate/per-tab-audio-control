@@ -9,8 +9,8 @@ const logDebug = popupLogger ? popupLogger.debug : ((...args) => DEBUG && consol
 
 // ==================== State Variables ====================
 let currentTabId = null;
-let currentVolume = 100;
-let previousVolume = 100;
+let currentVolume = VOLUME_DEFAULT;
+let previousVolume = VOLUME_DEFAULT;
 let audioMode = 'boost'; // Always boost mode (0-500% volume with full device switching)
 let currentBassBoost = 'off'; // 'off', 'low', 'medium', 'high', 'cut-low', 'cut-medium', 'cut-high'
 let currentTrebleBoost = 'off'; // 'off', 'low', 'medium', 'high', 'cut-low', 'cut-medium', 'cut-high'
@@ -18,6 +18,7 @@ let currentVoiceBoost = 'off'; // 'off', 'low', 'medium', 'high'
 let currentBalance = 0; // -100 to 100 (left to right)
 let currentChannelMode = 'stereo'; // 'stereo', 'mono', 'swap'
 let currentCompressor = 'off'; // 'off', 'podcast', 'movie', 'maximum'
+let currentSpeedLevel = 'off'; // 'off', 'slow-low/medium/high', 'fast-low/medium/high', 'slider:RATE'
 let audibleTabs = []; // Array of tabs currently playing audio
 let currentTabIndex = 0; // Index in audibleTabs array
 let currentTabUrl = ''; // Store current tab URL for site rules
@@ -51,9 +52,7 @@ const addSiteRuleBtn = document.getElementById('addSiteRuleBtn');
 const ruleDomainCheckbox = document.getElementById('ruleDomainCheckbox');
 const ruleStatus = document.getElementById('ruleStatus');
 const statusMessage = document.getElementById('statusMessage');
-const disableDomainBtn = document.getElementById('disableDomainBtn');
-const tabCaptureBtn = document.getElementById('tabCaptureBtn');
-const webAudioBtn = document.getElementById('webAudioBtn');
+const audioModeToggle = document.getElementById('audioModeToggle');
 const modeToggle = document.getElementById('modeToggle');
 
 // Effect button elements
@@ -62,19 +61,12 @@ const effectButtons = document.querySelectorAll('.effect-btn');
 // Balance elements
 const balanceSlider = document.getElementById('balanceSlider');
 const balanceResetBtn = document.getElementById('balanceReset');
-const balanceContainer = document.querySelector('.balance-container');
 const stereoToggle = document.getElementById('stereoToggle');
 const swapToggle = document.getElementById('swapToggle');
 const monoToggle = document.getElementById('monoToggle');
 
 // ==================== Constants ====================
-// Note: These defaults are duplicated in options/options-constants.js (separate page context)
-const DEFAULT_PRESETS = [50, 100, 200, 300, 500];
-const DEFAULT_BASS_PRESETS = [6, 12, 24]; // Low, Medium, High boost in dB
-const DEFAULT_BASS_CUT_PRESETS = [-6, -12, -24]; // Low, Medium, High cut in dB
-const DEFAULT_TREBLE_PRESETS = [6, 12, 24]; // Low, Medium, High boost in dB
-const DEFAULT_TREBLE_CUT_PRESETS = [-6, -12, -24]; // Low, Medium, High cut in dB
-const DEFAULT_VOICE_PRESETS = [4, 10, 18]; // Low, Medium, High in dB (max 18)
+// Note: All default values are centralized in shared/constants.js (DEFAULTS object)
 
 // Storage quota constants (also defined in options/options-constants.js for options page context)
 const SYNC_QUOTA_BYTES = 102400; // chrome.storage.sync quota is ~100KB
@@ -86,28 +78,7 @@ const CLEANUP_DAYS = 90; // Rules unused for 90+ days
 const EXTREME_VOLUME_THRESHOLD = 100; // Show warning above 100% (boosted volume)
 // Flag is loaded from chrome.storage.session in initVolumeWarningState()
 
-// Header layout customization defaults (must match options-constants.js)
-const DEFAULT_HEADER_LAYOUT = {
-  order: ['spacer1', 'logo', 'tabCapture', 'webAudio', 'offMode', 'focus', 'spacer2', 'modeToggle', 'shortcuts', 'theme', 'settings', 'spacer3', 'companyLogo'],
-  hidden: [],
-  spacerCount: 3
-};
-const MAX_SPACERS = 3;
-
-// Popup sections layout customization defaults (must match options-constants.js)
-const DEFAULT_POPUP_SECTIONS_LAYOUT = {
-  order: ['balance', 'enhancements', 'output', 'siteRule'],
-  hidden: []
-};
-
-// Map storage section IDs to DOM data-section-id attributes
-// (storage uses 'siteRule' but popup HTML uses 'addSite')
-const POPUP_SECTION_ID_MAP = {
-  balance: 'balance',
-  enhancements: 'enhancements',
-  output: 'output',
-  siteRule: 'addSite'
-};
+const MAX_SPACERS = 4;
 
 // ==================== Utility Functions ====================
 
@@ -161,9 +132,9 @@ async function safeStorageSet(data, showWarnings = true) {
     const dataSize = JSON.stringify(data).length;
     if (dataSize > 100) { // Allow small operations like toggling booleans
       if (showWarnings && typeof showStatus === 'function') {
-        showStatus('Storage nearly full. Delete some site rules to continue.', 'error', 5000);
+        showStatus('Storage nearly full. Delete old rules.', 'error', 5000);
       }
-      console.warn('[TabVolume] Storage critical:', Math.round(quota.percentUsed * 100) + '% used');
+      console.warn(`[TabVolume] Storage critical: ${Math.round(quota.percentUsed * 100)}% used`);
       return { success: false, quotaStatus: 'critical' };
     }
   }
@@ -173,14 +144,14 @@ async function safeStorageSet(data, showWarnings = true) {
 
     // Show warning after successful write if approaching limit
     if (quota.status === 'warning' && showWarnings && typeof showStatus === 'function') {
-      showStatus(`Storage ${Math.round(quota.percentUsed * 100)}% full. Consider removing old site rules.`, 'warning', 4000);
+      showStatus(`Storage ${Math.round(quota.percentUsed * 100)}% full. Clean up old rules.`, 'warning', 4000);
     }
 
     return { success: true, quotaStatus: quota.status };
   } catch (e) {
     if (e.message?.includes('QUOTA_BYTES')) {
       if (showWarnings && typeof showStatus === 'function') {
-        showStatus('Storage full. Delete some site rules to continue.', 'error', 5000);
+        showStatus('Storage full. Delete old rules.', 'error', 5000);
       }
       return { success: false, quotaStatus: 'full' };
     }
@@ -221,37 +192,43 @@ function volumeToPosition(volume) {
     return Math.min(100, Math.max(0, volume));
   }
   // Full mode: non-linear mapping for boost
+  let pos;
   if (volume <= 100) {
-    return volume / 2; // 0-100 volume → 0-50 position
+    pos = volume / 2; // 0-100 volume → 0-50 position
   } else {
-    return 50 + (volume - 100) / 8; // 100-500 volume → 50-100 position
+    pos = 50 + (volume - 100) / 8; // 100-500 volume → 50-100 position
   }
+  return Math.min(100, Math.max(0, pos));
 }
 
 function positionToVolume(position) {
   // Validate input - return 100 (default) if invalid
   if (!Number.isFinite(position)) {
-    return 100;
+    return VOLUME_DEFAULT;
   }
+  // Clamp position to valid range
+  position = Math.min(100, Math.max(0, position));
   // Native mode: linear 1:1 mapping (0-100)
   if (isDomainDisabled) {
-    return Math.min(100, Math.max(0, Math.round(position)));
+    return Math.min(VOLUME_DEFAULT, Math.max(VOLUME_MIN, Math.round(position)));
   }
   // Full mode: non-linear mapping for boost
+  let vol;
   if (position <= 50) {
-    return position * 2; // 0-50 position → 0-100 volume
+    vol = position * 2; // 0-50 position → 0-100 volume
   } else {
-    return 100 + (position - 50) * 8; // 50-100 position → 100-500 volume
+    vol = 100 + (position - 50) * 8; // 50-100 position → 100-500 volume
   }
+  return Math.min(VOLUME_MAX, Math.max(VOLUME_MIN, Math.round(vol)));
 }
 
-// Extract domain from URL
+// Extract domain from URL (returns null on invalid URL instead of raw input)
 function extractDomain(url) {
   try {
     const urlObj = new URL(url);
     return urlObj.hostname;
   } catch (e) {
-    return url;
+    return null;
   }
 }
 
@@ -271,6 +248,23 @@ const restrictedUrlPatterns = [
 function isRestrictedUrl(url) {
   if (!url) return true;
   return restrictedUrlPatterns.some(pattern => pattern.test(url));
+}
+
+// Check if URL is a known DRM-protected streaming site
+// These sites use Encrypted Media Extensions that prevent raw audio access
+function isDrmSite(url) {
+  if (!url) return false;
+  const hostname = extractDomain(url);
+  if (!hostname) return false;
+  // Check exact match
+  if (DRM_DOMAINS.has(hostname)) return true;
+  // Check if any DRM domain is a suffix (e.g., "watch.sling.com" matches "sling.com")
+  const parts = hostname.split('.');
+  for (let i = 1; i < parts.length - 1; i++) {
+    const parent = parts.slice(i).join('.');
+    if (DRM_DOMAINS.has(parent)) return true;
+  }
+  return false;
 }
 
 // ==================== Status Messages ====================
@@ -295,7 +289,7 @@ function showStatus(message, type = 'info', duration = 4000) {
   }
 
   statusMessage.textContent = message;
-  statusMessage.className = 'status-message ' + type;
+  statusMessage.className = `status-message ${type}`;
 
   // Auto-scroll to show the status message if it causes overflow
   statusMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -315,13 +309,16 @@ function showStatus(message, type = 'info', duration = 4000) {
 
 // Clear any status message (preserves Active Tab Audio reminder if active)
 function clearStatus() {
+  // Don't clear persistent notifications - they have their own lifecycle
+  // Active Tab Audio: persists until user disables focus mode
+  // DRM site hint: auto-dismisses after 8 seconds
+  if (statusMessage.textContent.includes('Active Tab Audio') ||
+      statusMessage.textContent.includes('DRM site')) {
+    return;
+  }
   if (statusTimeout) {
     clearTimeout(statusTimeout);
     statusTimeout = null;
-  }
-  // Don't clear the Active Tab Audio reminder - it should persist until disabled
-  if (statusMessage.textContent.includes('Active Tab Audio')) {
-    return;
   }
   statusMessage.textContent = '';
   statusMessage.className = 'status-message';
@@ -335,7 +332,7 @@ function showError(message, duration = 5000) {
 // Show rule status message
 function showRuleStatus(message, isError = false) {
   ruleStatus.textContent = message;
-  ruleStatus.className = 'rule-status ' + (isError ? 'error' : 'success');
+  ruleStatus.className = `rule-status ${isError ? 'error' : 'success'}`;
 
   setTimeout(() => {
     ruleStatus.className = 'rule-status';
@@ -350,6 +347,8 @@ async function loadTheme() {
   // Default to dark mode for new users
   if (result.theme === 'light') {
     document.body.classList.add('light-mode');
+  } else {
+    document.body.classList.remove('light-mode');
   }
 }
 
@@ -366,27 +365,56 @@ themeToggle.addEventListener('click', toggleTheme);
 
 // ==================== Tab Info Location Setting ====================
 
-// Apply setting for tab info placement (inside visualizer or below)
+// Apply setting for tab info placement (inside, below, above, or off)
 async function applyTabInfoLocation() {
   try {
     const result = await browserAPI.storage.sync.get(['tabInfoLocation']);
-    // Default to 'below' if not set
-    const location = result.tabInfoLocation || 'below';
+    let location = result.tabInfoLocation || DEFAULTS.tabInfoLocation;
+    const tabInfoWrapper = document.querySelector('.tab-info-wrapper');
+
+    // If visualizer is hidden, 'inside' is invalid — treat as 'above'
+    if (document.body.classList.contains('visualizer-hidden') && location === 'inside') {
+      location = 'above';
+    }
 
     if (location === 'inside') {
       // Show title and URL inside visualizer
       if (tabTitle) tabTitle.style.visibility = '';
       if (tabUrl) tabUrl.style.visibility = '';
-      if (tabTitleExternal) tabTitleExternal.classList.remove('visible');
-    } else {
+      if (tabTitleExternal) {
+        tabTitleExternal.classList.remove('visible', 'above');
+        // Ensure external element is after wrapper (for transition from 'above')
+        if (tabInfoWrapper) {
+          tabInfoWrapper.parentNode.insertBefore(tabTitleExternal, tabInfoWrapper.nextSibling);
+        }
+      }
+    } else if (location === 'below') {
       // Show title below visualizer (hide internal, show external)
       if (tabTitle) tabTitle.style.visibility = 'hidden';
       if (tabUrl) tabUrl.style.visibility = 'hidden';
       if (tabTitleExternal) {
-        // Copy the title text to external element
         tabTitleExternal.textContent = tabTitle ? tabTitle.textContent : '';
         tabTitleExternal.classList.add('visible');
+        tabTitleExternal.classList.remove('above');
+        // Ensure external element is after wrapper (for transition from 'above')
+        if (tabInfoWrapper) {
+          tabInfoWrapper.parentNode.insertBefore(tabTitleExternal, tabInfoWrapper.nextSibling);
+        }
       }
+    } else if (location === 'above') {
+      // Show title above visualizer
+      if (tabTitle) tabTitle.style.visibility = 'hidden';
+      if (tabUrl) tabUrl.style.visibility = 'hidden';
+      if (tabTitleExternal && tabInfoWrapper) {
+        tabTitleExternal.textContent = tabTitle ? tabTitle.textContent : '';
+        tabInfoWrapper.parentNode.insertBefore(tabTitleExternal, tabInfoWrapper);
+        tabTitleExternal.classList.add('visible', 'above');
+      }
+    } else if (location === 'off') {
+      // Hide title entirely
+      if (tabTitle) tabTitle.style.visibility = 'hidden';
+      if (tabUrl) tabUrl.style.visibility = 'hidden';
+      if (tabTitleExternal) tabTitleExternal.classList.remove('visible', 'above');
     }
   } catch (error) {
     console.error('Error applying tab info location setting:', error);
@@ -395,6 +423,62 @@ async function applyTabInfoLocation() {
 
 // Load setting immediately
 applyTabInfoLocation();
+
+// ==================== Show Visualizer Setting ====================
+
+async function applyShowVisualizer() {
+  try {
+    const result = await browserAPI.storage.sync.get(['showVisualizer']);
+    const show = result.showVisualizer ?? DEFAULTS.showVisualizer;
+    document.body.classList.toggle('visualizer-hidden', !show);
+
+    // If visualizer is hidden and tab info is set to 'inside', re-apply to force 'above'
+    if (!show) {
+      const locResult = await browserAPI.storage.sync.get(['tabInfoLocation']);
+      if ((locResult.tabInfoLocation || DEFAULTS.tabInfoLocation) === 'inside') {
+        applyTabInfoLocation();
+      }
+    }
+  } catch (error) {
+    console.error('Error applying show visualizer setting:', error);
+  }
+}
+
+// Load setting immediately
+applyShowVisualizer();
+
+// ==================== Show Seekbar Setting ====================
+
+async function applyShowSeekbar() {
+  try {
+    const result = await browserAPI.storage.sync.get(['showSeekbar']);
+    const show = result.showSeekbar ?? DEFAULTS.showSeekbar;
+    document.body.classList.toggle('seekbar-hidden', !show);
+  } catch (error) {
+    console.error('Error applying show seekbar setting:', error);
+  }
+}
+
+// Load setting immediately
+applyShowSeekbar();
+
+// ==================== Shortcuts Footer Visibility ====================
+
+async function applyShortcutsFooterVisibility() {
+  try {
+    const result = await browserAPI.storage.sync.get(['showShortcutsFooter']);
+    const show = result.showShortcutsFooter ?? DEFAULTS.showShortcutsFooter;
+    const footer = document.getElementById('shortcutsFooter');
+    if (footer) {
+      footer.classList.toggle('hidden', !show);
+    }
+  } catch (error) {
+    console.error('Error applying shortcuts footer visibility:', error);
+  }
+}
+
+// Load setting immediately
+applyShortcutsFooterVisibility();
 
 // Keep external title in sync when internal title changes
 if (tabTitle && tabTitleExternal) {
@@ -406,10 +490,36 @@ if (tabTitle && tabTitleExternal) {
   titleObserver.observe(tabTitle, { childList: true, characterData: true, subtree: true });
 }
 
-// Listen for storage changes to update in real-time
+// Listen for storage changes to update popup in real-time
+// (e.g., user changes settings in options page while popup is open)
 browserAPI.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && changes.tabInfoLocation) {
-    applyTabInfoLocation();
+  if (area === 'sync') {
+    if (changes.popupMode) loadPopupMode();
+    if (changes.showVisualizer) applyShowVisualizer();
+    if (changes.tabInfoLocation) applyTabInfoLocation();
+    if (changes.showSeekbar) applyShowSeekbar();
+    if (changes.showShortcutsFooter) applyShortcutsFooterVisibility();
+    if (changes.theme) loadTheme();
+    if (changes.headerLayout) applyHeaderLayout();
+    if (changes.popupSectionsLayout) { applyPopupSectionsLayout(); loadEqControlMode(); }
+    if (changes.customPresets) loadCustomPresets();
+    if (changes.volumeSteps) loadVolumeSteps();
+    if (changes.visualizerColor !== undefined) {
+      customVisualizerColor = changes.visualizerColor.newValue || null;
+    }
+    if (changes.eqControlMode) loadEqControlMode();
+    if (changes.bassBoostPresets || changes.bassCutPresets ||
+        changes.trebleBoostPresets || changes.trebleCutPresets ||
+        changes.voiceBoostPresets ||
+        changes.speedSlowPresets || changes.speedFastPresets) {
+      loadEffectPresets();
+    }
+  }
+  if (area === 'local') {
+    if (changes.visualizerType) loadVisualizerType();
+    if (changes.visualizerColor !== undefined) {
+      customVisualizerColor = changes.visualizerColor.newValue || null;
+    }
   }
 });
 
@@ -419,7 +529,7 @@ browserAPI.storage.onChanged.addListener((changes, area) => {
 async function applyHeaderLayout() {
   try {
     const result = await browserAPI.storage.sync.get(['headerLayout']);
-    const layout = result.headerLayout || DEFAULT_HEADER_LAYOUT;
+    const layout = result.headerLayout || JSON.parse(JSON.stringify(DEFAULTS.headerLayout));
 
     // Migration: pauseOthers → muteOthers → focus (v3.3.25, v4.1.4)
     if (layout.order) {
@@ -435,20 +545,26 @@ async function applyHeaderLayout() {
       });
     }
 
-    // Migration: audioMode → tabCapture + webAudio (v4.1.19)
-    if (layout.order && layout.order.includes('audioMode')) {
-      const newOrder = [];
-      for (const id of layout.order) {
-        if (id === 'audioMode') {
-          newOrder.push('tabCapture', 'webAudio');
-        } else {
-          newOrder.push(id);
-        }
-      }
-      layout.order = newOrder;
+    // Migration: remove shortcuts from header (v4.3.21 - moved to footer)
+    if (layout.order) {
+      layout.order = layout.order.filter(id => id !== 'shortcuts');
     }
     if (layout.hidden) {
-      layout.hidden = layout.hidden.filter(id => id !== 'audioMode');
+      layout.hidden = layout.hidden.filter(id => id !== 'shortcuts');
+    }
+
+    // Migration: tabCapture + webAudio + offMode → audioMode (v4.3.21)
+    if (layout.order && (layout.order.includes('tabCapture') || layout.order.includes('webAudio') || layout.order.includes('offMode'))) {
+      // Find position of first audio mode item to insert the combined toggle there
+      const audioModeItems = ['tabCapture', 'webAudio', 'offMode'];
+      let insertIdx = layout.order.findIndex(id => audioModeItems.includes(id));
+      layout.order = layout.order.filter(id => !audioModeItems.includes(id));
+      if (insertIdx >= 0 && !layout.order.includes('audioMode')) {
+        layout.order.splice(insertIdx, 0, 'audioMode');
+      }
+      if (layout.hidden) {
+        layout.hidden = layout.hidden.filter(id => !audioModeItems.includes(id));
+      }
     }
 
     const header = document.querySelector('.header');
@@ -461,7 +577,7 @@ async function applyHeaderLayout() {
     });
 
     // Required items that must always be visible and in order
-    const requiredItems = ['companyLogo', 'tabCapture', 'webAudio', 'offMode', 'modeToggle', 'settings', 'logo'];
+    const requiredItems = ['companyLogo', 'brandText', 'audioMode', 'modeToggle', 'settings'];
 
     // Validate order - ensure all DOM items are in the order
     const orderSet = new Set(layout.order);
@@ -473,8 +589,8 @@ async function applyHeaderLayout() {
     }
 
     // Handle spacers: ensure we have the right number
-    // Use ?? instead of || so that spacerCount of 0 is respected (0 is falsy with ||)
-    const spacerCount = Math.min(Math.max(0, layout.spacerCount ?? 3), MAX_SPACERS);
+    // Minimum 1 spacer (spacer1 is locked between logo and brand text)
+    const spacerCount = Math.min(Math.max(1, layout.spacerCount ?? 4), MAX_SPACERS);
     const existingSpacer = items.spacer1;
 
     // Create additional spacers if needed
@@ -514,11 +630,11 @@ async function applyHeaderLayout() {
       header.appendChild(el);
     });
 
-    // Hide items in the hidden array (but never hide required items)
+    // Apply visibility: remove hidden class from all non-spacer items first, then hide as needed
     const hiddenSet = new Set(layout.hidden || []);
     for (const [itemId, el] of Object.entries(items)) {
-      if (hiddenSet.has(itemId) && !requiredItems.includes(itemId)) {
-        el.classList.add('header-item-hidden');
+      if (!itemId.startsWith('spacer')) {
+        el.classList.toggle('header-item-hidden', hiddenSet.has(itemId) && !requiredItems.includes(itemId));
       }
     }
 
@@ -532,57 +648,66 @@ applyHeaderLayout();
 
 // ==================== Popup Sections Layout Customization ====================
 
-// Apply custom popup sections layout from storage (order and visibility)
+// Apply custom popup sections layout from storage (order and visibility of individual items)
 async function applyPopupSectionsLayout() {
   try {
     const result = await browserAPI.storage.sync.get(['popupSectionsLayout']);
-    const layout = result.popupSectionsLayout || DEFAULT_POPUP_SECTIONS_LAYOUT;
+    const layout = result.popupSectionsLayout || DEFAULTS.popupSectionsLayout;
 
     // Validate layout structure
     if (!layout.order || !Array.isArray(layout.order)) {
-      layout.order = [...DEFAULT_POPUP_SECTIONS_LAYOUT.order];
+      layout.order = [...DEFAULTS.popupSectionsLayout.order];
     }
     if (!layout.hidden || !Array.isArray(layout.hidden)) {
       layout.hidden = [];
     }
 
-    // Collect sections by data-section-id
-    // Includes static sections, compact sections (no collapsible sections anymore)
-    const sections = {};
-    document.querySelectorAll('[data-section-id].static-section, [data-section-id].compact-section').forEach(el => {
-      sections[el.dataset.sectionId] = el;
+    // Collect advanced items by data-item-id
+    const items = {};
+    document.querySelectorAll('[data-item-id]').forEach(el => {
+      items[el.dataset.itemId] = el;
     });
 
-    if (Object.keys(sections).length === 0) return;
+    if (Object.keys(items).length === 0) return;
 
-    // Apply CSS order based on layout.order
-    // Order values start at 1 so unstyled items (order: 0) appear first
-    let orderIndex = 1;
-    for (const storageId of layout.order) {
-      const domId = POPUP_SECTION_ID_MAP[storageId];
-      if (domId && sections[domId]) {
-        sections[domId].style.order = orderIndex;
-        orderIndex++;
+    // Migrate: remove stale IDs not in DOM, add missing DOM IDs
+    const validItemIds = new Set(Object.keys(items));
+    layout.order = layout.order.filter(id => validItemIds.has(id));
+    for (const itemId of validItemIds) {
+      if (!layout.order.includes(itemId)) {
+        layout.order.push(itemId);
       }
     }
+    layout.hidden = layout.hidden.filter(id => validItemIds.has(id));
 
-    // Handle sections that may exist in DOM but not in stored order (defensive)
-    for (const [domId, el] of Object.entries(sections)) {
-      if (!el.style.order) {
-        el.style.order = orderIndex;
+    // Apply CSS order based on layout.order
+    let orderIndex = 1;
+    for (const itemId of layout.order) {
+      if (items[itemId]) {
+        items[itemId].style.order = orderIndex;
         orderIndex++;
       }
     }
 
     // Apply hidden class based on layout.hidden
-    const hiddenSet = new Set(layout.hidden || []);
-    for (const [storageId, domId] of Object.entries(POPUP_SECTION_ID_MAP)) {
-      if (sections[domId]) {
-        if (hiddenSet.has(storageId)) {
-          sections[domId].classList.add('section-hidden');
-        } else {
-          sections[domId].classList.remove('section-hidden');
-        }
+    const hiddenSet = new Set(layout.hidden);
+    for (const [itemId, el] of Object.entries(items)) {
+      el.classList.toggle('section-hidden', hiddenSet.has(itemId));
+    }
+
+    // Manage dividers: hide all, then show for visible items except the first
+    const visibleItems = layout.order
+      .filter(id => items[id] && !hiddenSet.has(id));
+
+    for (const [, el] of Object.entries(items)) {
+      const divider = el.querySelector('.effects-divider');
+      if (divider) divider.classList.add('hidden');
+    }
+
+    for (let i = 0; i < visibleItems.length; i++) {
+      const divider = items[visibleItems[i]].querySelector('.effects-divider');
+      if (divider && i > 0) {
+        divider.classList.remove('hidden');
       }
     }
 
@@ -599,7 +724,7 @@ applyPopupSectionsLayout();
 // Load popup mode (synced across devices)
 async function loadPopupMode() {
   const result = await browserAPI.storage.sync.get(['popupMode']);
-  const mode = result.popupMode || 'basic'; // Default to basic for new users
+  const mode = result.popupMode || DEFAULTS.popupMode;
   if (mode === 'basic') {
     document.body.classList.add('basic-mode');
     modeToggle.title = 'Switch to Advanced mode';

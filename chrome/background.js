@@ -10,9 +10,34 @@ const DEBUG = false;
 const log = (...args) => DEBUG && console.log('[BG]', ...args);
 const logDebug = (...args) => DEBUG && console.debug('[BG]', ...args);
 
-const DEFAULT_VOLUME = 100;
+// ===== DUPLICATED CONSTANTS — KEEP IN SYNC =====
+// Source of truth: shared/constants.js
+// Also duplicated in: content/content.js, content/page-script.js, offscreen/offscreen.js
+// Reason: Service worker can't import shared modules via HTML script tags
+const VOLUME_DEFAULT = 100;
+const VOLUME_MIN = 0;
+const VOLUME_MAX = 500;
 
-// Tab storage suffixes - duplicated from shared/constants.js (service worker limitation)
+const EFFECT_RANGES = {
+  bass: { min: -24, max: 24, default: 0 },
+  treble: { min: -24, max: 24, default: 0 },
+  voice: { min: 0, max: 18, default: 0 },
+  speed: { min: 0.05, max: 5, default: 1 }
+};
+
+// Default presets — KEEP IN SYNC with shared/constants.js DEFAULTS object
+const DEFAULT_VOLUME_PRESETS = [50, 100, 200, 300, 500];
+const DEFAULT_BASS_PRESETS = [6, 12, 24];
+const DEFAULT_BASS_CUT_PRESETS = [-6, -12, -24];
+const DEFAULT_TREBLE_PRESETS = [6, 12, 24];
+const DEFAULT_TREBLE_CUT_PRESETS = [-6, -12, -24];
+const DEFAULT_VOICE_PRESETS = [4, 10, 18];
+const DEFAULT_SPEED_SLOW_PRESETS = [0.75, 0.50, 0.25];
+const DEFAULT_SPEED_FAST_PRESETS = [1.25, 1.50, 2.00];
+const DEFAULT_VOLUME_STEPS = { scrollWheel: 5, keyboard: 1, buttons: 1 };
+const DEFAULT_AUDIO_MODE_CHROME = 'tabcapture';
+
+// Tab storage suffixes — KEEP IN SYNC with shared/constants.js
 const TAB_STORAGE = {
   VOLUME: '',           // tab_123 (base key for volume)
   PREV: 'prev',         // tab_123_prev (previous volume before mute)
@@ -23,10 +48,11 @@ const TAB_STORAGE = {
   COMPRESSOR: 'compressor', // tab_123_compressor
   BALANCE: 'balance',   // tab_123_balance
   CHANNEL_MODE: 'channelMode', // tab_123_channelMode
+  SPEED: 'speed',       // tab_123_speed
   RULE_APPLIED: 'ruleAppliedDomain' // tab_123_ruleAppliedDomain
 };
 
-// Helper to generate consistent tab storage keys - duplicated from shared/constants.js
+// Helper to generate consistent tab storage keys — KEEP IN SYNC with shared/constants.js
 function getTabStorageKey(tabId, suffix = '') {
   if (suffix) {
     return `tab_${tabId}_${suffix}`;
@@ -40,7 +66,7 @@ function isValidTabId(tabId) {
 }
 
 // Volume step for keyboard shortcuts (loaded from storage)
-let keyboardStep = 5;
+let keyboardStep = 1;
 
 // Active Tab Audio mode - only the active tab plays audio
 // Audio automatically follows the active tab when switching
@@ -54,10 +80,10 @@ async function loadKeyboardStep() {
   const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
   try {
     const result = await browserAPI.storage.sync.get(['volumeSteps']);
-    const steps = result.volumeSteps || { scrollWheel: 5, keyboard: 5, buttons: 1 };
+    const steps = result.volumeSteps || DEFAULT_VOLUME_STEPS;
     keyboardStep = steps.keyboard;
   } catch (e) {
-    keyboardStep = 5;
+    keyboardStep = 1;
   }
 }
 
@@ -68,7 +94,7 @@ loadKeyboardStep();
 const browserAPIForListener = typeof browser !== 'undefined' ? browser : chrome;
 browserAPIForListener.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'sync' && changes.volumeSteps) {
-    const steps = changes.volumeSteps.newValue || { scrollWheel: 5, keyboard: 5, buttons: 1 };
+    const steps = changes.volumeSteps.newValue || DEFAULT_VOLUME_STEPS;
     keyboardStep = steps.keyboard;
   }
 });
@@ -131,6 +157,9 @@ function isRestrictedUrl(url) {
 // Track tabs that have reported having media (for tab navigation including paused media)
 const tabsWithMedia = new Set();
 
+// Track previous window state per tab for fullscreen workaround (Tab Capture mode)
+const fullscreenStateByTab = new Map();
+
 // Log version on startup (DEBUG only - verify refresh is working)
 log('Service worker starting - version', browserAPI.runtime.getManifest().version, isFirefox ? '(Firefox)' : '(Chrome)');
 
@@ -184,7 +213,7 @@ async function getMatchingSiteRule(url) {
       if (rule.isDomain) {
         // Domain match: check if hostname matches or is subdomain
         const exactMatch = hostname === sanitizedPattern;
-        const subdomainMatch = hostname.endsWith('.' + sanitizedPattern);
+        const subdomainMatch = hostname.endsWith(`.${sanitizedPattern}`);
         log('getMatchingSiteRule: Domain check - exactMatch:', exactMatch, 'subdomainMatch:', subdomainMatch);
         if (exactMatch || subdomainMatch) {
           matched = true;
@@ -221,8 +250,290 @@ async function getMatchingSiteRule(url) {
   return null;
 }
 
+// Apply a matching site rule to a tab — sets volume, device, effects, and marks domain as applied
+// Returns { rule, deviceLabel } if a rule was applied, null otherwise
+async function applyMatchingSiteRule(tabId, url) {
+  const matchingRule = await getMatchingSiteRule(url);
+  if (!matchingRule) return null;
+
+  log('applyMatchingSiteRule: Applying rule for tab', tabId, 'volume:', matchingRule.volume);
+
+  // Apply volume
+  await setTabVolume(tabId, matchingRule.volume);
+
+  // Apply device from rule if specified
+  let deviceLabel = '';
+  if (matchingRule.deviceLabel) {
+    deviceLabel = matchingRule.deviceLabel;
+    const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
+    await browserAPI.storage.local.set({
+      [deviceKey]: { deviceId: '', deviceLabel: matchingRule.deviceLabel }
+    });
+  }
+
+  // Apply bass boost from rule if specified
+  if (matchingRule.bassBoost) {
+    const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
+    await browserAPI.storage.local.set({ [bassKey]: matchingRule.bassBoost });
+  }
+
+  // Apply treble boost from rule if specified
+  if (matchingRule.trebleBoost) {
+    const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
+    await browserAPI.storage.local.set({ [trebleKey]: matchingRule.trebleBoost });
+  }
+
+  // Apply voice boost from rule if specified
+  if (matchingRule.voiceBoost) {
+    const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
+    await browserAPI.storage.local.set({ [voiceKey]: matchingRule.voiceBoost });
+  }
+
+  // Apply compressor from rule if specified
+  if (matchingRule.compressor) {
+    const compressorKey = getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR);
+    await browserAPI.storage.local.set({ [compressorKey]: matchingRule.compressor });
+    // If compressor is enabled, disable bass, treble, and voice boost
+    if (matchingRule.compressor !== 'off') {
+      const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
+      const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
+      const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
+      await browserAPI.storage.local.set({
+        [bassKey]: 'off',
+        [trebleKey]: 'off',
+        [voiceKey]: 'off'
+      });
+    }
+  }
+
+  // Apply balance from rule if specified (clamp to valid range)
+  if (matchingRule.balance !== undefined && matchingRule.balance !== 0) {
+    const balanceKey = getTabStorageKey(tabId, TAB_STORAGE.BALANCE);
+    const validBalance = Math.max(-100, Math.min(100, Math.round(Number(matchingRule.balance) || 0)));
+    if (validBalance !== 0) {
+      await browserAPI.storage.local.set({ [balanceKey]: validBalance });
+    }
+  }
+
+  // Apply channel mode from rule if specified
+  if (matchingRule.channelMode) {
+    const channelKey = getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE);
+    await browserAPI.storage.local.set({ [channelKey]: matchingRule.channelMode });
+  }
+
+  // Apply speed from rule if specified
+  if (matchingRule.speed) {
+    const speedKey = getTabStorageKey(tabId, TAB_STORAGE.SPEED);
+    await browserAPI.storage.local.set({ [speedKey]: matchingRule.speed });
+  }
+
+  // Remember this domain so we don't re-apply on navigation within site
+  const hostname = getValidatedHostname(url);
+  if (hostname) {
+    const ruleAppliedKey = getTabStorageKey(tabId, TAB_STORAGE.RULE_APPLIED);
+    log('Rule applied, saving domain to prevent re-application:', hostname);
+    await browserAPI.storage.local.set({ [ruleAppliedKey]: hostname });
+  }
+
+  return { rule: matchingRule, deviceLabel };
+}
+
+// Send all tab settings to the content script (volume, device, effects, speed)
+// Called after rule application or navigation to ensure the audio pipeline matches storage
+async function sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLabel) {
+  try {
+    await browserAPI.tabs.sendMessage(tabId, {
+      type: 'SET_VOLUME',
+      volume: volume
+    });
+    if (deviceId || deviceLabel) {
+      await browserAPI.tabs.sendMessage(tabId, {
+        type: 'SET_DEVICE',
+        deviceId: deviceId || '',
+        deviceLabel: deviceLabel || ''
+      });
+    }
+
+    // Send bass/treble/voice boost, compressor, balance, and channel mode settings
+    const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
+    const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
+    const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
+    const compressorKey = getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR);
+    const balanceKey = getTabStorageKey(tabId, TAB_STORAGE.BALANCE);
+    const channelKey = getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE);
+    const effectResult = await browserAPI.storage.local.get([bassKey, trebleKey, voiceKey, compressorKey, balanceKey, channelKey]);
+    const bassBoostPresets = (await browserAPI.storage.sync.get(['bassBoostPresets'])).bassBoostPresets || DEFAULT_BASS_PRESETS;
+    const trebleBoostPresets = (await browserAPI.storage.sync.get(['trebleBoostPresets'])).trebleBoostPresets || DEFAULT_TREBLE_PRESETS;
+    const voiceBoostPresets = (await browserAPI.storage.sync.get(['voiceBoostPresets'])).voiceBoostPresets || DEFAULT_VOICE_PRESETS;
+
+    if (effectResult[bassKey] && effectResult[bassKey] !== 'off') {
+      const bassLevel = effectResult[bassKey];
+      if (typeof bassLevel === 'string') {
+        let bassGain = 0;
+        if (bassLevel.startsWith('cut-')) {
+          const bassCutPresets = (await browserAPI.storage.sync.get(['bassCutPresets'])).bassCutPresets || DEFAULT_BASS_CUT_PRESETS;
+          const cutLevel = bassLevel.replace('cut-', '');
+          bassGain = cutLevel === 'low' ? bassCutPresets[0] : cutLevel === 'medium' ? bassCutPresets[1] : cutLevel === 'high' ? bassCutPresets[2] : 0;
+        } else {
+          bassGain = bassLevel === 'low' ? bassBoostPresets[0] : bassLevel === 'medium' ? bassBoostPresets[1] : bassLevel === 'high' ? bassBoostPresets[2] : 0;
+        }
+        if (bassGain !== 0) {
+          await browserAPI.tabs.sendMessage(tabId, { type: 'SET_BASS', gain: bassGain });
+        }
+      }
+    }
+
+    if (effectResult[trebleKey] && effectResult[trebleKey] !== 'off') {
+      const trebleLevel = effectResult[trebleKey];
+      if (typeof trebleLevel === 'string') {
+        let trebleGain = 0;
+        if (trebleLevel.startsWith('cut-')) {
+          const trebleCutPresets = (await browserAPI.storage.sync.get(['trebleCutPresets'])).trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
+          const cutLevel = trebleLevel.replace('cut-', '');
+          trebleGain = cutLevel === 'low' ? trebleCutPresets[0] : cutLevel === 'medium' ? trebleCutPresets[1] : cutLevel === 'high' ? trebleCutPresets[2] : 0;
+        } else {
+          trebleGain = trebleLevel === 'low' ? trebleBoostPresets[0] : trebleLevel === 'medium' ? trebleBoostPresets[1] : trebleLevel === 'high' ? trebleBoostPresets[2] : 0;
+        }
+        if (trebleGain !== 0) {
+          await browserAPI.tabs.sendMessage(tabId, { type: 'SET_TREBLE', gain: trebleGain });
+        }
+      }
+    }
+
+    if (effectResult[voiceKey]) {
+      const voiceLevel = effectResult[voiceKey];
+      const voiceGain = voiceLevel === 'low' ? voiceBoostPresets[0] : voiceLevel === 'medium' ? voiceBoostPresets[1] : voiceLevel === 'high' ? voiceBoostPresets[2] : 0;
+      if (voiceGain > 0) {
+        await browserAPI.tabs.sendMessage(tabId, { type: 'SET_VOICE', gain: voiceGain });
+      }
+    }
+
+    if (effectResult[compressorKey] && effectResult[compressorKey] !== 'off') {
+      await browserAPI.tabs.sendMessage(tabId, { type: 'SET_COMPRESSOR', preset: effectResult[compressorKey] });
+    }
+
+    if (effectResult[balanceKey] !== undefined) {
+      await browserAPI.tabs.sendMessage(tabId, { type: 'SET_BALANCE', balance: effectResult[balanceKey] });
+    }
+
+    if (effectResult[channelKey]) {
+      await browserAPI.tabs.sendMessage(tabId, { type: 'SET_CHANNEL_MODE', mode: effectResult[channelKey] });
+    }
+
+    // Send playback speed if saved for this tab
+    const speedKey = getTabStorageKey(tabId, TAB_STORAGE.SPEED);
+    const speedResult = await browserAPI.storage.local.get([speedKey]);
+    const speedLevel = speedResult[speedKey];
+    if (speedLevel && typeof speedLevel === 'string' && speedLevel !== 'off') {
+      let rate = 1;
+      if (speedLevel.startsWith('slider:')) {
+        rate = parseFloat(speedLevel.split(':')[1]) || 1;
+        if (!Number.isFinite(rate) || rate < EFFECT_RANGES.speed.min || rate > EFFECT_RANGES.speed.max) rate = 1;
+      } else {
+        const speedPresets = await browserAPI.storage.sync.get(['speedSlowPresets', 'speedFastPresets']);
+        const slow = speedPresets.speedSlowPresets || DEFAULT_SPEED_SLOW_PRESETS;
+        const fast = speedPresets.speedFastPresets || DEFAULT_SPEED_FAST_PRESETS;
+        const speedMap = {
+          'slow-low': slow[0], 'slow-medium': slow[1], 'slow-high': slow[2],
+          'fast-low': fast[0], 'fast-medium': fast[1], 'fast-high': fast[2]
+        };
+        rate = speedMap[speedLevel] || 1;
+      }
+      if (rate !== 1) {
+        await browserAPI.tabs.sendMessage(tabId, { type: 'SET_SPEED', rate: rate });
+      }
+    }
+  } catch (e) {
+    // Content script might not be injected yet
+  }
+}
+
+// Forward stored tab settings to the Tab Capture offscreen document (Chrome only)
+// Called after Tab Capture starts to ensure the offscreen pipeline matches stored settings
+// (e.g., a pending site rule applied volume=0 to storage, but the offscreen starts at default gain)
+async function syncStoredSettingsToTabCapture(tabId) {
+  if (isFirefox || !chrome.offscreen) return;
+  try {
+    // Read all stored settings for this tab
+    const volKey = getTabStorageKey(tabId, TAB_STORAGE.VOLUME);
+    const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
+    const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
+    const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
+    const compressorKey = getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR);
+    const balanceKey = getTabStorageKey(tabId, TAB_STORAGE.BALANCE);
+    const channelKey = getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE);
+    const result = await browserAPI.storage.local.get([volKey, bassKey, trebleKey, voiceKey, compressorKey, balanceKey, channelKey]);
+
+    // Volume — always send (default 100 if not stored)
+    const volume = result[volKey] !== undefined ? result[volKey] : 100;
+    chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_VOLUME', tabId, volume }).catch(() => {});
+
+    // Effects — only send if stored (non-default)
+    const bassBoostPresets = (await browserAPI.storage.sync.get(['bassBoostPresets'])).bassBoostPresets || DEFAULT_BASS_PRESETS;
+    const trebleBoostPresets = (await browserAPI.storage.sync.get(['trebleBoostPresets'])).trebleBoostPresets || DEFAULT_TREBLE_PRESETS;
+    const voiceBoostPresets = (await browserAPI.storage.sync.get(['voiceBoostPresets'])).voiceBoostPresets || DEFAULT_VOICE_PRESETS;
+
+    if (result[bassKey] && result[bassKey] !== 'off') {
+      const level = result[bassKey];
+      if (typeof level === 'string') {
+        let gain = 0;
+        if (level.startsWith('cut-')) {
+          const bassCutPresets = (await browserAPI.storage.sync.get(['bassCutPresets'])).bassCutPresets || DEFAULT_BASS_CUT_PRESETS;
+          const cutLevel = level.replace('cut-', '');
+          gain = cutLevel === 'low' ? bassCutPresets[0] : cutLevel === 'medium' ? bassCutPresets[1] : cutLevel === 'high' ? bassCutPresets[2] : 0;
+        } else {
+          gain = level === 'low' ? bassBoostPresets[0] : level === 'medium' ? bassBoostPresets[1] : level === 'high' ? bassBoostPresets[2] : 0;
+        }
+        if (gain !== 0) {
+          chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_BASS', tabId, gain }).catch(() => {});
+        }
+      }
+    }
+
+    if (result[trebleKey] && result[trebleKey] !== 'off') {
+      const level = result[trebleKey];
+      if (typeof level === 'string') {
+        let gain = 0;
+        if (level.startsWith('cut-')) {
+          const trebleCutPresets = (await browserAPI.storage.sync.get(['trebleCutPresets'])).trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
+          const cutLevel = level.replace('cut-', '');
+          gain = cutLevel === 'low' ? trebleCutPresets[0] : cutLevel === 'medium' ? trebleCutPresets[1] : cutLevel === 'high' ? trebleCutPresets[2] : 0;
+        } else {
+          gain = level === 'low' ? trebleBoostPresets[0] : level === 'medium' ? trebleBoostPresets[1] : level === 'high' ? trebleBoostPresets[2] : 0;
+        }
+        if (gain !== 0) {
+          chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_TREBLE', tabId, gain }).catch(() => {});
+        }
+      }
+    }
+
+    if (result[voiceKey] && result[voiceKey] !== 'off') {
+      const level = result[voiceKey];
+      const gain = level === 'low' ? voiceBoostPresets[0] : level === 'medium' ? voiceBoostPresets[1] : level === 'high' ? voiceBoostPresets[2] : 0;
+      if (gain !== 0) {
+        chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_VOICE', tabId, gain }).catch(() => {});
+      }
+    }
+
+    if (result[compressorKey] && result[compressorKey] !== 'off') {
+      chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_COMPRESSOR', tabId, preset: result[compressorKey] }).catch(() => {});
+    }
+
+    if (result[balanceKey] !== undefined) {
+      const pan = result[balanceKey] / 100; // Convert -100..100 to -1..1
+      chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_BALANCE', tabId, pan }).catch(() => {});
+    }
+
+    if (result[channelKey]) {
+      chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_CHANNEL_MODE', tabId, mode: result[channelKey] }).catch(() => {});
+    }
+  } catch (e) {
+    // Offscreen might not be ready yet
+  }
+}
+
 // Update badge for a specific tab
-// Priority: 1) Restricted page, 2) Tab Capture pending, 3) Volume display
+// Priority: 1) Restricted page (yellow), 2) Site rule pending (red), 3) Tab Capture pending (blue), 4) Volume display
 async function updateBadge(tabId, volume, tabUrl = null) {
   try {
     // Get tab URL if not provided
@@ -251,6 +562,21 @@ async function updateBadge(tabId, volume, tabUrl = null) {
       return;
     }
 
+    // Check if a site rule exists but hasn't been applied to this tab yet
+    const hasPendingRule = await hasPendingSiteRule(tabId, url);
+    if (hasPendingRule) {
+      await browserAPI.action.setBadgeText({ text: '!', tabId });
+      await browserAPI.action.setBadgeBackgroundColor({ color: '#D94A4A', tabId });
+      if (browserAPI.action.setBadgeTextColor) {
+        await browserAPI.action.setBadgeTextColor({ color: '#ffffff', tabId });
+      }
+      await browserAPI.action.setTitle({
+        title: 'Site rule available — click to apply',
+        tabId
+      });
+      return;
+    }
+
     // Check if Tab Capture is pending - show activation indicator
     const pending = await isTabCapturePending(tabId);
     if (pending) {
@@ -272,9 +598,29 @@ async function updateBadge(tabId, volume, tabUrl = null) {
       tabId
     });
 
-    // Set badge colors - red background when muted (0%), black otherwise
-    const bgColor = volume === 0 ? '#CC0000' : '#000000';
-    const textColor = '#ffffff';
+    // Set badge colors - red background when muted (0%), style-dependent otherwise
+    const badgeStyleResult = await browserAPI.storage.sync.get(['badgeStyle']);
+    const badgeStyle = badgeStyleResult.badgeStyle || 'light';
+
+    let bgColor, textColor;
+    if (volume === 0) {
+      bgColor = '#CC0000';
+      textColor = '#ffffff';
+    } else if (badgeStyle === 'color') {
+      // Background matches volume level color (same scale as popup UI)
+      if (volume <= 50) bgColor = '#60a5fa';       // blue
+      else if (volume <= 100) bgColor = '#4ade80';  // green
+      else if (volume <= 200) bgColor = '#facc15';  // yellow
+      else if (volume <= 350) bgColor = '#fb923c';  // orange
+      else bgColor = '#a855f7';                      // purple
+      textColor = '#000000';
+    } else if (badgeStyle === 'dark') {
+      bgColor = '#ffffff';
+      textColor = '#000000';
+    } else {
+      bgColor = '#000000';
+      textColor = '#ffffff';
+    }
     const badgeText = `${volume}%`;
 
     await browserAPI.action.setBadgeText({ text: badgeText, tabId });
@@ -315,6 +661,23 @@ async function isTabCapturePending(tabId) {
   }
 }
 
+// Check if a site rule exists AND Tab Capture is pending for this tab
+// Red badge replaces blue when a rule is available — more actionable than generic "Tab Capture pending"
+// Returns false on Firefox/Web Audio (isTabCapturePending is always false there — rules just auto-apply)
+async function hasPendingSiteRule(tabId, url) {
+  if (!url) return false;
+  try {
+    const hostname = getValidatedHostname(url);
+    if (!hostname) return false;
+    const matchingRule = await getMatchingSiteRule(url);
+    if (!matchingRule) return false;
+    // Only show red when Tab Capture also needs activation
+    return await isTabCapturePending(tabId);
+  } catch (e) {
+    return false;
+  }
+}
+
 // Update badge and tooltip - delegates to updateBadge which handles pending state
 async function updateTabCaptureIndicator(tabId) {
   try {
@@ -328,17 +691,17 @@ async function updateTabCaptureIndicator(tabId) {
 // Validate volume value is within acceptable range
 function validateVolume(value) {
   if (typeof value !== 'number' || isNaN(value)) {
-    return DEFAULT_VOLUME;
+    return VOLUME_DEFAULT;
   }
-  // Clamp to valid range (0-500)
-  return Math.max(0, Math.min(500, Math.round(value)));
+  // Clamp to valid range
+  return Math.max(VOLUME_MIN, Math.min(VOLUME_MAX, Math.round(value)));
 }
 
 // Get volume for a tab
 async function getTabVolume(tabId) {
   const key = getTabStorageKey(tabId);
   const result = await browserAPI.storage.local.get([key]);
-  return result[key] !== undefined ? validateVolume(result[key]) : DEFAULT_VOLUME;
+  return result[key] !== undefined ? validateVolume(result[key]) : VOLUME_DEFAULT;
 }
 
 // Set volume for a tab
@@ -405,25 +768,34 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
     getTabStorageKey(tabId, TAB_STORAGE.VOICE),       // voice enhancement
     getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR),  // compressor/limiter
     getTabStorageKey(tabId, TAB_STORAGE.BALANCE),     // stereo balance
-    getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE) // channel mode (stereo/mono/swap)
+    getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE),// channel mode (stereo/mono/swap)
+    getTabStorageKey(tabId, TAB_STORAGE.SPEED)        // playback speed
   ];
-  await browserAPI.storage.local.remove(keysToRemove);
+  try {
+    await browserAPI.storage.local.remove(keysToRemove);
+  } catch (e) {
+    console.error('[TabVolume] Failed to remove tab storage keys:', e.message);
+  }
 
   // Remove from tabs with media tracking
   tabsWithMedia.delete(tabId);
+
+  // Clean up fullscreen state tracking (don't restore window state — tab is already gone)
+  fullscreenStateByTab.delete(tabId);
 
   // Clear tracked tab if it was closed (Active Tab Audio mode continues)
   if (focusModeState.active && focusModeState.lastActiveTabId === tabId) {
     focusModeState.lastActiveTabId = null;
     try {
-      browserAPI.storage.session.set({ activeTabAudioLastTabId: null });
+      await browserAPI.storage.session.set({ activeTabAudioLastTabId: null });
     } catch (e) {
       // Session storage might not be available
     }
     // onActivated will handle unmuting the next active tab
   }
 
-  // Notify offscreen to stop any visualizer capture for this tab (Chrome only)
+  // Notify offscreen to clean up all captures for this tab (Chrome only)
+  // TAB_REMOVED cleans up both visualizer and Tab Capture audio pipelines
   if (!isFirefox && chrome.offscreen) {
     try {
       const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
@@ -433,7 +805,7 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
       });
       if (existingContexts.length > 0) {
         chrome.runtime.sendMessage({
-          type: 'STOP_VISUALIZER_CAPTURE',
+          type: 'TAB_REMOVED',
           tabId: tabId
         }).catch(() => {}); // Ignore errors if offscreen not ready
       }
@@ -454,7 +826,8 @@ browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
     try {
       const stored = await browserAPI.storage.session.get(['activeTabAudioMode', 'activeTabAudioLastTabId']);
       isActive = stored.activeTabAudioMode || false;
-      previousTabId = stored.activeTabAudioLastTabId || null;
+      const storedTabId = stored.activeTabAudioLastTabId;
+      previousTabId = isValidTabId(storedTabId) ? storedTabId : null;
       if (isActive) {
         focusModeState.active = true;
         focusModeState.lastActiveTabId = previousTabId;
@@ -467,6 +840,10 @@ browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
   if (!isActive) return;
 
   const newActiveTabId = activeInfo.tabId;
+
+  // Update tracked active tab immediately (before async work) to prevent race
+  // conditions when multiple onActivated events fire in rapid succession
+  focusModeState.lastActiveTabId = newActiveTabId;
 
   // Mute the previous active tab (if different and exists)
   if (previousTabId && previousTabId !== newActiveTabId) {
@@ -509,8 +886,7 @@ browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
     // Tab error
   }
 
-  // Update tracked active tab (both local and session storage)
-  focusModeState.lastActiveTabId = newActiveTabId;
+  // Persist to session storage (local state already updated above, before async work)
   try {
     await browserAPI.storage.session.set({ activeTabAudioLastTabId: newActiveTabId });
   } catch (e) {
@@ -537,7 +913,8 @@ browserAPI.windows.onFocusChanged.addListener(async (windowId) => {
     try {
       const stored = await browserAPI.storage.session.get(['activeTabAudioMode', 'activeTabAudioLastTabId']);
       isActive = stored.activeTabAudioMode || false;
-      previousTabId = stored.activeTabAudioLastTabId || null;
+      const storedTabId = stored.activeTabAudioLastTabId;
+      previousTabId = isValidTabId(storedTabId) ? storedTabId : null;
       if (isActive) {
         focusModeState.active = true;
         focusModeState.lastActiveTabId = previousTabId;
@@ -668,73 +1045,10 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         // Only apply rule if this is a new domain (not navigation within same site)
         if (lastAppliedDomain !== currentDomain) {
           log('Domain changed, checking for matching rule...');
-          const matchingRule = await getMatchingSiteRule(tab.url);
-          log('Matching rule result:', matchingRule);
-          if (matchingRule) {
-            log('Applying rule! Volume:', matchingRule.volume);
-            volume = matchingRule.volume;
-            await setTabVolume(tabId, volume);
-
-            // Apply device from rule if specified
-            if (matchingRule.deviceLabel) {
-              ruleDeviceLabel = matchingRule.deviceLabel;
-              // Save device preference for this tab
-              const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
-              await browserAPI.storage.local.set({
-                [deviceKey]: { deviceId: '', deviceLabel: matchingRule.deviceLabel }
-              });
-            }
-
-            // Apply bass boost from rule if specified
-            if (matchingRule.bassBoost) {
-              const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
-              await browserAPI.storage.local.set({ [bassKey]: matchingRule.bassBoost });
-            }
-
-            // Apply treble boost from rule if specified
-            if (matchingRule.trebleBoost) {
-              const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
-              await browserAPI.storage.local.set({ [trebleKey]: matchingRule.trebleBoost });
-            }
-
-            // Apply voice boost from rule if specified
-            if (matchingRule.voiceBoost) {
-              const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
-              await browserAPI.storage.local.set({ [voiceKey]: matchingRule.voiceBoost });
-            }
-
-            // Apply compressor from rule if specified
-            if (matchingRule.compressor) {
-              const compressorKey = getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR);
-              await browserAPI.storage.local.set({ [compressorKey]: matchingRule.compressor });
-              // If compressor is enabled, disable bass, treble, and voice boost
-              if (matchingRule.compressor !== 'off') {
-                const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
-                const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
-                const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
-                await browserAPI.storage.local.set({
-                  [bassKey]: 'off',
-                  [trebleKey]: 'off',
-                  [voiceKey]: 'off'
-                });
-              }
-            }
-
-            // Apply balance from rule if specified
-            if (matchingRule.balance !== undefined && matchingRule.balance !== 0) {
-              const balanceKey = getTabStorageKey(tabId, TAB_STORAGE.BALANCE);
-              await browserAPI.storage.local.set({ [balanceKey]: matchingRule.balance });
-            }
-
-            // Apply channel mode from rule if specified
-            if (matchingRule.channelMode) {
-              const channelKey = getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE);
-              await browserAPI.storage.local.set({ [channelKey]: matchingRule.channelMode });
-            }
-
-            // Remember this domain so we don't re-apply on navigation within site
-            log('Rule applied, saving domain to prevent re-application:', currentDomain);
-            await browserAPI.storage.local.set({ [ruleAppliedKey]: currentDomain });
+          const matchedRule = await applyMatchingSiteRule(tabId, tab.url);
+          if (matchedRule) {
+            volume = matchedRule.rule.volume;
+            ruleDeviceLabel = matchedRule.deviceLabel;
           }
           // If no rule matched, don't store domain - allows rules added later to apply
         } else {
@@ -786,91 +1100,8 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       }
     }
 
-    // Re-send volume and device to content script after navigation
-    try {
-      await browserAPI.tabs.sendMessage(tabId, {
-        type: 'SET_VOLUME',
-        volume: volume
-      });
-      if (deviceId || deviceLabel) {
-        await browserAPI.tabs.sendMessage(tabId, {
-          type: 'SET_DEVICE',
-          deviceId: deviceId,
-          deviceLabel: deviceLabel
-        });
-      }
-
-      // Send bass/treble/voice boost, compressor, balance, and channel mode settings if they exist for this tab
-      const bassKey = getTabStorageKey(tabId, TAB_STORAGE.BASS);
-      const trebleKey = getTabStorageKey(tabId, TAB_STORAGE.TREBLE);
-      const voiceKey = getTabStorageKey(tabId, TAB_STORAGE.VOICE);
-      const compressorKey = getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR);
-      const balanceKey = getTabStorageKey(tabId, TAB_STORAGE.BALANCE);
-      const channelKey = getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE);
-      const effectResult = await browserAPI.storage.local.get([bassKey, trebleKey, voiceKey, compressorKey, balanceKey, channelKey]);
-      const bassBoostPresets = (await browserAPI.storage.sync.get(['bassBoostPresets'])).bassBoostPresets || [4, 8, 12];
-      const trebleBoostPresets = (await browserAPI.storage.sync.get(['trebleBoostPresets'])).trebleBoostPresets || [6, 12, 24];
-      const voiceBoostPresets = (await browserAPI.storage.sync.get(['voiceBoostPresets'])).voiceBoostPresets || [3, 6, 9];
-
-      if (effectResult[bassKey]) {
-        const bassLevel = effectResult[bassKey];
-        const bassGain = bassLevel === 'low' ? bassBoostPresets[0] : bassLevel === 'medium' ? bassBoostPresets[1] : bassLevel === 'high' ? bassBoostPresets[2] : 0;
-        if (bassGain > 0) {
-          await browserAPI.tabs.sendMessage(tabId, {
-            type: 'SET_BASS',
-            gain: bassGain
-          });
-        }
-      }
-
-      if (effectResult[trebleKey]) {
-        const trebleLevel = effectResult[trebleKey];
-        const trebleGain = trebleLevel === 'low' ? trebleBoostPresets[0] : trebleLevel === 'medium' ? trebleBoostPresets[1] : trebleLevel === 'high' ? trebleBoostPresets[2] : 0;
-        if (trebleGain > 0) {
-          await browserAPI.tabs.sendMessage(tabId, {
-            type: 'SET_TREBLE',
-            gain: trebleGain
-          });
-        }
-      }
-
-      if (effectResult[voiceKey]) {
-        const voiceLevel = effectResult[voiceKey];
-        const voiceGain = voiceLevel === 'low' ? voiceBoostPresets[0] : voiceLevel === 'medium' ? voiceBoostPresets[1] : voiceLevel === 'high' ? voiceBoostPresets[2] : 0;
-        if (voiceGain > 0) {
-          await browserAPI.tabs.sendMessage(tabId, {
-            type: 'SET_VOICE',
-            gain: voiceGain
-          });
-        }
-      }
-
-      // Send compressor setting if saved for this tab
-      if (effectResult[compressorKey] && effectResult[compressorKey] !== 'off') {
-        await browserAPI.tabs.sendMessage(tabId, {
-          type: 'SET_COMPRESSOR',
-          preset: effectResult[compressorKey]
-        });
-      }
-
-      // Send balance if saved for this tab
-      if (effectResult[balanceKey] !== undefined) {
-        await browserAPI.tabs.sendMessage(tabId, {
-          type: 'SET_BALANCE',
-          balance: effectResult[balanceKey]
-        });
-      }
-
-      // Send channel mode if saved for this tab
-      if (effectResult[channelKey]) {
-        await browserAPI.tabs.sendMessage(tabId, {
-          type: 'SET_CHANNEL_MODE',
-          mode: effectResult[channelKey]
-        });
-      }
-    } catch (e) {
-      // Content script might not be injected yet
-    }
+    // Re-send all settings to content script after navigation
+    await sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLabel);
   }
 });
 
@@ -962,43 +1193,62 @@ async function isTabCaptureActive(tabId) {
 
 // Initiate Tab Capture for a tab (Chrome only, requires user gesture context)
 // This is called from keyboard shortcuts which provide user gesture context
+// Per-tab lock prevents concurrent initiation from rapid key presses
+const tabCaptureInitLocks = new Map();
+
 async function initiateTabCaptureFromKeyboard(tabId) {
   if (isFirefox || !chrome.tabCapture) {
     return false;
   }
 
-  try {
-    // Ensure offscreen document exists
-    await setupOffscreenDocument();
+  // If already initiating for this tab, wait for the existing operation
+  if (tabCaptureInitLocks.has(tabId)) {
+    return tabCaptureInitLocks.get(tabId);
+  }
 
-    // Get the media stream ID (requires user gesture - keyboard shortcut provides this)
-    const streamId = await chrome.tabCapture.getMediaStreamId({
-      targetTabId: tabId
-    });
+  const initPromise = (async () => {
+    try {
+      // Ensure offscreen document exists
+      await setupOffscreenDocument();
 
-    if (!streamId) {
-      console.log('[TabVolume] Keyboard shortcut: No stream ID returned');
+      // Get the media stream ID (requires user gesture - keyboard shortcut provides this)
+      const streamId = await chrome.tabCapture.getMediaStreamId({
+        targetTabId: tabId
+      });
+
+      if (!streamId) {
+        console.log('[TabVolume] Keyboard shortcut: No stream ID returned');
+        return false;
+      }
+
+      // Send to offscreen document to start capture
+      const response = await chrome.runtime.sendMessage({
+        type: 'START_VISUALIZER_CAPTURE',
+        streamId: streamId,
+        tabId: tabId
+      });
+
+      console.log('[TabVolume] Keyboard shortcut initiated Tab Capture for tab', tabId);
+
+      // Clear the pending indicator now that Tab Capture is active
+      if (response && response.success) {
+        await updateTabCaptureIndicator(tabId);
+        // Sync stored tab settings to the offscreen document
+        await syncStoredSettingsToTabCapture(tabId);
+      }
+
+      return response && response.success;
+    } catch (e) {
+      console.error('[TabVolume] Keyboard shortcut Tab Capture failed:', e);
       return false;
     }
+  })();
 
-    // Send to offscreen document to start capture
-    const response = await chrome.runtime.sendMessage({
-      type: 'START_VISUALIZER_CAPTURE',
-      streamId: streamId,
-      tabId: tabId
-    });
-
-    console.log('[TabVolume] Keyboard shortcut initiated Tab Capture for tab', tabId);
-
-    // Clear the pending indicator now that Tab Capture is active
-    if (response && response.success) {
-      await updateTabCaptureIndicator(tabId);
-    }
-
-    return response && response.success;
-  } catch (e) {
-    console.error('[TabVolume] Keyboard shortcut Tab Capture failed:', e);
-    return false;
+  tabCaptureInitLocks.set(tabId, initPromise);
+  try {
+    return await initPromise;
+  } finally {
+    tabCaptureInitLocks.delete(tabId);
   }
 }
 
@@ -1095,17 +1345,21 @@ function isValidSender(sender) {
 // Validate message type is a known type
 const VALID_MESSAGE_TYPES = [
   'REQUEST_AUDIO_DEVICES', 'DEVICE_NOT_FOUND', 'GET_VOLUME', 'SET_VOLUME',
-  'GET_TAB_ID', 'GET_TAB_INFO', 'GET_AUDIBLE_TABS',
+  'GET_TAB_ID', 'GET_AUDIBLE_TABS',
   'MUTE_OTHER_TABS', 'UNMUTE_OTHER_TABS', 'GET_FOCUS_STATE',
   'HAS_MEDIA', 'CONTENT_READY', 'VOLUME_CHANGED',
-  'START_TAB_CAPTURE_VISUALIZER', 'GET_TAB_CAPTURE_PREF', 'SET_TAB_CAPTURE_PREF',
+  'GET_TAB_CAPTURE_PREF', 'SET_TAB_CAPTURE_PREF',
   // Persistent visualizer Tab Capture (offscreen document)
   'START_PERSISTENT_VISUALIZER_CAPTURE', 'STOP_PERSISTENT_VISUALIZER_CAPTURE',
   'GET_PERSISTENT_VISUALIZER_DATA', 'GET_PERSISTENT_VISUALIZER_STATUS',
   // Tab Capture audio control (offscreen document)
   'SET_TAB_CAPTURE_VOLUME', 'SET_TAB_CAPTURE_BASS', 'SET_TAB_CAPTURE_TREBLE',
   'SET_TAB_CAPTURE_VOICE', 'SET_TAB_CAPTURE_BALANCE', 'SET_TAB_CAPTURE_DEVICE',
-  'SET_TAB_CAPTURE_COMPRESSOR', 'GET_TAB_CAPTURE_MODE', 'GET_EFFECTIVE_MODE'
+  'SET_TAB_CAPTURE_COMPRESSOR', 'SET_TAB_CAPTURE_CHANNEL_MODE', 'GET_TAB_CAPTURE_MODE', 'GET_EFFECTIVE_MODE',
+  // Fullscreen workaround (Tab Capture mode)
+  'FULLSCREEN_CHANGE',
+  // Pending site rule application (from popup)
+  'APPLY_PENDING_SITE_RULE'
 ];
 
 function isValidMessageType(type) {
@@ -1116,6 +1370,7 @@ function isValidMessageType(type) {
 
 // Track last message time per type per tab (defense against message flooding)
 const messageThrottles = new Map();
+let lastThrottleCleanup = 0;
 const THROTTLE_INTERVAL_MS = 30; // Max ~33 messages/sec per type per tab
 const THROTTLED_MESSAGE_TYPES = ['SET_VOLUME', 'VOLUME_CHANGED']; // High-frequency types
 
@@ -1134,8 +1389,9 @@ function shouldThrottleMessage(type, tabId) {
 
   messageThrottles.set(key, now);
 
-  // Cleanup old entries periodically (every 100 messages)
-  if (messageThrottles.size > 100) {
+  // Cleanup old entries periodically (avoid running on every message when nothing to clean)
+  if (messageThrottles.size > 100 && (now - lastThrottleCleanup) > 10000) {
+    lastThrottleCleanup = now;
     const cutoff = now - 5000; // Remove entries older than 5 seconds
     // Collect keys to delete first to avoid modifying Map during iteration
     const keysToDelete = [];
@@ -1237,6 +1493,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: false, error: 'Invalid tab ID' });
       return false;
     }
+    if (!Number.isFinite(volume)) {
+      sendResponse({ success: false, error: 'Invalid volume' });
+      return false;
+    }
     setTabVolume(tabId, volume).then(() => {
       sendResponse({ success: true });
     }).catch(e => {
@@ -1251,23 +1511,6 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const tabId = sender.tab?.id;
     sendResponse({ tabId: tabId || null });
     return false; // Synchronous response
-  }
-
-  if (request.type === 'GET_TAB_INFO') {
-    if (!isValidTabId(request.tabId)) {
-      sendResponse({ title: 'Unknown', url: '' });
-      return false;
-    }
-    browserAPI.tabs.get(request.tabId).then(tab => {
-      sendResponse({
-        title: tab.title,
-        url: tab.url
-      });
-    }).catch((e) => {
-      log('GET_TAB_INFO failed for tabId', request.tabId, ':', e.message);
-      sendResponse({ title: 'Unknown', url: '' });
-    });
-    return true;
   }
 
   // Get all tabs currently playing audio
@@ -1308,6 +1551,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       try {
         const currentTabId = request.currentTabId;
+        if (!isValidTabId(currentTabId)) {
+          sendResponse({ success: false, error: 'Invalid tab ID' });
+          return;
+        }
         const tabs = await browserAPI.tabs.query({});
 
         // Mute all other tabs that aren't already muted
@@ -1381,9 +1628,13 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       try {
         const currentTabId = request.currentTabId;
+        if (!isValidTabId(currentTabId)) {
+          sendResponse({ success: false, error: 'Invalid tab ID' });
+          return;
+        }
         const tabs = await browserAPI.tabs.query({});
 
-        // Unmute all other tabs that are muted
+        // Unmute all other tabs that are muted and restore saved volumes
         let unmutedCount = 0;
         for (const tab of tabs) {
           if (tab.id === currentTabId) continue;
@@ -1394,10 +1645,11 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // Also restore Tab Capture volume if active
             if (!isFirefox) {
               try {
+                const savedVolume = await getTabVolume(tab.id);
                 await chrome.runtime.sendMessage({
                   type: 'SET_TAB_CAPTURE_VOLUME',
                   tabId: tab.id,
-                  volume: 100
+                  volume: savedVolume
                 });
               } catch (tcErr) {
                 // Tab might not have Tab Capture active
@@ -1432,42 +1684,6 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       tabsWithMedia.add(tabId);
     }
     sendResponse({ success: true });
-    return true;
-  }
-
-  // ==================== Tab Capture for Visualizer ====================
-  // Start tab capture and return stream ID for visualizer (Chrome only)
-  if (request.type === 'START_TAB_CAPTURE_VISUALIZER') {
-    (async () => {
-      const tabId = request.tabId;
-      if (!tabId) {
-        sendResponse({ success: false, error: 'No tab ID provided' });
-        return;
-      }
-
-      // Firefox doesn't support tabCapture in the same way
-      if (isFirefox) {
-        sendResponse({ success: false, error: 'tabCapture not supported in Firefox' });
-        return;
-      }
-
-      try {
-        // Get the media stream ID that the popup can use
-        const streamId = await chrome.tabCapture.getMediaStreamId({
-          targetTabId: tabId
-        });
-
-        if (streamId) {
-          console.log('[TabVolume] tabCapture stream ID obtained for tab', tabId);
-          sendResponse({ success: true, streamId });
-        } else {
-          sendResponse({ success: false, error: 'No stream ID returned' });
-        }
-      } catch (e) {
-        console.error('[TabVolume] tabCapture failed:', e);
-        sendResponse({ success: false, error: e.message });
-      }
-    })();
     return true;
   }
 
@@ -1520,6 +1736,14 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         if (enabled) {
           sites[sanitized] = true;
+          // Prune oldest entries if map exceeds 500 domains
+          const keys = Object.keys(sites);
+          if (keys.length > 500) {
+            const excess = keys.length - 500;
+            for (let i = 0; i < excess; i++) {
+              delete sites[keys[i]];
+            }
+          }
         } else {
           delete sites[sanitized];
         }
@@ -1559,7 +1783,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'START_PERSISTENT_VISUALIZER_CAPTURE') {
     (async () => {
       const tabId = request.tabId;
-      if (!tabId) {
+      if (!isValidTabId(tabId)) {
         sendResponse({ success: false, error: 'No tab ID provided' });
         return;
       }
@@ -1595,6 +1819,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Clear the pending indicator now that Tab Capture is active
         if (response && response.success) {
           await updateTabCaptureIndicator(tabId);
+          // Sync stored tab settings (volume, effects) to the offscreen document
+          // so the Tab Capture pipeline matches any previously applied site rules
+          await syncStoredSettingsToTabCapture(tabId);
         }
 
         sendResponse(response);
@@ -1610,7 +1837,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'STOP_PERSISTENT_VISUALIZER_CAPTURE') {
     (async () => {
       const tabId = request.tabId;
-      if (!tabId) {
+      if (!isValidTabId(tabId)) {
         sendResponse({ success: false, error: 'No tab ID provided' });
         return;
       }
@@ -1640,7 +1867,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'GET_PERSISTENT_VISUALIZER_DATA') {
     (async () => {
       const tabId = request.tabId;
-      if (!tabId) {
+      if (!isValidTabId(tabId)) {
         sendResponse({ success: false, frequencyData: null, waveformData: null });
         return;
       }
@@ -1679,7 +1906,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'GET_PERSISTENT_VISUALIZER_STATUS') {
     (async () => {
       const tabId = request.tabId;
-      if (!tabId) {
+      if (!isValidTabId(tabId)) {
         sendResponse({ isActive: false });
         return;
       }
@@ -1723,7 +1950,8 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       request.type === 'SET_TAB_CAPTURE_VOICE' ||
       request.type === 'SET_TAB_CAPTURE_BALANCE' ||
       request.type === 'SET_TAB_CAPTURE_DEVICE' ||
-      request.type === 'SET_TAB_CAPTURE_COMPRESSOR') {
+      request.type === 'SET_TAB_CAPTURE_COMPRESSOR' ||
+      request.type === 'SET_TAB_CAPTURE_CHANNEL_MODE') {
     (async () => {
       if (isFirefox) {
         sendResponse({ success: false, error: 'Not supported in Firefox' });
@@ -1738,14 +1966,18 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       // Validate type-specific parameters before forwarding
       if (request.type === 'SET_TAB_CAPTURE_VOLUME') {
-        if (!Number.isFinite(request.volume) || request.volume < 0 || request.volume > 500) {
+        if (!Number.isFinite(request.volume) || request.volume < VOLUME_MIN || request.volume > VOLUME_MAX) {
           sendResponse({ success: false, error: 'Invalid volume value' });
           return;
         }
       } else if (request.type === 'SET_TAB_CAPTURE_BASS' ||
-                 request.type === 'SET_TAB_CAPTURE_TREBLE' ||
-                 request.type === 'SET_TAB_CAPTURE_VOICE') {
-        if (!Number.isFinite(request.gainDb) || request.gainDb < -50 || request.gainDb > 50) {
+                 request.type === 'SET_TAB_CAPTURE_TREBLE') {
+        if (!Number.isFinite(request.gain) || request.gain < EFFECT_RANGES.bass.min || request.gain > EFFECT_RANGES.bass.max) {
+          sendResponse({ success: false, error: 'Invalid gain value' });
+          return;
+        }
+      } else if (request.type === 'SET_TAB_CAPTURE_VOICE') {
+        if (!Number.isFinite(request.gain) || request.gain < EFFECT_RANGES.voice.min || request.gain > EFFECT_RANGES.voice.max) {
           sendResponse({ success: false, error: 'Invalid gain value' });
           return;
         }
@@ -1755,7 +1987,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
       } else if (request.type === 'SET_TAB_CAPTURE_DEVICE') {
-        if (request.deviceId !== null && typeof request.deviceId !== 'string') {
+        if (request.deviceId !== null && (typeof request.deviceId !== 'string' || request.deviceId.length > 500)) {
           sendResponse({ success: false, error: 'Invalid device ID' });
           return;
         }
@@ -1763,6 +1995,12 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const validPresets = ['off', 'podcast', 'movie', 'maximum'];
         if (typeof request.preset !== 'string' || !validPresets.includes(request.preset)) {
           sendResponse({ success: false, error: 'Invalid compressor preset' });
+          return;
+        }
+      } else if (request.type === 'SET_TAB_CAPTURE_CHANNEL_MODE') {
+        const validModes = ['stereo', 'mono', 'swap'];
+        if (typeof request.mode !== 'string' || !validModes.includes(request.mode)) {
+          sendResponse({ success: false, error: 'Invalid channel mode' });
           return;
         }
       }
@@ -1782,6 +2020,11 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       if (isFirefox) {
         sendResponse({ success: true, isTabCaptureMode: false });
+        return;
+      }
+
+      if (!isValidTabId(request.tabId)) {
+        sendResponse({ success: false, isTabCaptureMode: false });
         return;
       }
 
@@ -1812,6 +2055,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'CONTENT_READY') {
     // Content script is ready, send current volume and device
+    if (!sender.tab) return false;
     const tabId = sender.tab.id;
     const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
     Promise.all([
@@ -1854,8 +2098,111 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         deviceId,
         deviceLabel
       });
+    }).catch((e) => {
+      console.error('[TabVolume] CONTENT_READY failed:', e);
+      sendResponse({ volume: 100, deviceId: '', deviceLabel: '' });
     });
     return true;
+  }
+
+  // Handle pending site rule application (from popup — user clicked icon on red badge tab)
+  if (request.type === 'APPLY_PENDING_SITE_RULE') {
+    (async () => {
+      const tabId = request.tabId;
+      if (!isValidTabId(tabId)) {
+        sendResponse({ success: false });
+        return;
+      }
+      try {
+        const tab = await browserAPI.tabs.get(tabId);
+        if (!tab.url) {
+          sendResponse({ success: false });
+          return;
+        }
+        // Check if rule was already applied to this tab (don't re-apply on subsequent popup opens)
+        const currentDomain = getValidatedHostname(tab.url);
+        const ruleAppliedKey = getTabStorageKey(tabId, TAB_STORAGE.RULE_APPLIED);
+        const appliedResult = await browserAPI.storage.local.get([ruleAppliedKey]);
+        if (appliedResult[ruleAppliedKey] === currentDomain) {
+          sendResponse({ success: false });
+          return;
+        }
+        const ruleResult = await applyMatchingSiteRule(tabId, tab.url);
+        if (ruleResult) {
+          // Send settings to content script so the audio pipeline reflects the rule
+          await sendTabSettingsToContentScript(tabId, ruleResult.rule.volume, '', ruleResult.deviceLabel);
+          await updateBadge(tabId, ruleResult.rule.volume, tab.url);
+          sendResponse({ success: true, volume: ruleResult.rule.volume });
+        } else {
+          sendResponse({ success: false });
+        }
+      } catch (e) {
+        sendResponse({ success: false });
+      }
+    })();
+    return true;
+  }
+
+  // Handle fullscreen workaround for Tab Capture mode (Chrome only)
+  // Tab Capture prevents true fullscreen on video elements, so we toggle browser
+  // fullscreen (F11 equivalent) using chrome.windows.update()
+  if (request.type === 'FULLSCREEN_CHANGE' && !isFirefox && sender.tab) {
+    if (typeof request.isFullscreen !== 'boolean') return false;
+    const tabId = sender.tab.id;
+    const windowId = sender.tab.windowId;
+
+    if (request.isFullscreen) {
+      // Entering fullscreen — check if window is already fullscreen (e.g. user pressed F11)
+      browserAPI.windows.get(windowId).then(win => {
+        if (win.state === 'fullscreen') {
+          // Already fullscreen, don't track — we didn't cause it
+          return;
+        }
+        // Save previous state so we can restore on exit
+        fullscreenStateByTab.set(tabId, win.state); // 'maximized' or 'normal'
+        // Inject CSS to force the fullscreen container to fill the actual viewport.
+        // This is more reliable than resize events because CSS rules are declarative —
+        // they apply continuously as the viewport changes, without timing issues.
+        // Only targets :fullscreen (the container), NOT :fullscreen video — overriding
+        // video element sizing breaks players like YouTube that use transforms/positioning.
+        const fullscreenCSS = ':fullscreen { width: 100vw !important; height: 100vh !important; }';
+        browserAPI.scripting.insertCSS({
+          target: { tabId },
+          css: fullscreenCSS
+        }).catch(() => {});
+
+        browserAPI.windows.update(windowId, { state: 'fullscreen' }).then(() => {
+          // Also dispatch resize events so video players that listen for resize
+          // can recalculate their internal layout (controls positioning, etc.)
+          const dispatchResize = () => {
+            browserAPI.scripting.executeScript({
+              target: { tabId, allFrames: true },
+              func: () => {
+                window.dispatchEvent(new Event('resize'));
+              },
+              world: 'MAIN'
+            }).catch(() => {});
+          };
+          setTimeout(dispatchResize, 100);
+          setTimeout(dispatchResize, 500);
+          setTimeout(dispatchResize, 1000);
+        });
+      }).catch(() => {});
+    } else {
+      // Exiting fullscreen — restore previous window state if we triggered the fullscreen
+      const previousState = fullscreenStateByTab.get(tabId);
+      fullscreenStateByTab.delete(tabId);
+      if (previousState) {
+        // Remove the injected fullscreen CSS override
+        const fullscreenCSS = ':fullscreen { width: 100vw !important; height: 100vh !important; }';
+        browserAPI.scripting.removeCSS({
+          target: { tabId },
+          css: fullscreenCSS
+        }).catch(() => {});
+        browserAPI.windows.update(windowId, { state: previousState }).catch(() => {});
+      }
+    }
+    return false;
   }
 
   return false;
@@ -1895,17 +2242,17 @@ browserAPI.commands.onCommand.addListener(async (command) => {
 
   switch (command) {
     case 'volume-up':
-      volume = Math.min(500, volume + keyboardStep);
+      volume = Math.min(VOLUME_MAX, volume + keyboardStep);
       break;
     case 'volume-down':
-      volume = Math.max(0, volume - keyboardStep);
+      volume = Math.max(VOLUME_MIN, volume - keyboardStep);
       break;
     case 'toggle-mute':
       // Store previous volume for unmuting
       if (volume === 0) {
         const prevKey = getTabStorageKey(tab.id, TAB_STORAGE.PREV);
         const result = await browserAPI.storage.local.get([prevKey]);
-        volume = result[prevKey] || 100;
+        volume = result[prevKey] || VOLUME_DEFAULT;
         await browserAPI.storage.local.remove([prevKey]);
       } else {
         const prevKey = getTabStorageKey(tab.id, TAB_STORAGE.PREV);
@@ -1934,7 +2281,7 @@ browserAPI.commands.onCommand.addListener(async (command) => {
 
 // Get the effective audio mode for a domain based on current default mode
 async function getEffectiveModeForDomain(hostname) {
-  if (!hostname) return null;
+  if (!hostname || typeof hostname !== 'string') return null;
 
   try {
     const result = await browserAPI.storage.sync.get([
@@ -1946,7 +2293,7 @@ async function getEffectiveModeForDomain(hostname) {
       'offDefault_webAudioSites'
     ]);
 
-    const defaultMode = result.defaultAudioMode || 'tabcapture';
+    const defaultMode = result.defaultAudioMode || DEFAULT_AUDIO_MODE_CHROME;
     const disabledDomains = result.disabledDomains || [];
 
     // Check based on current default mode
@@ -2096,7 +2443,7 @@ async function cleanupStaleTabKeys() {
         if (match) {
           const tabId = parseInt(match[1], 10);
           // Skip if parsing failed or value is unreasonable
-          if (!Number.isFinite(tabId) || tabId < 0) continue;
+          if (!isValidTabId(tabId)) continue;
           if (!validTabIds.has(tabId)) {
             keysToRemove.push(key);
           }
@@ -2177,13 +2524,7 @@ browserAPI.runtime.onInstalled.addListener(async (details) => {
 // Use contextMenus API (compatible with both Chrome and Firefox)
 const contextMenusAPI = browserAPI.contextMenus || browserAPI.menus;
 
-// Default presets (used if user hasn't customized)
-const DEFAULT_VOLUME_PRESETS = [50, 100, 200, 300, 500];
-const DEFAULT_BASS_PRESETS = [6, 12, 24];
-const DEFAULT_BASS_CUT_PRESETS = [-6, -12, -24];
-const DEFAULT_TREBLE_PRESETS = [6, 12, 24];
-const DEFAULT_TREBLE_CUT_PRESETS = [-6, -12, -24];
-const DEFAULT_VOICE_PRESETS = [4, 10, 18];
+// Default presets moved to top of file (near line 27)
 
 // Menu contexts
 const MENU_CONTEXTS = ['page', 'audio', 'video'];
@@ -2202,7 +2543,9 @@ async function createContextMenus() {
     'bassCutPresets',
     'trebleBoostPresets',
     'trebleCutPresets',
-    'voiceBoostPresets'
+    'voiceBoostPresets',
+    'speedSlowPresets',
+    'speedFastPresets'
   ]);
 
   const volumePresets = storage.customPresets || DEFAULT_VOLUME_PRESETS;
@@ -2211,6 +2554,8 @@ async function createContextMenus() {
   const treblePresets = storage.trebleBoostPresets || DEFAULT_TREBLE_PRESETS;
   const trebleCutPresets = storage.trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
   const voicePresets = storage.voiceBoostPresets || DEFAULT_VOICE_PRESETS;
+  const speedSlowPresets = storage.speedSlowPresets || DEFAULT_SPEED_SLOW_PRESETS;
+  const speedFastPresets = storage.speedFastPresets || DEFAULT_SPEED_FAST_PRESETS;
 
   // Remove existing menus first
   contextMenusAPI.removeAll(() => {
@@ -2327,19 +2672,19 @@ async function createContextMenus() {
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `bassBoost_${bassPresets[0]}`,
+      id: 'bassBoost_low',
       parentId: 'bassBoostSubmenu',
       title: `Low (+${bassPresets[0]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `bassBoost_${bassPresets[1]}`,
+      id: 'bassBoost_medium',
       parentId: 'bassBoostSubmenu',
       title: `Medium (+${bassPresets[1]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `bassBoost_${bassPresets[2]}`,
+      id: 'bassBoost_high',
       parentId: 'bassBoostSubmenu',
       title: `High (+${bassPresets[2]}dB)`,
       contexts: MENU_CONTEXTS
@@ -2360,19 +2705,19 @@ async function createContextMenus() {
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `bassCut_${Math.abs(bassCutPresets[0])}`,
+      id: 'bassCut_low',
       parentId: 'bassCutSubmenu',
       title: `Low (${bassCutPresets[0]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `bassCut_${Math.abs(bassCutPresets[1])}`,
+      id: 'bassCut_medium',
       parentId: 'bassCutSubmenu',
       title: `Medium (${bassCutPresets[1]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `bassCut_${Math.abs(bassCutPresets[2])}`,
+      id: 'bassCut_high',
       parentId: 'bassCutSubmenu',
       title: `High (${bassCutPresets[2]}dB)`,
       contexts: MENU_CONTEXTS
@@ -2393,19 +2738,19 @@ async function createContextMenus() {
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `trebleBoost_${treblePresets[0]}`,
+      id: 'trebleBoost_low',
       parentId: 'trebleBoostSubmenu',
       title: `Low (+${treblePresets[0]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `trebleBoost_${treblePresets[1]}`,
+      id: 'trebleBoost_medium',
       parentId: 'trebleBoostSubmenu',
       title: `Medium (+${treblePresets[1]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `trebleBoost_${treblePresets[2]}`,
+      id: 'trebleBoost_high',
       parentId: 'trebleBoostSubmenu',
       title: `High (+${treblePresets[2]}dB)`,
       contexts: MENU_CONTEXTS
@@ -2426,19 +2771,19 @@ async function createContextMenus() {
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `trebleCut_${Math.abs(trebleCutPresets[0])}`,
+      id: 'trebleCut_low',
       parentId: 'trebleCutSubmenu',
       title: `Low (${trebleCutPresets[0]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `trebleCut_${Math.abs(trebleCutPresets[1])}`,
+      id: 'trebleCut_medium',
       parentId: 'trebleCutSubmenu',
       title: `Medium (${trebleCutPresets[1]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `trebleCut_${Math.abs(trebleCutPresets[2])}`,
+      id: 'trebleCut_high',
       parentId: 'trebleCutSubmenu',
       title: `High (${trebleCutPresets[2]}dB)`,
       contexts: MENU_CONTEXTS
@@ -2459,22 +2804,73 @@ async function createContextMenus() {
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `voiceBoost_${voicePresets[0]}`,
+      id: 'voiceBoost_low',
       parentId: 'voiceBoostSubmenu',
       title: `Low (+${voicePresets[0]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `voiceBoost_${voicePresets[1]}`,
+      id: 'voiceBoost_medium',
       parentId: 'voiceBoostSubmenu',
       title: `Medium (+${voicePresets[1]}dB)`,
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: `voiceBoost_${voicePresets[2]}`,
+      id: 'voiceBoost_high',
       parentId: 'voiceBoostSubmenu',
       title: `High (+${voicePresets[2]}dB)`,
       contexts: MENU_CONTEXTS
+    });
+
+    // ========== Speed Submenu ==========
+    contextMenusAPI.create({
+      id: 'speedSubmenu',
+      parentId: 'tabVolumeParent',
+      title: 'Speed',
+      contexts: MENU_CONTEXTS
+    });
+
+    contextMenusAPI.create({
+      id: 'speed_1',
+      parentId: 'speedSubmenu',
+      title: 'Normal (1x)',
+      contexts: MENU_CONTEXTS
+    });
+
+    // Separator between normal and slow
+    contextMenusAPI.create({
+      id: 'speedSep1',
+      parentId: 'speedSubmenu',
+      type: 'separator',
+      contexts: MENU_CONTEXTS
+    });
+
+    speedSlowPresets.forEach((rate, i) => {
+      const labels = ['Low', 'Medium', 'High'];
+      contextMenusAPI.create({
+        id: `speed_${rate}`,
+        parentId: 'speedSubmenu',
+        title: `Slow ${labels[i] || ''} (${rate}x)`,
+        contexts: MENU_CONTEXTS
+      });
+    });
+
+    // Separator between slow and fast
+    contextMenusAPI.create({
+      id: 'speedSep2',
+      parentId: 'speedSubmenu',
+      type: 'separator',
+      contexts: MENU_CONTEXTS
+    });
+
+    speedFastPresets.forEach((rate, i) => {
+      const labels = ['Low', 'Medium', 'High'];
+      contextMenusAPI.create({
+        id: `speed_${rate}`,
+        parentId: 'speedSubmenu',
+        title: `Fast ${labels[i] || ''} (${rate}x)`,
+        contexts: MENU_CONTEXTS
+      });
     });
 
     // ========== Range Submenu ==========
@@ -2492,21 +2888,21 @@ async function createContextMenus() {
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: 'compressor_light',
+      id: 'compressor_podcast',
       parentId: 'rangeSubmenu',
-      title: 'Light',
+      title: 'Podcast',
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: 'compressor_medium',
+      id: 'compressor_movie',
       parentId: 'rangeSubmenu',
-      title: 'Medium',
+      title: 'Movie',
       contexts: MENU_CONTEXTS
     });
     contextMenusAPI.create({
-      id: 'compressor_heavy',
+      id: 'compressor_maximum',
       parentId: 'rangeSubmenu',
-      title: 'Heavy',
+      title: 'Max',
       contexts: MENU_CONTEXTS
     });
 
@@ -2530,6 +2926,13 @@ async function createContextMenus() {
       id: 'toggleFocusMode',
       parentId: 'tabVolumeParent',
       title: 'Toggle Focus Mode',
+      contexts: MENU_CONTEXTS
+    });
+
+    contextMenusAPI.create({
+      id: 'resetTab',
+      parentId: 'tabVolumeParent',
+      title: 'Reset Tab to Defaults',
       contexts: MENU_CONTEXTS
     });
 
@@ -2611,10 +3014,26 @@ async function createContextMenus() {
 // Listen for storage changes to update menus when presets change
 browserAPI.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'sync') {
-    const presetKeys = ['customPresets', 'bassBoostPresets', 'bassCutPresets', 'trebleBoostPresets', 'trebleCutPresets', 'voiceBoostPresets'];
+    const presetKeys = ['customPresets', 'bassBoostPresets', 'bassCutPresets', 'trebleBoostPresets', 'trebleCutPresets', 'voiceBoostPresets', 'speedSlowPresets', 'speedFastPresets'];
     if (presetKeys.some(key => changes[key])) {
       console.log('[TabVolume] Presets changed, rebuilding context menus');
       createContextMenus();
+    }
+    // Update badges for all tabs when site rules change (shows/hides red pending badge)
+    if (changes.siteVolumeRules) {
+      browserAPI.tabs.query({}).then(tabs => {
+        tabs.forEach(tab => {
+          if (tab.id) updateTabCaptureIndicator(tab.id);
+        });
+      });
+    }
+    // Refresh all tab badges when badge style changes
+    if (changes.badgeStyle) {
+      browserAPI.tabs.query({}).then(tabs => {
+        tabs.forEach(tab => {
+          if (tab.id) updateTabCaptureIndicator(tab.id);
+        });
+      });
     }
   }
 });
@@ -2622,7 +3041,7 @@ browserAPI.storage.onChanged.addListener((changes, areaName) => {
 // Handle context menu clicks
 if (contextMenusAPI) {
   contextMenusAPI.onClicked.addListener(async (info, tab) => {
-    if (!tab || !tab.id) return;
+    if (!tab || !tab.id || !isValidTabId(tab.id)) return;
 
     const menuItemId = String(info.menuItemId);
 
@@ -2635,95 +3054,200 @@ if (contextMenusAPI) {
       return;
     }
 
+    // Helper: resolve effect level name to gain value using user presets
+    async function resolveEffectGain(effect, level) {
+      if (level === 'off') return 0;
+      const storage = await browserAPI.storage.sync.get([
+        'bassBoostPresets', 'bassCutPresets', 'trebleBoostPresets', 'trebleCutPresets', 'voiceBoostPresets'
+      ]);
+      const presetMap = {
+        'bass': storage.bassBoostPresets || DEFAULT_BASS_PRESETS,
+        'bassCut': storage.bassCutPresets || DEFAULT_BASS_CUT_PRESETS,
+        'treble': storage.trebleBoostPresets || DEFAULT_TREBLE_PRESETS,
+        'trebleCut': storage.trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS,
+        'voice': storage.voiceBoostPresets || DEFAULT_VOICE_PRESETS
+      };
+      const presets = presetMap[effect] || [0, 0, 0];
+      const index = level === 'low' ? 0 : level === 'medium' ? 1 : 2;
+      return presets[index] || 0;
+    }
+
+    // Helper: forward effect to Tab Capture offscreen if active (Chrome only)
+    async function forwardToTabCapture(tabId, type, params) {
+      if (isFirefox) return;
+      try {
+        const active = await isTabCaptureActive(tabId);
+        if (active) {
+          chrome.runtime.sendMessage({ type, tabId, ...params }).catch(() => {});
+        }
+      } catch (e) {
+        // Tab Capture not available or not active — skip
+      }
+    }
+
     // ========== Compressor ==========
     if (menuItemId.startsWith('compressor_')) {
       const preset = menuItemId.replace('compressor_', '');
+      const validCompressorPresets = ['off', 'podcast', 'movie', 'maximum'];
+      if (!validCompressorPresets.includes(preset)) return;
+      // Store to local storage (popup reads this)
+      const storageKey = getTabStorageKey(tab.id, TAB_STORAGE.COMPRESSOR);
+      await browserAPI.storage.local.set({ [storageKey]: preset });
+      // Send to content script
       try {
         await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_COMPRESSOR', preset });
       } catch (e) {
         console.log('[TabVolume] Could not set compressor:', e.message);
       }
+      // Forward to Tab Capture
+      await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_COMPRESSOR', { preset });
       return;
     }
 
     // ========== Voice Boost ==========
-    if (menuItemId.startsWith('voice_')) {
-      const value = menuItemId.replace('voice_', '');
-      const gain = value === 'off' ? 0 : parseInt(value, 10);
+    if (menuItemId.startsWith('voiceBoost_')) {
+      const level = menuItemId.replace('voiceBoost_', '');
+      const gain = await resolveEffectGain('voice', level);
+      // Store level string (popup reads this)
+      const storageKey = getTabStorageKey(tab.id, TAB_STORAGE.VOICE);
+      await browserAPI.storage.local.set({ [storageKey]: level });
+      // Send to content script
       try {
         await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_VOICE', gain });
       } catch (e) {
         console.log('[TabVolume] Could not set voice boost:', e.message);
       }
+      // Forward to Tab Capture
+      await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_VOICE', { gain });
       return;
     }
 
     // ========== Bass Boost ==========
     if (menuItemId.startsWith('bassBoost_')) {
-      const value = menuItemId.replace('bassBoost_', '');
-      const gain = value === 'off' ? 0 : parseInt(value, 10);
+      const level = menuItemId.replace('bassBoost_', '');
+      const gain = await resolveEffectGain('bass', level);
+      // Store level string (popup reads this)
+      const storageKey = getTabStorageKey(tab.id, TAB_STORAGE.BASS);
+      await browserAPI.storage.local.set({ [storageKey]: level });
+      // Send to content script
       try {
         await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_BASS', gain });
       } catch (e) {
         console.log('[TabVolume] Could not set bass boost:', e.message);
       }
+      // Forward to Tab Capture
+      await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_BASS', { gain });
       return;
     }
 
     // ========== Bass Cut ==========
     if (menuItemId.startsWith('bassCut_')) {
-      const value = menuItemId.replace('bassCut_', '');
-      const gain = value === 'off' ? 0 : -parseInt(value, 10); // Negative for cut
+      const level = menuItemId.replace('bassCut_', '');
+      const gain = await resolveEffectGain('bassCut', level);
+      // Store as cut-level format (popup reads this for the bass key)
+      const storageKey = getTabStorageKey(tab.id, TAB_STORAGE.BASS);
+      const storageLevel = level === 'off' ? 'off' : `cut-${level}`;
+      await browserAPI.storage.local.set({ [storageKey]: storageLevel });
+      // Send to content script (bassCut presets are already negative)
       try {
         await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_BASS', gain });
       } catch (e) {
         console.log('[TabVolume] Could not set bass cut:', e.message);
       }
+      // Forward to Tab Capture
+      await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_BASS', { gain });
       return;
     }
 
     // ========== Treble Boost ==========
     if (menuItemId.startsWith('trebleBoost_')) {
-      const value = menuItemId.replace('trebleBoost_', '');
-      const gain = value === 'off' ? 0 : parseInt(value, 10);
+      const level = menuItemId.replace('trebleBoost_', '');
+      const gain = await resolveEffectGain('treble', level);
+      // Store level string (popup reads this)
+      const storageKey = getTabStorageKey(tab.id, TAB_STORAGE.TREBLE);
+      await browserAPI.storage.local.set({ [storageKey]: level });
+      // Send to content script
       try {
         await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_TREBLE', gain });
       } catch (e) {
         console.log('[TabVolume] Could not set treble boost:', e.message);
       }
+      // Forward to Tab Capture
+      await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_TREBLE', { gain });
       return;
     }
 
     // ========== Treble Cut ==========
     if (menuItemId.startsWith('trebleCut_')) {
-      const value = menuItemId.replace('trebleCut_', '');
-      const gain = value === 'off' ? 0 : -parseInt(value, 10); // Negative for cut
+      const level = menuItemId.replace('trebleCut_', '');
+      const gain = await resolveEffectGain('trebleCut', level);
+      // Store as cut-level format (popup reads this for the treble key)
+      const storageKey = getTabStorageKey(tab.id, TAB_STORAGE.TREBLE);
+      const storageLevel = level === 'off' ? 'off' : `cut-${level}`;
+      await browserAPI.storage.local.set({ [storageKey]: storageLevel });
+      // Send to content script (trebleCut presets are already negative)
       try {
         await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_TREBLE', gain });
       } catch (e) {
         console.log('[TabVolume] Could not set treble cut:', e.message);
       }
+      // Forward to Tab Capture
+      await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_TREBLE', { gain });
       return;
     }
 
     // ========== Balance ==========
     if (menuItemId.startsWith('balance_')) {
-      const pan = parseInt(menuItemId.replace('balance_', ''), 10);
+      const balance = parseInt(menuItemId.replace('balance_', ''), 10);
+      if (!Number.isFinite(balance) || balance < -100 || balance > 100) return;
+      // Store raw -100..100 value (popup reads this)
+      const balanceKey = getTabStorageKey(tab.id, TAB_STORAGE.BALANCE);
+      await browserAPI.storage.local.set({ [balanceKey]: balance });
+      // Convert to -1..1 for content script and Tab Capture
+      const pan = balance / 100;
+      // Send to content script
       try {
         await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_BALANCE', pan });
       } catch (e) {
         console.log('[TabVolume] Could not set balance:', e.message);
       }
+      // Forward to Tab Capture
+      await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_BALANCE', { pan });
       return;
     }
 
     // ========== Channel Mode ==========
     if (menuItemId.startsWith('channel_')) {
       const mode = menuItemId.replace('channel_', '');
+      const validChannelModes = ['stereo', 'mono', 'swap'];
+      if (!validChannelModes.includes(mode)) return;
+      // Store mode string (popup reads this)
+      const modeKey = getTabStorageKey(tab.id, TAB_STORAGE.CHANNEL_MODE);
+      await browserAPI.storage.local.set({ [modeKey]: mode });
+      // Send to content script
       try {
         await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_CHANNEL_MODE', mode });
       } catch (e) {
         console.log('[TabVolume] Could not set channel mode:', e.message);
+      }
+      // Forward to Tab Capture
+      await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_CHANNEL_MODE', { mode });
+      return;
+    }
+
+    // ========== Speed ==========
+    if (menuItemId.startsWith('speed_')) {
+      const rate = parseFloat(menuItemId.replace('speed_', ''));
+      if (!Number.isFinite(rate) || rate < EFFECT_RANGES.speed.min || rate > EFFECT_RANGES.speed.max) return;
+      // Store as level string matching popup format
+      const speedLevel = rate === 1 ? 'off' : `slider:${rate}`;
+      const speedKey = getTabStorageKey(tab.id, TAB_STORAGE.SPEED);
+      await browserAPI.storage.local.set({ [speedKey]: speedLevel });
+      // Send to content script
+      try {
+        await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_SPEED', rate });
+      } catch (e) {
+        console.log('[TabVolume] Could not set speed:', e.message);
       }
       return;
     }
@@ -2735,6 +3259,63 @@ if (contextMenusAPI) {
           await browserAPI.tabs.sendMessage(tab.id, { type: 'TOGGLE_PLAYBACK' });
         } catch (e) {
           console.log('[TabVolume] Could not toggle playback:', e.message);
+        }
+        break;
+
+      case 'resetTab':
+        // Reset all audio settings for this tab to defaults
+        {
+          const tabId = tab.id;
+
+          // 1. Reset volume to default
+          await setTabVolume(tabId, VOLUME_DEFAULT);
+          await updateBadge(tabId, VOLUME_DEFAULT);
+
+          // 2. Clear all effect storage keys for this tab
+          const keysToReset = {};
+          keysToReset[getTabStorageKey(tabId, TAB_STORAGE.BASS)] = 'off';
+          keysToReset[getTabStorageKey(tabId, TAB_STORAGE.TREBLE)] = 'off';
+          keysToReset[getTabStorageKey(tabId, TAB_STORAGE.VOICE)] = 'off';
+          keysToReset[getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR)] = 'off';
+          keysToReset[getTabStorageKey(tabId, TAB_STORAGE.BALANCE)] = 0;
+          keysToReset[getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE)] = 'stereo';
+          keysToReset[getTabStorageKey(tabId, TAB_STORAGE.SPEED)] = 'off';
+          await browserAPI.storage.local.set(keysToReset);
+
+          // 3. Remove device and prev-volume keys
+          const keysToRemove = [
+            getTabStorageKey(tabId, TAB_STORAGE.DEVICE),
+            getTabStorageKey(tabId, TAB_STORAGE.PREV)
+          ];
+          try {
+            await browserAPI.storage.local.remove(keysToRemove);
+          } catch (e) {}
+
+          // 4. Send reset messages to content script
+          try {
+            await browserAPI.tabs.sendMessage(tabId, { type: 'SET_VOLUME', volume: VOLUME_DEFAULT });
+            await browserAPI.tabs.sendMessage(tabId, { type: 'SET_BASS', gain: EFFECT_RANGES.bass.default });
+            await browserAPI.tabs.sendMessage(tabId, { type: 'SET_TREBLE', gain: EFFECT_RANGES.treble.default });
+            await browserAPI.tabs.sendMessage(tabId, { type: 'SET_VOICE', gain: EFFECT_RANGES.voice.default });
+            await browserAPI.tabs.sendMessage(tabId, { type: 'SET_COMPRESSOR', preset: 'off' });
+            await browserAPI.tabs.sendMessage(tabId, { type: 'SET_BALANCE', pan: 0 });
+            await browserAPI.tabs.sendMessage(tabId, { type: 'SET_CHANNEL_MODE', mode: 'stereo' });
+            await browserAPI.tabs.sendMessage(tabId, { type: 'SET_SPEED', rate: EFFECT_RANGES.speed.default });
+            await browserAPI.tabs.sendMessage(tabId, { type: 'SET_DEVICE', deviceId: '' });
+          } catch (e) {
+            console.log('[TabVolume] Could not reset tab effects:', e.message);
+          }
+
+          // 5. Forward resets to Tab Capture if active
+          await forwardToTabCapture(tabId, 'SET_TAB_CAPTURE_VOLUME', { volume: VOLUME_DEFAULT });
+          await forwardToTabCapture(tabId, 'SET_TAB_CAPTURE_BASS', { gain: EFFECT_RANGES.bass.default });
+          await forwardToTabCapture(tabId, 'SET_TAB_CAPTURE_TREBLE', { gain: EFFECT_RANGES.treble.default });
+          await forwardToTabCapture(tabId, 'SET_TAB_CAPTURE_VOICE', { gain: EFFECT_RANGES.voice.default });
+          await forwardToTabCapture(tabId, 'SET_TAB_CAPTURE_COMPRESSOR', { preset: 'off' });
+          await forwardToTabCapture(tabId, 'SET_TAB_CAPTURE_BALANCE', { pan: 0 });
+          await forwardToTabCapture(tabId, 'SET_TAB_CAPTURE_CHANNEL_MODE', { mode: 'stereo' });
+
+          console.log('[TabVolume] Tab reset to defaults via context menu');
         }
         break;
 
@@ -2755,7 +3336,7 @@ if (contextMenusAPI) {
           const allTabs = await browserAPI.tabs.query({});
 
           if (isActive) {
-            // Disable Focus Mode - unmute all other tabs
+            // Disable Focus Mode - unmute all other tabs and restore saved volumes
             for (const otherTab of allTabs) {
               if (otherTab.id === currentTabId) continue;
               if (!otherTab.mutedInfo?.muted) continue;
@@ -2763,10 +3344,11 @@ if (contextMenusAPI) {
                 await browserAPI.tabs.update(otherTab.id, { muted: false });
                 if (!isFirefox) {
                   try {
+                    const savedVolume = await getTabVolume(otherTab.id);
                     await chrome.runtime.sendMessage({
                       type: 'SET_TAB_CAPTURE_VOLUME',
                       tabId: otherTab.id,
-                      volume: 100
+                      volume: savedVolume
                     });
                   } catch (tcErr) {}
                 }
@@ -2860,7 +3442,7 @@ if (contextMenusAPI) {
                   target: { tabId: tab.id },
                   world: 'MAIN',
                   func: (d) => {
-                    try { localStorage.setItem('__tabVolumeControl_disabled_' + d, 'true'); } catch(e) {}
+                    try { localStorage.setItem(`__tabVolumeControl_disabled_${d}`, 'true'); } catch(e) {}
                   },
                   args: [hostname]
                 });
@@ -2887,7 +3469,7 @@ if (contextMenusAPI) {
 
               // Get default audio mode
               const modeResult = await browserAPI.storage.sync.get(['defaultAudioMode']);
-              const defaultMode = modeResult.defaultAudioMode || 'tabcapture';
+              const defaultMode = modeResult.defaultAudioMode || DEFAULT_AUDIO_MODE_CHROME;
 
               // Helper to get storage key for override list
               const getOverrideKey = (defMode, overMode) => {
@@ -2933,7 +3515,7 @@ if (contextMenusAPI) {
                     target: { tabId: tab.id },
                     world: 'MAIN',
                     func: (d) => {
-                      try { localStorage.removeItem('__tabVolumeControl_disabled_' + d); } catch(e) {}
+                      try { localStorage.removeItem(`__tabVolumeControl_disabled_${d}`); } catch(e) {}
                     },
                     args: [hostname]
                   });

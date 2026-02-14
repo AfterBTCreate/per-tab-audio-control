@@ -130,7 +130,24 @@
         </svg>
       </h2>
       <div class="section-content">
-        <p class="section-desc">Customize how the popup looks and behaves.</p>
+        <p class="section-desc">Customize how the popup looks and behaves. Open a new window and the popup to see changes in real time, including preset options below.</p>
+
+        <!-- Popup Mode Subsection -->
+        <div class="subsection">
+          <h3>Popup Mode</h3>
+          <p class="section-desc">Choose between a simplified view or the full control panel.</p>
+          <div class="mode-buttons" role="radiogroup" aria-label="Popup mode selection">
+            <label class="mode-button">
+              <input type="radio" name="popupMode" value="basic">
+              <span class="mode-button-label">Basic</span>
+            </label>
+            <label class="mode-button">
+              <input type="radio" name="popupMode" value="advanced">
+              <span class="mode-button-label">Advanced</span>
+            </label>
+          </div>
+          <div id="popupModeStatus" class="status" role="status" aria-live="polite"></div>
+        </div>
 
         <!-- Header Layout Subsection -->
         <div class="subsection">
@@ -151,12 +168,12 @@
                   <label for="vis-focus">Focus</label>
                 </div>
                 <div class="visibility-toggle">
-                  <input type="checkbox" id="vis-shortcuts" data-item-id="shortcuts" checked>
-                  <label for="vis-shortcuts">Shortcuts</label>
-                </div>
-                <div class="visibility-toggle">
                   <input type="checkbox" id="vis-theme" data-item-id="theme" checked>
                   <label for="vis-theme">Theme</label>
+                </div>
+                <div class="visibility-toggle">
+                  <input type="checkbox" id="vis-logo" data-item-id="logo" checked>
+                  <label for="vis-logo">Volume</label>
                 </div>
               </div>
             </div>
@@ -164,10 +181,10 @@
             <div class="spacer-section">
               <h4>Spacers</h4>
               <div class="spacer-controls">
-                <button type="button" class="spacer-btn" data-count="0" title="No spacers" aria-label="No spacers">0</button>
                 <button type="button" class="spacer-btn" data-count="1" title="1 spacer" aria-label="1 spacer">1</button>
                 <button type="button" class="spacer-btn" data-count="2" title="2 spacers" aria-label="2 spacers">2</button>
                 <button type="button" class="spacer-btn" data-count="3" title="3 spacers" aria-label="3 spacers">3</button>
+                <button type="button" class="spacer-btn" data-count="4" title="4 spacers" aria-label="4 spacers">4</button>
               </div>
             </div>
           </div>
@@ -176,15 +193,47 @@
             <button id="resetHeaderLayoutBtn" class="btn secondary" title="Reset header layout to default order" aria-label="Reset header layout to default order">Reset to Default</button>
           </div>
 
-          <p class="header-layout-hint">Tip: Drag icons to reorder. Hidden icons appear faded. Required icons (Tab Capture, Web Audio, Disabled, Basic/Advanced Toggle, Settings, Volume) cannot be hidden. ABTC Logo is locked in position.</p>
+          <p class="header-layout-hint">Tip: Drag icons to reorder. Hidden icons appear faded. Required icons (Tab Capture, Web Audio, Disabled, Basic/Advanced Toggle, Settings) cannot be hidden. ABTC Logo is locked in position.</p>
 
-          <div id="headerLayoutStatus" class="status"></div>
+          <div id="headerLayoutStatus" class="status" role="status" aria-live="polite"></div>
+        </div>
+
+        <!-- Tab Title Location Subsection -->
+        <div class="subsection">
+          <h3>Tab Title Location</h3>
+          <p class="section-desc">Choose where the tab title appears relative to the visualizer.</p>
+          <div class="mode-buttons tab-info-radios" role="radiogroup" aria-label="Tab title location selection">
+            <label class="mode-button">
+              <input type="radio" name="tabInfoLocation" value="inside" checked>
+              <span class="mode-button-label">Inside</span>
+            </label>
+            <label class="mode-button">
+              <input type="radio" name="tabInfoLocation" value="below">
+              <span class="mode-button-label">Below</span>
+            </label>
+            <label class="mode-button">
+              <input type="radio" name="tabInfoLocation" value="above">
+              <span class="mode-button-label">Above</span>
+            </label>
+            <label class="mode-button">
+              <input type="radio" name="tabInfoLocation" value="off">
+              <span class="mode-button-label">Hidden</span>
+            </label>
+          </div>
+          <div id="tabInfoStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Visualizer Subsection -->
         <div class="subsection">
           <h3>Visualizer</h3>
           <p class="section-desc">Select the default visualizer style for the Now Playing area. <strong>Click and hold</strong> the visualizer in the popup to cycle through styles.</p>
+
+          <div class="setting-row">
+            <label class="checkbox-option">
+              <input type="checkbox" id="showVisualizer" checked>
+              <span>Show visualizer in popup</span>
+            </label>
+          </div>
 
           <div class="visualizer-options" role="radiogroup" aria-label="Visualizer style selection">
             <label class="visualizer-option">
@@ -266,71 +315,107 @@
             </label>
           </div>
 
-          <div class="visualizer-tab-info-options" style="margin-top: 16px;">
-            <label class="setting-label">Tab Title Location</label>
-            <div class="tab-info-radios">
-              <label class="radio-option">
-                <input type="radio" name="tabInfoLocation" value="inside">
-                <span>Inside visualizer</span>
-              </label>
-              <label class="radio-option">
-                <input type="radio" name="tabInfoLocation" value="below" checked>
-                <span>Below visualizer</span>
-              </label>
-            </div>
+          <div class="setting-row visualizer-color-setting">
+            <label class="checkbox-option">
+              <input type="checkbox" id="useCustomVisualizerColor">
+              <span>Use custom visualizer color</span>
+            </label>
+            <input type="color" id="visualizerColorPicker" value="#60a5fa" disabled
+                   title="Choose visualizer color" aria-label="Choose visualizer color">
           </div>
 
-          <div id="visualizerStatus" class="status"></div>
+          <div class="button-row" style="margin-top: 12px; margin-bottom: 16px;">
+            <button id="resetVisualizerBtn" class="btn secondary" title="Reset visualizer settings to defaults" aria-label="Reset visualizer settings to defaults">Reset to Default</button>
+          </div>
+
+          <div id="visualizerStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
-        <!-- Popup Sections Subsection -->
+        <!-- Playback Seekbar Subsection -->
         <div class="subsection">
-          <h3>Popup Sections</h3>
-          <p class="section-desc">Drag items to reorder. Uncheck to hide a section.</p>
+          <h3>Playback Seekbar</h3>
+          <p class="section-desc">Show or hide the media playback progress bar in the popup.</p>
+          <div class="setting-row">
+            <label class="checkbox-option">
+              <input type="checkbox" id="showSeekbar" checked>
+              <span>Show playback seekbar in popup</span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <label class="checkbox-option">
+              <input type="checkbox" id="seekbarShowRemaining">
+              <span>Show time remaining instead of current time</span>
+            </label>
+          </div>
+          <div id="seekbarStatus" class="status" role="status" aria-live="polite"></div>
+        </div>
+
+        <!-- Advanced Controls Subsection -->
+        <div class="subsection">
+          <h3>Advanced Controls</h3>
+          <p class="section-desc">Drag to reorder. Uncheck to hide. S/P toggles sliders vs presets.</p>
 
           <div class="popup-sections-warning" id="popupSectionsWarning"></div>
 
-          <div class="popup-sections-label">Section Order (drag to reorder)</div>
+          <div class="popup-sections-label">Control Order (drag to reorder)</div>
           <div class="popup-sections-preview" id="popupSectionsPreview">
-            <!-- Section items will be populated by JS -->
+            <!-- Control items will be populated by JS -->
           </div>
 
           <div class="popup-sections-buttons">
-            <button id="resetPopupSectionsBtn" class="btn secondary" title="Reset popup sections to default order" aria-label="Reset popup sections to default order">Reset to Default</button>
+            <button id="allSlidersBtn" class="btn secondary" title="Set all controls to sliders mode" aria-label="Set all controls to sliders mode">All Sliders</button>
+            <button id="allPresetsBtn" class="btn secondary" title="Set all controls to presets mode" aria-label="Set all controls to presets mode">All Presets</button>
+            <button id="resetPopupSectionsBtn" class="btn secondary" title="Reset advanced controls to default order" aria-label="Reset advanced controls to default order">Reset to Default</button>
           </div>
 
-          <p class="popup-sections-hint">Tip: Drag sections to reorder them in the popup. Hidden sections remain available but won't appear until re-enabled.</p>
+          <p class="popup-sections-hint">Tip: Drag controls to reorder them in the popup. Hidden controls remain available but won't appear until re-enabled.</p>
 
-          <div class="popup-sections-status">
+          <div class="popup-sections-status" role="status" aria-live="polite">
             <span id="popupSectionsStatus" class="status-text"></span>
           </div>
         </div>
 
-        <!-- EQ Controls UI Mode -->
+        <!-- Keyboard Shortcuts Footer Subsection -->
         <div class="subsection">
-          <h3>Enhancement Controls</h3>
-          <p class="section-desc">Choose between preset buttons or sliders for more granular control.</p>
-
+          <h3>Keyboard Shortcuts Footer</h3>
+          <p class="section-desc">Show or hide the keyboard shortcut hints at the bottom of the popup.</p>
           <div class="setting-row">
-            <div class="setting-options" role="radiogroup" aria-label="EQ control style">
-              <label class="setting-option">
-                <input type="radio" name="eqControlMode" value="sliders" checked>
-                <div class="setting-option-content">
-                  <span class="setting-option-label">Sliders (Recommended)</span>
-                  <span class="setting-option-desc">Fine-grained control: Voice 0-18 dB, Bass/Treble -24 to +24 dB</span>
-                </div>
-              </label>
-              <label class="setting-option">
-                <input type="radio" name="eqControlMode" value="presets">
-                <div class="setting-option-content">
-                  <span class="setting-option-label">Preset Buttons</span>
-                  <span class="setting-option-desc">Quick access to preset levels (Off, Low, Medium, High)</span>
-                </div>
-              </label>
-            </div>
+            <label class="checkbox-option">
+              <input type="checkbox" id="showShortcutsFooter" checked>
+              <span>Show keyboard shortcuts footer</span>
+            </label>
           </div>
+          <div id="showShortcutsFooterStatus" class="status" role="status" aria-live="polite"></div>
+        </div>
 
-          <div id="eqControlModeStatus" class="status"></div>
+        <!-- Badge Style Subsection -->
+        <div class="subsection">
+          <h3>Badge Style</h3>
+          <p class="section-desc">Choose the color scheme for the volume percentage badge on the extension icon.</p>
+          <div class="mode-buttons" role="radiogroup" aria-label="Badge style selection">
+            <label class="mode-button">
+              <input type="radio" name="badgeStyle" value="light" checked>
+              <span class="mode-button-label">
+                <span class="mode-button-title">Light on Dark</span>
+                <span class="mode-button-desc">White text, black background</span>
+              </span>
+            </label>
+            <label class="mode-button">
+              <input type="radio" name="badgeStyle" value="dark">
+              <span class="mode-button-label">
+                <span class="mode-button-title">Dark on Light</span>
+                <span class="mode-button-desc">Black text, white background</span>
+              </span>
+            </label>
+            <label class="mode-button">
+              <input type="radio" name="badgeStyle" value="color">
+              <span class="mode-button-label">
+                <span class="mode-button-title">Volume Color</span>
+                <span class="mode-button-desc">Background matches volume level</span>
+              </span>
+            </label>
+          </div>
+          <div id="badgeStyleStatus" class="status" role="status" aria-live="polite"></div>
         </div>
       </div>
     </section>
@@ -377,7 +462,7 @@
             <span id="defaultModeDesc">Tab Capture provides the most reliable audio control across all websites.</span>
           </p>
 
-          <div id="defaultModeStatus" class="status"></div>
+          <div id="defaultModeStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Site Overrides -->
@@ -395,7 +480,7 @@
             </div>
           </div>
 
-          <div id="siteOverridesStatus" class="status"></div>
+          <div id="siteOverridesStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Default Output Device -->
@@ -413,7 +498,7 @@
               </svg>
               Microphone permission is required to access audio output devices.
             </p>
-            <button type="button" id="grantDevicePermission" class="btn primary" title="Grant permission to access audio devices">
+            <button type="button" id="grantDevicePermission" class="btn primary" title="Grant permission to access audio devices" aria-label="Grant permission to access audio devices">
               Grant Permission
             </button>
           </div>
@@ -434,7 +519,7 @@
             </div>
           </div>
 
-          <div id="defaultDeviceStatus" class="status"></div>
+          <div id="defaultDeviceStatus" class="status" role="status" aria-live="polite"></div>
         </div>
       </div>
     </section>
@@ -500,7 +585,7 @@
             <button id="resetBtn" class="btn secondary" title="Reset volume presets to defaults" aria-label="Reset volume presets to defaults">Reset to Defaults</button>
           </div>
 
-          <div id="status" class="status"></div>
+          <div id="status" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Voice Boost Presets -->
@@ -541,7 +626,83 @@
             <button id="resetVoiceBtn" class="btn secondary" title="Reset voice boost presets to defaults" aria-label="Reset voice boost presets to defaults">Reset to Defaults</button>
           </div>
 
-          <div id="voiceStatus" class="status"></div>
+          <div id="voiceStatus" class="status" role="status" aria-live="polite"></div>
+        </div>
+
+        <!-- Speed Fast Presets -->
+        <div class="subsection eq-presets-only">
+          <h3>Speed Fast</h3>
+          <p class="section-desc">Customize fast playback speed presets. Each level has its own range.</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="speedFastLow">Low (1.05-1.45)</label>
+              <div class="input-group level-low">
+                <input type="number" id="speedFastLow" min="1.05" max="1.45" step="0.05" value="1.25">
+                <span class="suffix">x</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="speedFastMed">Medium (1.50-2.45)</label>
+              <div class="input-group level-medium">
+                <input type="number" id="speedFastMed" min="1.50" max="2.45" step="0.05" value="1.50">
+                <span class="suffix">x</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="speedFastHigh">High (2.50-5.00)</label>
+              <div class="input-group level-high">
+                <input type="number" id="speedFastHigh" min="2.50" max="5.00" step="0.05" value="2.00">
+                <span class="suffix">x</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetSpeedFastBtn" class="btn secondary" title="Reset speed fast presets to defaults" aria-label="Reset speed fast presets to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="speedFastStatus" class="status" role="status" aria-live="polite"></div>
+        </div>
+
+        <!-- Speed Slow Presets -->
+        <div class="subsection eq-presets-only">
+          <h3>Speed Slow</h3>
+          <p class="section-desc">Customize slow playback speed presets. Each level has its own range.</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="speedSlowLow">Low (0.70-0.95)</label>
+              <div class="input-group level-low">
+                <input type="number" id="speedSlowLow" min="0.70" max="0.95" step="0.05" value="0.75">
+                <span class="suffix">x</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="speedSlowMed">Medium (0.30-0.65)</label>
+              <div class="input-group level-medium">
+                <input type="number" id="speedSlowMed" min="0.30" max="0.65" step="0.05" value="0.50">
+                <span class="suffix">x</span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="speedSlowHigh">High (0.05-0.25)</label>
+              <div class="input-group level-high">
+                <input type="number" id="speedSlowHigh" min="0.05" max="0.25" step="0.05" value="0.25">
+                <span class="suffix">x</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetSpeedSlowBtn" class="btn secondary" title="Reset speed slow presets to defaults" aria-label="Reset speed slow presets to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="speedSlowStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Bass Boost Presets -->
@@ -582,7 +743,7 @@
             <button id="resetBassBtn" class="btn secondary" title="Reset bass boost presets to defaults" aria-label="Reset bass boost presets to defaults">Reset to Defaults</button>
           </div>
 
-          <div id="bassStatus" class="status"></div>
+          <div id="bassStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Bass Cut Presets -->
@@ -623,7 +784,7 @@
             <button id="resetBassCutBtn" class="btn secondary" title="Reset bass cut presets to defaults" aria-label="Reset bass cut presets to defaults">Reset to Defaults</button>
           </div>
 
-          <div id="bassCutStatus" class="status"></div>
+          <div id="bassCutStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Treble Boost Presets -->
@@ -664,7 +825,7 @@
             <button id="resetTrebleBtn" class="btn secondary" title="Reset treble boost presets to defaults" aria-label="Reset treble boost presets to defaults">Reset to Defaults</button>
           </div>
 
-          <div id="trebleStatus" class="status"></div>
+          <div id="trebleStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Treble Cut Presets -->
@@ -705,7 +866,37 @@
             <button id="resetTrebleCutBtn" class="btn secondary" title="Reset treble cut presets to defaults" aria-label="Reset treble cut presets to defaults">Reset to Defaults</button>
           </div>
 
-          <div id="trebleCutStatus" class="status"></div>
+          <div id="trebleCutStatus" class="status" role="status" aria-live="polite"></div>
+        </div>
+
+        <!-- Balance Presets -->
+        <div class="subsection eq-presets-only">
+          <h3>Balance Presets</h3>
+          <p class="section-desc">Customize balance preset values. Center always resets to 0.</p>
+
+          <div class="preset-settings">
+            <div class="preset-row">
+              <label for="balancePresetLeft">Left (1-100)</label>
+              <div class="input-group level-low">
+                <input type="number" id="balancePresetLeft" min="1" max="100" value="100">
+                <span class="suffix"></span>
+              </div>
+            </div>
+
+            <div class="preset-row">
+              <label for="balancePresetRight">Right (1-100)</label>
+              <div class="input-group level-low">
+                <input type="number" id="balancePresetRight" min="1" max="100" value="100">
+                <span class="suffix"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="resetBalancePresetsBtn" class="btn secondary" title="Reset balance presets to defaults" aria-label="Reset balance presets to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="balancePresetsStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Volume Steps -->
@@ -743,7 +934,7 @@
             <button id="resetStepsBtn" class="btn secondary" title="Reset volume steps to defaults" aria-label="Reset volume steps to defaults">Reset to Defaults</button>
           </div>
 
-          <div id="stepsStatus" class="status"></div>
+          <div id="stepsStatus" class="status" role="status" aria-live="polite"></div>
         </div>
       </div>
     </section>
@@ -833,10 +1024,10 @@
           <p class="section-desc" style="margin-top: 16px;">Keyboard shortcuts can only be changed through your browser's extension settings.</p>
 
           <div class="button-row">
-            <a href="#" id="openShortcutsChrome" class="btn primary" title="Copy keyboard shortcuts settings URL">Copy URL</a>
-            <a href="#" id="openShortcutsFirefox" class="btn primary" title="Copy keyboard shortcuts settings URL">Copy URL</a>
+            <a href="#" id="openShortcutsChrome" class="btn primary" title="Copy keyboard shortcuts settings URL" aria-label="Copy keyboard shortcuts URL for Chrome">Copy URL</a>
+            <a href="#" id="openShortcutsFirefox" class="btn primary" title="Copy keyboard shortcuts settings URL" aria-label="Copy keyboard shortcuts URL for Firefox">Copy URL</a>
           </div>
-          <div id="shortcutsStatus" class="status"></div>
+          <div id="shortcutsStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Microphone Permissions Subsection -->
@@ -866,10 +1057,10 @@
           </div>
 
           <div class="button-row">
-            <a href="#" id="openMicSettingsChrome" class="btn primary" title="Copy microphone permissions settings URL">Copy URL</a>
-            <a href="#" id="openMicSettingsFirefox" class="btn primary" title="Copy microphone permissions settings URL">Copy URL</a>
+            <a href="#" id="openMicSettingsChrome" class="btn primary" title="Copy microphone permissions settings URL" aria-label="Copy microphone settings URL for Chrome">Copy URL</a>
+            <a href="#" id="openMicSettingsFirefox" class="btn primary" title="Copy microphone permissions settings URL" aria-label="Copy microphone settings URL for Firefox">Copy URL</a>
           </div>
-          <div id="micSettingsStatus" class="status"></div>
+          <div id="micSettingsStatus" class="status" role="status" aria-live="polite"></div>
         </div>
       </div>
     </section>
@@ -886,10 +1077,10 @@
         <div class="button-row">
           <button id="backupDataBtn" class="btn primary" title="Download all settings as CSV file" aria-label="Download all settings as CSV file">Backup All Data</button>
           <button id="restoreDataBtn" class="btn primary" title="Import settings from a backup file" aria-label="Import settings from a backup file">Restore from Backup</button>
-          <input type="file" id="restoreFileInput" accept=".csv" style="display: none;" aria-hidden="true" aria-label="Select backup file to restore">
+          <input type="file" id="restoreFileInput" accept=".csv" style="display: none;" aria-label="Select backup file to restore">
           <button id="resetAllBtn" class="btn danger" title="Reset all settings to factory defaults" aria-label="Reset all settings to factory defaults">Reset All Settings</button>
         </div>
-        <div id="resetStatus" class="status"></div>
+        <div id="resetStatus" class="status" role="status" aria-live="polite"></div>
         <div class="info-box" style="margin-top: 12px;">
           <h4>About Backups</h4>
           <p>Backups are saved as CSV files containing your presets, site rules, theme, header layout, and default device settings. Use "Restore from Backup" to import a previously saved backup file.</p>

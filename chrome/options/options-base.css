@@ -90,6 +90,11 @@ body {
   border-color: #7a9ab8;
 }
 
+.header-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+}
+
 .header-btn .icon-sun {
   display: none;
 }
@@ -172,6 +177,10 @@ body.light-mode .header-btn:hover {
   background: #faf5ef;
   color: #2d2520;
   border-color: #c4b4a0;
+}
+
+body.light-mode .header-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
 body.light-mode .header-btn .icon-sun {

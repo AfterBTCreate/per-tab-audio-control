@@ -197,6 +197,9 @@ loadBassCutPresets();
 loadTreblePresets();
 loadTrebleCutPresets();
 loadVoicePresets();
+loadSpeedFastPresets();
+loadSpeedSlowPresets();
+loadBalancePresetsOptions();
 loadVolumeSteps();
 loadRules();
 updateQuotaDisplay();
@@ -273,7 +276,7 @@ async function loadSiteOverrides() {
       'offDefault_webAudioSites'
     ]);
 
-    const defaultMode = result.defaultAudioMode || 'tabcapture';
+    const defaultMode = result.defaultAudioMode || DEFAULT_AUDIO_MODE;
     const overrides = [];
 
     if (defaultMode === 'tabcapture') {
@@ -453,7 +456,7 @@ function showSiteOverridesStatus(message, type) {
   if (!status) return;
 
   status.textContent = message;
-  status.className = 'status ' + type;
+  status.className = `status ${type}`;
 
   setTimeout(() => {
     status.textContent = '';
@@ -469,3 +472,12 @@ if (clearAllOverridesBtn) {
 
 // Load site overrides on init
 loadSiteOverrides();
+
+// ==================== Live Theme Sync ====================
+
+// Listen for theme changes from other extension pages
+browserAPI.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.theme) {
+    loadTheme();
+  }
+});

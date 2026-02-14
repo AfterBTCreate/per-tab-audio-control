@@ -11,11 +11,13 @@
   window.__tabVolumePageScriptRan = true;
 
   // Security: Validate hostname before using in storage keys
+  // KEEP IN SYNC with background.js sanitizeHostname() and content.js isValidHostname()
   function isValidHostname(hostname) {
     if (!hostname || typeof hostname !== 'string') return false;
     if (hostname.length > 253) return false;
+    hostname = hostname.toLowerCase();
     // Only allow valid hostname characters (alphanumeric, dots, hyphens)
-    return /^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$/.test(hostname) || /^[a-zA-Z0-9]$/.test(hostname);
+    return /^[a-z0-9][a-z0-9.-]*[a-z0-9]$/.test(hostname) || /^[a-z0-9]$/.test(hostname);
   }
 
   // Check if extension is disabled on this domain (synchronous check via localStorage)
@@ -24,8 +26,9 @@
     const hostname = window.location.hostname;
     if (!isValidHostname(hostname)) {
       console.debug('[TabVolume] Invalid hostname, skipping disabled check');
+      throw new Error('skip'); // Jump to catch block — proceed with normal (non-disabled) path
     }
-    const disabledKey = '__tabVolumeControl_disabled_' + hostname;
+    const disabledKey = `__tabVolumeControl_disabled_${hostname}`;
     const disabledValue = localStorage.getItem(disabledKey);
 
     if (disabledValue === 'true') {
@@ -39,6 +42,20 @@
   }
 
   console.debug('[TabVolume] Domain ENABLED - patching Web Audio APIs...');
+
+  // ===== DUPLICATED CONSTANTS — KEEP IN SYNC =====
+  // Source of truth: shared/constants.js
+  // Also duplicated in: background.js, content/content.js, offscreen/offscreen.js
+  // Reason: Page script (MAIN world) can't access shared script tags
+  const VOLUME_DEFAULT = 100;
+  const VOLUME_MIN = 0;
+  const VOLUME_MAX = 500;
+  const EFFECT_RANGES = {
+    bass: { min: -24, max: 24 },
+    treble: { min: -24, max: 24 },
+    voice: { min: 0, max: 18 },
+    speed: { min: 0.05, max: 5 }
+  };
 
   let currentVolume = 100;
   let currentBassGain = 0;  // dB
@@ -230,7 +247,7 @@
         const ctx = this.context;
         const data = getMasterGain(ctx);
 
-        if (data && data.bassFilter && this !== data.bassFilter && this !== data.voiceFilter && this !== data.stereoPanner && this !== data.masterGain) {
+        if (data && data.bassFilter && this !== data.bassFilter && this !== data.trebleFilter && this !== data.voiceFilter && this !== data.stereoPanner && this !== data.masterGain && this !== data.limiter && this !== data.analyser) {
           // Redirect to our filter chain (bassFilter is the entry point)
           return originalConnect.call(this, data.bassFilter, outputIndex, inputIndex);
         }
@@ -419,7 +436,7 @@
 
   // Resolve device by label in page context with retries
   async function resolveDeviceByLabel(deviceLabel) {
-    if (!deviceLabel) return null;
+    if (!deviceLabel || typeof deviceLabel !== 'string' || deviceLabel.length > 500) return null;
 
     const normalizedLabel = deviceLabel.toLowerCase().trim();
 
@@ -573,17 +590,31 @@
     return successCount > 0;
   }
 
+  // Validation helpers for CustomEvent data from content script
+  // Range constants inlined here since MAIN world can't access shared/constants.js
+  function isFiniteInRange(v, min, max) {
+    return typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
+  }
+  const VALID_CHANNEL_MODES = ['stereo', 'mono', 'swap'];
+
   // Listen for volume changes
   window.addEventListener('__tabVolumeControl_set', function(e) {
-    if (e.detail && typeof e.detail.volume === 'number') {
+    if (e.detail && isFiniteInRange(e.detail.volume, VOLUME_MIN, VOLUME_MAX)) {
       applyVolume(e.detail.volume);
     }
   });
 
+  // Nonce for authenticating frequency data requests (set during init)
+  let storedVizNonce = null;
+
   window.addEventListener('__tabVolumeControl_init', function(e) {
-    if (e.detail && typeof e.detail.volume === 'number') {
+    if (e.detail && isFiniteInRange(e.detail.volume, VOLUME_MIN, VOLUME_MAX)) {
       currentVolume = e.detail.volume;
       applyVolume(e.detail.volume);
+    }
+    // Store nonce for frequency data authentication (only accept once)
+    if (e.detail && e.detail.vizNonce && !storedVizNonce) {
+      storedVizNonce = e.detail.vizNonce;
     }
   });
 
@@ -598,41 +629,64 @@
 
   // Listen for bass boost changes
   window.addEventListener('__tabVolumeControl_setBass', function(e) {
-    if (e.detail && typeof e.detail.gain === 'number') {
+    if (e.detail && isFiniteInRange(e.detail.gain, EFFECT_RANGES.bass.min, EFFECT_RANGES.bass.max)) {
       applyBassBoost(e.detail.gain);
     }
   });
 
   // Listen for treble boost changes
   window.addEventListener('__tabVolumeControl_setTreble', function(e) {
-    if (e.detail && typeof e.detail.gain === 'number') {
+    if (e.detail && isFiniteInRange(e.detail.gain, EFFECT_RANGES.treble.min, EFFECT_RANGES.treble.max)) {
       applyTrebleBoost(e.detail.gain);
     }
   });
 
   // Listen for voice boost changes
   window.addEventListener('__tabVolumeControl_setVoice', function(e) {
-    if (e.detail && typeof e.detail.gain === 'number') {
+    if (e.detail && isFiniteInRange(e.detail.gain, EFFECT_RANGES.voice.min, EFFECT_RANGES.voice.max)) {
       applyVoiceBoost(e.detail.gain);
     }
   });
 
   // Listen for balance changes
   window.addEventListener('__tabVolumeControl_setBalance', function(e) {
-    if (e.detail && typeof e.detail.pan === 'number') {
+    if (e.detail && isFiniteInRange(e.detail.pan, -1, 1)) {
       applyBalance(e.detail.pan);
     }
   });
 
   // Listen for channel mode changes (stereo/mono/swap)
   window.addEventListener('__tabVolumeControl_setChannelMode', function(e) {
-    if (e.detail && typeof e.detail.mode === 'string') {
+    if (e.detail && typeof e.detail.mode === 'string' && VALID_CHANNEL_MODES.includes(e.detail.mode)) {
       applyChannelMode(e.detail.mode);
     }
   });
 
+  // ==================== Playback Speed ====================
+  // playbackRate is a native HTMLMediaElement property — no AudioContext node needed
+  let currentPlaybackRate = 1;
+
+  function applyPlaybackRateToAll(rate) {
+    currentPlaybackRate = rate;
+    document.querySelectorAll('audio, video').forEach(el => {
+      // Force pitch correction to prevent chipmunk/deep voices
+      el.preservesPitch = true;
+      el.playbackRate = rate;
+    });
+  }
+
+  window.addEventListener('__tabVolumeControl_setSpeed', function(e) {
+    if (e.detail && isFiniteInRange(e.detail.rate, EFFECT_RANGES.speed.min, EFFECT_RANGES.speed.max)) {
+      applyPlaybackRateToAll(e.detail.rate);
+    }
+  });
+
   // Listen for frequency data requests (for visualizer)
+  // Requires valid nonce to prevent page scripts from extracting audio data
   window.addEventListener('__tabVolumeControl_getFrequencyData', function(e) {
+    // Verify nonce - reject requests without valid authentication
+    if (!storedVizNonce || !e.detail || e.detail.nonce !== storedVizNonce) return;
+
     let frequencyData = null;
     let waveformData = null;
 

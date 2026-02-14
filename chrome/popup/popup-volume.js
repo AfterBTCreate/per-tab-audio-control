@@ -4,16 +4,30 @@
 // ==================== Volume Step Settings ====================
 
 // Default step values (overridden by user settings)
-let scrollStep = 5;
-let buttonStep = 1;
+let scrollStep = DEFAULTS.volumeSteps.scrollWheel;
+let buttonStep = DEFAULTS.volumeSteps.buttons;
 
 // Easter egg timer for 404% volume
 let easterEgg404Timer = null;
+let easterEgg404Fired = false;
+let easterEgg404Active = false; // Suppresses VOLUME_CHANGED UI updates during audio cutoff
+
+// Easter egg: Triple-mute "Mischief Managed"
+let muteToggleTimestamps = [];
+let mischiefState = 0; // 0 = first trigger shows "solemnly swear", 1 = second shows "mischief managed"
+
+// Restore mischief state from session storage (persists across popup open/close)
+browserAPI.storage.session.get('mischiefState').then(result => {
+  if (result.mischiefState !== undefined) mischiefState = result.mischiefState;
+}).catch(() => {});
+
+// Easter egg: 214% Valentine's message
+let easterEgg214Timer = null;
 
 // Load volume step settings from storage
 async function loadVolumeSteps() {
   const result = await browserAPI.storage.sync.get(['volumeSteps']);
-  const steps = result.volumeSteps || { scrollWheel: 5, keyboard: 5, buttons: 1 };
+  const steps = result.volumeSteps || DEFAULTS.volumeSteps;
 
   scrollStep = steps.scrollWheel;
   buttonStep = steps.buttons;
@@ -34,12 +48,68 @@ function updateVolumeButtonTooltips() {
   }
 }
 
+// ==================== Easter Egg: Triple-Mute ====================
+
+// Track mute toggles - 6 within 6 seconds triggers easter egg
+function trackMuteToggle() {
+  const now = Date.now();
+  muteToggleTimestamps.push(now);
+  // Keep only timestamps from the last 6 seconds
+  muteToggleTimestamps = muteToggleTimestamps.filter(t => now - t <= 6000);
+
+  if (muteToggleTimestamps.length >= 6) {
+    muteToggleTimestamps = []; // Reset
+    if (mischiefState === 0) {
+      showStatus('I solemnly swear this audio is up to no good.', 'info', 4000);
+      mischiefState = 1;
+    } else {
+      showStatus('Mischief managed.', 'info', 4000);
+      mischiefState = 0;
+    }
+    browserAPI.storage.session.set({ mischiefState }).catch(() => {});
+  }
+}
+
+// ==================== Easter Egg: 214% Valentine ====================
+
+// Start 60-second timer for 214% easter egg (only on a specific YouTube video)
+function start214Timer() {
+  if (easterEgg214Timer) return;
+
+  // Only activate after "I solemnly swear..." has been triggered (mischiefState === 1)
+  if (mischiefState !== 1) return;
+
+  // Only activate on the specific video
+  if (!currentTabUrl || !currentTabUrl.includes('youtube.com/watch') || !currentTabUrl.includes('rtOvBOTyX00')) return;
+
+  easterEgg214Timer = setTimeout(async () => {
+    easterEgg214Timer = null;
+    try {
+      // Only trigger if volume is still at 214 and audio is playing
+      if (currentVolume !== 214) return;
+      if (typeof isTabAudible !== 'function' || !await isTabAudible()) return;
+
+      showStatus('Something magical awaits...', 'info', 5000);
+      await browserAPI.storage.session.set({ valentineReady: true });
+    } catch (e) {
+      // Silently ignore - easter egg is non-critical
+    }
+  }, 30000); // 30 seconds
+}
+
+function stop214Timer() {
+  if (easterEgg214Timer) {
+    clearTimeout(easterEgg214Timer);
+    easterEgg214Timer = null;
+  }
+}
+
 // ==================== Load Custom Presets ====================
 
 // Load and apply custom presets
 async function loadCustomPresets() {
   const { customPresets: presets } = await getStorageWithDefaults({
-    customPresets: DEFAULT_PRESETS
+    customPresets: DEFAULTS.volumePresets
   });
 
   // Get all non-mute preset buttons (skip the first one which is Mute)
@@ -75,9 +145,9 @@ function getVolumeFillColor(volume) {
   if (volume === 0) {
     return isLightMode ? '#dc2626' : '#ef4444';  // red (muted)
   } else if (volume <= 50) {
-    return isLightMode ? '#22c55e' : '#4ade80';  // green
-  } else if (volume <= 100) {
     return isLightMode ? '#2563eb' : '#60a5fa';  // blue
+  } else if (volume <= 100) {
+    return isLightMode ? '#22c55e' : '#4ade80';  // green
   } else if (volume <= 200) {
     return isLightMode ? '#eab308' : '#facc15';  // yellow
   } else if (volume <= 350) {
@@ -92,7 +162,8 @@ function updateUI(volume) {
   // Convert volume to slider position (non-linear scale)
   const position = volumeToPosition(volume);
   volumeSlider.value = position;
-  volumeValue.textContent = volume + '%';
+  volumeSlider.setAttribute('aria-valuenow', volume);
+  volumeValue.textContent = `${volume}%`;
 
   // Update slider fill using position percentage
   sliderFill.style.width = `${position}%`;
@@ -135,17 +206,34 @@ function updateUI(volume) {
 
   // Easter egg: 404% volume ("Volume not found") - only triggers if audio is playing
   if (volume === 404) {
-    if (!easterEgg404Timer) {
+    if (!easterEgg404Timer && !easterEgg404Fired) {
       easterEgg404Timer = setTimeout(async () => {
         // Only show if audio is actually playing
         try {
           if (typeof isTabAudible === 'function' && await isTabAudible()) {
-            showStatus('Volume not found... just kidding', 'info', 4000);
+            const tabId = currentTabId;
+            // Cut audio (bypass UI - slider stays at 404%)
+            easterEgg404Active = true;
+            browserAPI.runtime.sendMessage({ type: 'SET_VOLUME', tabId, volume: 0 }).catch(() => {});
+            if (window.isTabCaptureActive && window.isTabCaptureActive()) {
+              browserAPI.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_VOLUME', tabId, volume: 0 }).catch(() => {});
+            }
+            showStatus('Volume not found...', 'info', 3000);
+            // Restore audio after 3 seconds, then show "just kidding"
+            setTimeout(() => {
+              browserAPI.runtime.sendMessage({ type: 'SET_VOLUME', tabId, volume: 404 }).catch(() => {});
+              if (window.isTabCaptureActive && window.isTabCaptureActive()) {
+                browserAPI.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_VOLUME', tabId, volume: 404 }).catch(() => {});
+              }
+              showStatus('Just kidding', 'info', 3000);
+              easterEgg404Active = false;
+            }, 3000);
           }
         } catch (e) {
           // isTabAudible may fail if tab is closed or restricted - ignore silently
         }
         easterEgg404Timer = null;
+        easterEgg404Fired = true;
       }, 4000);
     }
   } else {
@@ -153,6 +241,13 @@ function updateUI(volume) {
       clearTimeout(easterEgg404Timer);
       easterEgg404Timer = null;
     }
+  }
+
+  // Easter egg: 214% Valentine's message - 2 minutes of audio at 214%
+  if (volume === 214) {
+    start214Timer();
+  } else {
+    stop214Timer();
   }
 }
 
@@ -163,16 +258,19 @@ async function setVolume(volume, isMuteToggle = false) {
   // Skip on restricted browser pages where content scripts can't run
   if (isRestrictedPage) return;
 
+  // Capture tab ID at entry to prevent race conditions during async operations
+  const tabId = currentTabId;
+
   // Validate tab ID to prevent silent failures during rapid popup opens
   // Must be a positive integer (0, negative, NaN, undefined all rejected)
-  if (!Number.isInteger(currentTabId) || currentTabId <= 0) {
-    console.warn('[TabVolume Popup] Cannot set volume: invalid tab ID', currentTabId);
+  if (!Number.isInteger(tabId) || tabId <= 0) {
+    console.warn('[TabVolume Popup] Cannot set volume: invalid tab ID', tabId);
     return;
   }
 
-  volume = Math.max(0, Math.min(500, Math.round(volume)));
+  volume = validateVolume(volume);
 
-  const prevKey = getTabStorageKey(currentTabId, TAB_STORAGE.PREV);
+  const prevKey = getTabStorageKey(tabId, TAB_STORAGE.PREV);
 
   // Handle mute: save current volume for later unmute
   if (isMuteToggle && volume === 0 && currentVolume !== 0) {
@@ -198,7 +296,7 @@ async function setVolume(volume, isMuteToggle = false) {
     const result = await browserAPI.storage.session.get('extremeVolumeWarningShown');
     if (!result.extremeVolumeWarningShown) {
       await browserAPI.storage.session.set({ extremeVolumeWarningShown: true });
-      showStatus('High volume can damage hearing and speakers. Use at your own risk.', 'warning', 5000);
+      showStatus('High volume may damage hearing. Use carefully.', 'warning', 5000);
     }
   }
 
@@ -209,7 +307,7 @@ async function setVolume(volume, isMuteToggle = false) {
   // Send to background script (content script)
   await browserAPI.runtime.sendMessage({
     type: 'SET_VOLUME',
-    tabId: currentTabId,
+    tabId: tabId,
     volume: volume
   });
 
@@ -217,7 +315,7 @@ async function setVolume(volume, isMuteToggle = false) {
   if (window.isTabCaptureActive && window.isTabCaptureActive()) {
     browserAPI.runtime.sendMessage({
       type: 'SET_TAB_CAPTURE_VOLUME',
-      tabId: currentTabId,
+      tabId: tabId,
       volume: volume
     }).catch(() => {}); // Suppress unhandled promise rejection
   }
@@ -249,9 +347,10 @@ presetButtons.forEach(btn => {
 
     // Toggle mute
     if (volume === 0) {
+      trackMuteToggle();
       if (currentVolume === 0) {
         // Unmute - restore previous volume
-        setVolume(previousVolume || 100, true);
+        setVolume(previousVolume || VOLUME_DEFAULT, true);
       } else {
         setVolume(0, true);
       }
@@ -276,8 +375,9 @@ document.addEventListener('keydown', (e) => {
     setVolume(currentVolume - buttonStep);
   } else if (e.key === 'm' || e.key === 'M') {
     e.preventDefault();
+    trackMuteToggle();
     if (currentVolume === 0) {
-      setVolume(previousVolume || 100, true);
+      setVolume(previousVolume || VOLUME_DEFAULT, true);
     } else {
       setVolume(0, true);
     }
@@ -348,6 +448,8 @@ volumeDownBtn.addEventListener('mouseleave', stopHold);
 // Listen for volume changes from background (keyboard shortcuts)
 browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'VOLUME_CHANGED' && request.tabId === currentTabId) {
+    // Suppress UI updates during 404% easter egg audio cutoff
+    if (easterEgg404Active) return;
     currentVolume = request.volume;
     updateUI(request.volume);
   }

@@ -140,6 +140,17 @@ async function loadRules() {
       details.push(`Channels: ${channelLabel}`);
     }
 
+    // Add speed if present
+    if (rule.speed && rule.speed !== 'off') {
+      let speedLabel;
+      if (rule.speed.startsWith('slider:')) {
+        speedLabel = `${parseFloat(rule.speed.split(':')[1])}x`;
+      } else {
+        speedLabel = rule.speed.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      }
+      details.push(`Speed: ${speedLabel}`);
+    }
+
     // Build DOM safely to prevent XSS from malicious rule patterns
     const ruleInfo = document.createElement('div');
     ruleInfo.className = 'rule-info';
@@ -195,8 +206,22 @@ async function deleteRule(index) {
   const result = await browserAPI.storage.sync.get(['siteVolumeRules']);
   const rules = result.siteVolumeRules || [];
 
+  if (index < 0 || index >= rules.length) {
+    console.warn('[TabVolume Options] Rule index out of bounds:', index, 'length:', rules.length);
+    return;
+  }
+
   rules.splice(index, 1);
   await browserAPI.storage.sync.set({ siteVolumeRules: rules });
+
+  // Clear stale ruleAppliedDomain keys so deleted rules can re-apply if re-created
+  try {
+    const allStorage = await browserAPI.storage.local.get(null);
+    const staleKeys = Object.keys(allStorage).filter(k => k.endsWith('_ruleAppliedDomain'));
+    if (staleKeys.length > 0) {
+      await browserAPI.storage.local.remove(staleKeys);
+    }
+  } catch (e) { /* best effort */ }
 
   loadRules();
 }
@@ -208,6 +233,16 @@ async function clearAllRules() {
   }
 
   await browserAPI.storage.sync.set({ siteVolumeRules: [] });
+
+  // Clear all ruleAppliedDomain keys
+  try {
+    const allStorage = await browserAPI.storage.local.get(null);
+    const staleKeys = Object.keys(allStorage).filter(k => k.endsWith('_ruleAppliedDomain'));
+    if (staleKeys.length > 0) {
+      await browserAPI.storage.local.remove(staleKeys);
+    }
+  } catch (e) { /* best effort */ }
+
   loadRules();
 }
 

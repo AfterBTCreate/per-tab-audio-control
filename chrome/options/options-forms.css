@@ -103,6 +103,7 @@
   outline: none;
   border-color: #60a5fa;
   background: #1a2744;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3);
 }
 
 .input-group input::-webkit-inner-spin-button,
@@ -130,12 +131,12 @@
 
 .input-group.reduced input,
 .input-group.reduced .suffix {
-  color: #4ade80;
+  color: #60a5fa;
 }
 
 .input-group.boosted input,
 .input-group.boosted .suffix {
-  color: #60a5fa;
+  color: #4ade80;
 }
 
 .input-group.high input,
@@ -231,6 +232,11 @@
   color: #ffffff;
 }
 
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+}
+
 .btn:active {
   transform: scale(0.98);
 }
@@ -291,6 +297,11 @@
   cursor: pointer;
 }
 
+.checkbox-label input[type="checkbox"]:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.5);
+  outline-offset: 2px;
+}
+
 /* Toggle Setting */
 .toggle-setting {
   margin-bottom: 16px;
@@ -335,6 +346,7 @@ body.light-mode .input-group input:hover {
 body.light-mode .input-group input:focus {
   border-color: #8b7355;
   background: #faf5ef;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 body.light-mode .input-group .suffix {
@@ -348,12 +360,12 @@ body.light-mode .input-group.muted .suffix {
 
 body.light-mode .input-group.reduced input,
 body.light-mode .input-group.reduced .suffix {
-  color: #22c55e;
+  color: #2563eb;
 }
 
 body.light-mode .input-group.boosted input,
 body.light-mode .input-group.boosted .suffix {
-  color: #2563eb;
+  color: #22c55e;
 }
 
 body.light-mode .input-group.high input,
@@ -407,6 +419,10 @@ body.light-mode .input-group.cut-high input,
 body.light-mode .input-group.cut-high .prefix,
 body.light-mode .input-group.cut-high .suffix {
   color: #c026d3;
+}
+
+body.light-mode .btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
 body.light-mode .btn.primary {
@@ -502,6 +518,10 @@ body.light-mode .setting-hint {
   color: #60a5fa;
 }
 
+.mode-button input[type="radio"]:focus-visible + .mode-button-label {
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+}
+
 /* Light mode */
 body.light-mode .mode-button-label {
   background: #f5ede3;
@@ -519,6 +539,24 @@ body.light-mode .mode-button input[type="radio"]:checked + .mode-button-label {
   background: rgba(37, 99, 235, 0.1);
   border-color: #3b82f6;
   color: #2563eb;
+}
+
+body.light-mode .mode-button input[type="radio"]:focus-visible + .mode-button-label {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+/* Mode button with title + description */
+.mode-button-title {
+  display: block;
+  font-weight: 600;
+}
+
+.mode-button-desc {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.65;
+  margin-top: 2px;
 }
 
 /* ==================== Permission Prompt ==================== */

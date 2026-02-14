@@ -1,0 +1,126 @@
+/* ==================== Seekbar ==================== */
+
+.seekbar-row {
+  display: none;  /* hidden until media with duration is detected */
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 4px 0;
+  padding: 0 2px;
+}
+
+.seekbar-row.has-media {
+  display: flex;
+}
+
+.seekbar-time {
+  font-size: 11px;
+  color: #7a8fa5;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  user-select: none;
+}
+
+.seekbar-time:first-child { text-align: right; }
+.seekbar-time:last-child { text-align: left; }
+.seekbar-time.seekbar-duration-toggle { cursor: pointer; }
+.seekbar-time.seekbar-duration-toggle:hover { opacity: 0.7; }
+
+.seekbar-track-wrapper {
+  flex: 1;
+  position: relative;
+  height: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.seekbar-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  transform: translateY(-50%);
+  background: #1a2744;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.seekbar-fill {
+  height: 100%;
+  background: #7a8fa5;
+  border-radius: 2px;
+  transition: width 0.1s ease;
+}
+
+.seekbar-slider {
+  width: 100%;
+  height: 16px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+/* Webkit thumb */
+.seekbar-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: #c0c8d0;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.seekbar-slider::-webkit-slider-thumb:hover {
+  background: #ffffff;
+  transform: scale(1.2);
+}
+
+.seekbar-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+}
+
+/* Firefox thumb */
+.seekbar-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: #c0c8d0;
+  border: none;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.seekbar-slider::-moz-range-thumb:hover {
+  background: #ffffff;
+}
+
+.seekbar-slider::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+/* ===== Light mode ===== */
+body.light-mode .seekbar-time { color: #5a6a7a; }
+body.light-mode .seekbar-track { background: #d1d5db; }
+body.light-mode .seekbar-fill { background: #6b7280; }
+body.light-mode .seekbar-slider::-webkit-slider-thumb { background: #6b7280; }
+body.light-mode .seekbar-slider::-webkit-slider-thumb:hover { background: #374151; }
+body.light-mode .seekbar-slider::-moz-range-thumb { background: #6b7280; }
+
+/* ===== Seekbar hidden via options ===== */
+body.seekbar-hidden .seekbar-row.has-media {
+  display: none;
+}
+
+/* ===== Visualizer-hidden: add top margin since there's no visualizer above ===== */
+body.visualizer-hidden .seekbar-row.has-media {
+  margin-top: 6px;
+}

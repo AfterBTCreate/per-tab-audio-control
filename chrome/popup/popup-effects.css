@@ -3,11 +3,18 @@
 
 /* Enhancements Section */
 .enhancements-section {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 4px;
   padding: 5px 8px;
   background: #0f1621;
   border: 1px solid #5a7a9a;
   border-radius: 8px;
+}
+
+.advanced-item {
+  display: flex;
+  flex-direction: column;
 }
 
 .section-header {
@@ -20,19 +27,11 @@
   text-align: center;
 }
 
-/* Audio Effects (Bass/Voice Boost) */
-.audio-effects {
-}
-
 .effect-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 4px;
-}
-
-.effect-row:last-child {
-  margin-bottom: 0;
+  height: 22px;
 }
 
 .effect-label {
@@ -54,21 +53,21 @@
 }
 
 .effect-buttons.combined .effect-btn {
-  padding: 6px 4px;
+  padding: 3px 4px;
   font-size: 9px;
 }
 
 /* Spacer to align Bass - buttons with Low/Med/High on other rows */
 .effect-btn-spacer {
   flex: 1;
-  padding: 6px 8px;
+  padding: 3px 8px;
   border: 1px solid transparent;
 }
 
 .effect-btn {
   flex: 1 1 0;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 3px 8px;
   background: #0c1929;
   border: 1px solid #5a7a9a;
   border-radius: 6px;
@@ -257,13 +256,13 @@
 /* Disabled state for effect buttons (when compressor is active) */
 .effect-btn.disabled,
 .effect-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
 }
 
 .effect-label.disabled {
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 /* Divider between EQ controls and Compressor */
@@ -589,6 +588,19 @@ body.light-mode .eq-reset-btn:hover {
   border-color: #60a5fa;
 }
 
+/* Focus styles for keyboard navigation */
+.eq-slider:focus {
+  outline: none;
+}
+
+.eq-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+.eq-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
 .eq-slider-value {
   font-size: 10px;
   font-weight: 600;
@@ -663,6 +675,14 @@ body.light-mode .eq-slider::-moz-range-thumb:hover {
   border-color: #8b7355;
 }
 
+body.light-mode .eq-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3), 0 0 0 3px rgba(139, 115, 85, 0.4);
+}
+
+body.light-mode .eq-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3), 0 0 0 3px rgba(139, 115, 85, 0.4);
+}
+
 body.light-mode .eq-slider-value {
   color: #6b5d52;
 }
@@ -690,3 +710,73 @@ body.light-mode .eq-slider-value.cut-medium {
 body.light-mode .eq-slider-value.cut-high {
   color: #c026d3;  /* magenta */
 }
+
+/* ==================== Speed Slider ==================== */
+
+/* Speed slider gradient: slow (red/orange) → normal (gray) → fast (green/cyan) */
+.eq-slider.speed-slider {
+  background: linear-gradient(to right,
+    #ef4444 0%,      /* 0.05x extreme slow (red) */
+    #fb923c 25%,     /* ~0.25x slow (orange) */
+    #555 50%,        /* 1.0x normal (gray) */
+    #4ade80 75%,     /* ~2.2x fast (green) */
+    #22d3ee 100%     /* 5.0x extreme fast (cyan) */
+  );
+}
+
+/* Speed value color classes */
+.eq-slider-value.speed-slow { color: #fb923c; }
+.eq-slider-value.speed-normal { color: #7a8fa5; }
+.eq-slider-value.speed-fast { color: #4ade80; }
+
+/* Voice "Off" matches Range "Off" red */
+.eq-slider-value.voice-off { color: #8b4040; }
+
+/* ==================== Range (Compressor) Slider ==================== */
+
+/* Range slider gradient: 4 color stops matching compressor button colors */
+.eq-slider.range-slider {
+  background: linear-gradient(to right,
+    #8b4040 0%,      /* Off (red-brown) */
+    #4ade80 33.33%,  /* Podcast (green) */
+    #60a5fa 66.66%,  /* Movie (blue) */
+    #facc15 100%     /* Max (yellow) */
+  );
+}
+
+/* Range value color classes */
+.eq-slider-value.range-off { color: #8b4040; }
+.eq-slider-value.range-podcast { color: #4ade80; }
+.eq-slider-value.range-movie { color: #60a5fa; }
+.eq-slider-value.range-maximum { color: #facc15; }
+
+/* Light mode range slider */
+body.light-mode .eq-slider.range-slider {
+  background: linear-gradient(to right,
+    #8b4040 0%,      /* Off (red-brown) */
+    #22c55e 33.33%,  /* Podcast (green) */
+    #3b82f6 66.66%,  /* Movie (blue) */
+    #eab308 100%     /* Max (yellow) */
+  );
+}
+
+body.light-mode .eq-slider-value.range-off { color: #8b4040; }
+body.light-mode .eq-slider-value.range-podcast { color: #16a34a; }
+body.light-mode .eq-slider-value.range-movie { color: #2563eb; }
+body.light-mode .eq-slider-value.range-maximum { color: #ca8a04; }
+
+/* Light mode speed slider */
+body.light-mode .eq-slider.speed-slider {
+  background: linear-gradient(to right,
+    #dc2626 0%,      /* extreme slow (red) */
+    #ea580c 25%,     /* slow (orange) */
+    #aaa 50%,        /* normal (gray) */
+    #22c55e 75%,     /* fast (green) */
+    #0891b2 100%     /* extreme fast (cyan) */
+  );
+}
+
+body.light-mode .eq-slider-value.speed-slow { color: #ea580c; }
+body.light-mode .eq-slider-value.speed-normal { color: #6b5d52; }
+body.light-mode .eq-slider-value.speed-fast { color: #16a34a; }
+body.light-mode .eq-slider-value.voice-off { color: #8b4040; }

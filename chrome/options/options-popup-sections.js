@@ -1,5 +1,5 @@
 // Per-Tab Audio Control - Options Popup Sections Layout Module
-// Drag-and-drop reordering and visibility toggles for popup sections
+// Drag-and-drop reordering, visibility toggles, and per-item S/P mode for popup sections
 
 // State
 let popupSectionsLayout = null;
@@ -39,7 +39,7 @@ function rebuildPopupSectionsPreview() {
 
     // Section item
     const item = document.createElement('div');
-    item.className = 'popup-section-item' + (isHidden ? ' hidden-item' : '');
+    item.className = `popup-section-item${isHidden ? ' hidden-item' : ''}`;
     item.draggable = true;
     item.dataset.sectionId = sectionId;
 
@@ -68,6 +68,22 @@ function rebuildPopupSectionsPreview() {
 
     item.appendChild(info);
 
+    // S/P toggle button (only for dual-mode items)
+    if (EQ_DUAL_MODE_ITEMS.has(sectionId)) {
+      const mode = getItemControlMode(sectionId);
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = `popup-section-mode-toggle${mode === 'sliders' ? ' mode-sliders' : ' mode-presets'}`;
+      toggle.textContent = mode === 'sliders' ? 'S' : 'P';
+      toggle.title = mode === 'sliders' ? 'Sliders mode (click for Presets)' : 'Presets mode (click for Sliders)';
+      toggle.setAttribute('aria-label', `${sectionData.name} control mode: ${mode}`);
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleItemControlMode(sectionId);
+      });
+      item.appendChild(toggle);
+    }
+
     // Visibility checkbox
     const visibility = document.createElement('div');
     visibility.className = 'popup-section-visibility';
@@ -75,8 +91,8 @@ function rebuildPopupSectionsPreview() {
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = !isHidden;
-    checkbox.title = isHidden ? 'Show section' : 'Hide section';
-    checkbox.setAttribute('aria-label', sectionData.name + ' visibility');
+    checkbox.title = isHidden ? 'Show control' : 'Hide control';
+    checkbox.setAttribute('aria-label', `${sectionData.name} visibility`);
     checkbox.addEventListener('change', (e) => {
       e.stopPropagation();
       togglePopupSectionVisibility(sectionId, e.target.checked);
@@ -97,6 +113,77 @@ function rebuildPopupSectionsPreview() {
     wrapper.addEventListener('drop', handlePopupSectionDrop);
 
     popupSectionsPreview.appendChild(wrapper);
+  }
+}
+
+// ==================== Per-Item Control Mode ====================
+
+// Get effective control mode for an item (per-item override or global default)
+function getItemControlMode(sectionId) {
+  const controlMode = popupSectionsLayout.controlMode || {};
+  if (controlMode[sectionId]) {
+    return controlMode[sectionId];
+  }
+  // Fall through to global default (loaded asynchronously, but we cache it)
+  return cachedGlobalEqMode || DEFAULTS.eqControlMode;
+}
+
+// Cached global EQ mode (loaded once at init)
+let cachedGlobalEqMode = DEFAULTS.eqControlMode;
+
+async function loadCachedGlobalEqMode() {
+  const result = await browserAPI.storage.sync.get(['eqControlMode']);
+  cachedGlobalEqMode = result.eqControlMode || DEFAULTS.eqControlMode;
+}
+
+// Toggle an item's control mode between sliders and presets
+function toggleItemControlMode(sectionId) {
+  if (!popupSectionsLayout.controlMode) {
+    popupSectionsLayout.controlMode = {};
+  }
+
+  const currentMode = getItemControlMode(sectionId);
+  const newMode = currentMode === 'sliders' ? 'presets' : 'sliders';
+
+  // If new mode matches global default, remove override (sparse storage)
+  if (newMode === cachedGlobalEqMode) {
+    delete popupSectionsLayout.controlMode[sectionId];
+  } else {
+    popupSectionsLayout.controlMode[sectionId] = newMode;
+  }
+
+  savePopupSectionsLayout();
+  rebuildPopupSectionsPreview();
+
+  // Also update the options page body class for preset section visibility
+  updateEqBodyClass();
+}
+
+// Set all dual-mode items to the same mode
+async function setAllControlMode(mode) {
+  // Update the global default
+  cachedGlobalEqMode = mode;
+  await browserAPI.storage.sync.set({ eqControlMode: mode });
+
+  // Clear all per-item overrides (they now all match global)
+  popupSectionsLayout.controlMode = {};
+  await savePopupSectionsLayout();
+  rebuildPopupSectionsPreview();
+
+  // Update body class for preset section visibility
+  updateEqBodyClass();
+
+  const label = mode === 'sliders' ? 'All set to Sliders' : 'All set to Presets';
+  showPopupSectionsStatus(label, 'success');
+}
+
+// Update body class based on whether ANY item uses presets (for options page preset sections)
+function updateEqBodyClass() {
+  const anyPresets = EQ_DUAL_MODE_ITEMS.size > 0 && Array.from(EQ_DUAL_MODE_ITEMS).some(id => getItemControlMode(id) === 'presets');
+  if (anyPresets) {
+    document.body.classList.remove('sliders-mode');
+  } else {
+    document.body.classList.add('sliders-mode');
   }
 }
 
@@ -206,7 +293,7 @@ function togglePopupSectionVisibility(sectionId, isVisible) {
     const visibleCount = popupSectionsLayout.order.filter(id => !hidden.has(id)).length;
     if (visibleCount <= MIN_VISIBLE_POPUP_SECTIONS) {
       // Show warning and prevent hiding
-      showPopupSectionsWarning('At least one section must remain visible.');
+      showPopupSectionsWarning('At least one control must remain visible.');
       rebuildPopupSectionsPreview(); // Reset checkbox state
       return;
     }
@@ -259,7 +346,13 @@ async function loadPopupSectionsLayout() {
     // Validate and migrate if needed
     validatePopupSectionsLayout();
 
+    // Load global EQ mode for S/P toggle defaults
+    await loadCachedGlobalEqMode();
+
     rebuildPopupSectionsPreview();
+
+    // Set initial body class for preset section visibility
+    updateEqBodyClass();
   } catch (e) {
     console.error('[Options] Failed to load popup sections layout:', e);
     popupSectionsLayout = { ...DEFAULT_POPUP_SECTIONS_LAYOUT };
@@ -268,6 +361,9 @@ async function loadPopupSectionsLayout() {
 }
 
 function validatePopupSectionsLayout() {
+  // Remove duplicates from order array
+  popupSectionsLayout.order = [...new Set(popupSectionsLayout.order)];
+
   // Ensure all sections are in the order array
   const allSections = Object.keys(POPUP_SECTION_DATA);
   const orderSet = new Set(popupSectionsLayout.order);
@@ -284,6 +380,17 @@ function validatePopupSectionsLayout() {
   // Ensure hidden array only contains valid section IDs
   popupSectionsLayout.hidden = popupSectionsLayout.hidden.filter(id => POPUP_SECTION_DATA[id]);
 
+  // Ensure controlMode exists and only contains valid entries
+  if (!popupSectionsLayout.controlMode || typeof popupSectionsLayout.controlMode !== 'object') {
+    popupSectionsLayout.controlMode = {};
+  }
+  // Remove controlMode entries for non-dual-mode items
+  for (const key of Object.keys(popupSectionsLayout.controlMode)) {
+    if (!EQ_DUAL_MODE_ITEMS.has(key)) {
+      delete popupSectionsLayout.controlMode[key];
+    }
+  }
+
   // Ensure at least one section is visible
   const visibleCount = popupSectionsLayout.order.filter(id => !popupSectionsLayout.hidden.includes(id)).length;
   if (visibleCount === 0 && popupSectionsLayout.order.length > 0) {
@@ -297,11 +404,17 @@ function validatePopupSectionsLayout() {
 async function resetPopupSectionsLayout() {
   popupSectionsLayout = {
     order: [...DEFAULT_POPUP_SECTIONS_LAYOUT.order],
-    hidden: [...DEFAULT_POPUP_SECTIONS_LAYOUT.hidden]
+    hidden: [...DEFAULT_POPUP_SECTIONS_LAYOUT.hidden],
+    controlMode: {}
   };
+
+  // Also reset global EQ control mode to default
+  cachedGlobalEqMode = DEFAULTS.eqControlMode;
+  await browserAPI.storage.sync.set({ eqControlMode: DEFAULTS.eqControlMode });
 
   await savePopupSectionsLayout();
   rebuildPopupSectionsPreview();
+  updateEqBodyClass();
   showPopupSectionsStatus('Reset to defaults', 'success');
 }
 
@@ -310,7 +423,7 @@ async function resetPopupSectionsLayout() {
 function showPopupSectionsStatus(message, type = 'info') {
   if (popupSectionsStatus) {
     popupSectionsStatus.textContent = message;
-    popupSectionsStatus.className = 'status-text ' + type;
+    popupSectionsStatus.className = `status-text ${type}`;
 
     setTimeout(() => {
       popupSectionsStatus.textContent = '';
@@ -331,6 +444,17 @@ function initPopupSectionsLayout() {
   const resetBtn = document.getElementById('resetPopupSectionsBtn');
   if (resetBtn) {
     resetBtn.addEventListener('click', resetPopupSectionsLayout);
+  }
+
+  // Set up All Sliders / All Presets buttons
+  const allSlidersBtn = document.getElementById('allSlidersBtn');
+  if (allSlidersBtn) {
+    allSlidersBtn.addEventListener('click', () => setAllControlMode('sliders'));
+  }
+
+  const allPresetsBtn = document.getElementById('allPresetsBtn');
+  if (allPresetsBtn) {
+    allPresetsBtn.addEventListener('click', () => setAllControlMode('presets'));
   }
 
   // Load layout

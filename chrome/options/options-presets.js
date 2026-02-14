@@ -11,6 +11,8 @@ async function loadTheme() {
   // Default to dark mode for new users (only add light-mode if explicitly set)
   if (result.theme === 'light') {
     document.body.classList.add('light-mode');
+  } else {
+    document.body.classList.remove('light-mode');
   }
 }
 
@@ -43,7 +45,8 @@ const modeDescriptions = {
 // Load default audio mode
 async function loadDefaultAudioMode() {
   const result = await browserAPI.storage.sync.get(['defaultAudioMode']);
-  const mode = result.defaultAudioMode || DEFAULT_AUDIO_MODE;
+  const validModes = ['tabcapture', 'auto', 'native'];
+  const mode = validModes.includes(result.defaultAudioMode) ? result.defaultAudioMode : DEFAULT_AUDIO_MODE;
 
   // Cache in localStorage for synchronous access from popup
   // This enables auto-start Tab Capture on popup open (requires sync read in gesture context)
@@ -132,7 +135,7 @@ const visualizerStatus = document.getElementById('visualizerStatus');
 // Load visualizer type (synced across devices)
 async function loadVisualizerType() {
   const result = await browserAPI.storage.sync.get(['visualizerType']);
-  const type = result.visualizerType || 'bars';
+  const type = result.visualizerType || DEFAULTS.visualizerType;
 
   const radio = document.querySelector(`input[name="visualizerType"][value="${type}"]`);
   if (radio) {
@@ -143,6 +146,8 @@ async function loadVisualizerType() {
 // Save visualizer type
 async function saveVisualizerType(type) {
   await browserAPI.storage.sync.set({ visualizerType: type });
+  // Also save to local storage so the popup picks it up (popup reads from local)
+  await browserAPI.storage.local.set({ visualizerType: type });
   showStatus(visualizerStatus, 'Visualizer style saved!', 'success');
 }
 
@@ -158,15 +163,187 @@ visualizerRadios.forEach(radio => {
 // Load visualizer type on init
 loadVisualizerType();
 
+// Live sync: update radio buttons when popup changes visualizer type
+browserAPI.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync') {
+    if (changes.visualizerType) {
+      const type = changes.visualizerType.newValue;
+      const radio = document.querySelector(`input[name="visualizerType"][value="${type}"]`);
+      if (radio) {
+        radio.checked = true;
+      }
+    }
+    if (changes.showVisualizer) {
+      showVisualizerCheckbox.checked = changes.showVisualizer.newValue;
+      updateTabInfoInsideState();
+    }
+    if (changes.showSeekbar && showSeekbarCheckbox) {
+      showSeekbarCheckbox.checked = changes.showSeekbar.newValue;
+    }
+    if (changes.seekbarTimeDisplay && seekbarShowRemainingCheckbox) {
+      seekbarShowRemainingCheckbox.checked = changes.seekbarTimeDisplay.newValue === 'remaining';
+    }
+    if (changes.visualizerColor) {
+      if (changes.visualizerColor.newValue) {
+        useCustomVisualizerColorCheckbox.checked = true;
+        visualizerColorPicker.value = changes.visualizerColor.newValue;
+        visualizerColorPicker.disabled = false;
+      } else {
+        useCustomVisualizerColorCheckbox.checked = false;
+        visualizerColorPicker.disabled = true;
+      }
+    }
+  }
+});
+
+// ==================== Show Visualizer Setting ====================
+
+const showVisualizerCheckbox = document.getElementById('showVisualizer');
+
+async function loadShowVisualizer() {
+  const result = await browserAPI.storage.sync.get(['showVisualizer']);
+  const show = result.showVisualizer ?? DEFAULTS.showVisualizer;
+  showVisualizerCheckbox.checked = show;
+  updateTabInfoInsideState();
+}
+
+showVisualizerCheckbox.addEventListener('change', async (e) => {
+  await browserAPI.storage.sync.set({ showVisualizer: e.target.checked });
+  updateTabInfoInsideState();
+  showStatus(visualizerStatus, 'Visualizer setting saved!', 'success');
+});
+
+// Enable/disable visualizer-dependent radios based on showVisualizer state
+function updateTabInfoInsideState() {
+  const insideRadio = document.querySelector('input[name="tabInfoLocation"][value="inside"]');
+  const belowRadio = document.querySelector('input[name="tabInfoLocation"][value="below"]');
+  if (!insideRadio) return;
+
+  const isHidden = !showVisualizerCheckbox.checked;
+
+  // Disable "Inside visualizer" when visualizer is hidden
+  insideRadio.disabled = isHidden;
+  insideRadio.closest('label').classList.toggle('disabled', isHidden);
+
+  // Disable "Below visualizer" when visualizer is hidden (same position as "above" without visualizer)
+  if (belowRadio) {
+    belowRadio.disabled = isHidden;
+    belowRadio.closest('label').classList.toggle('disabled', isHidden);
+  }
+
+  // If a disabled option is selected, switch to "Above"
+  if (isHidden && (insideRadio.checked || (belowRadio && belowRadio.checked))) {
+    const aboveRadio = document.querySelector('input[name="tabInfoLocation"][value="above"]');
+    if (aboveRadio) {
+      aboveRadio.checked = true;
+      browserAPI.storage.sync.set({ tabInfoLocation: 'above' });
+    }
+  }
+}
+
+loadShowVisualizer();
+
+// ==================== Show Seekbar Setting ====================
+
+const showSeekbarCheckbox = document.getElementById('showSeekbar');
+
+async function loadShowSeekbar() {
+  const result = await browserAPI.storage.sync.get(['showSeekbar']);
+  const show = result.showSeekbar ?? DEFAULTS.showSeekbar;
+  if (showSeekbarCheckbox) showSeekbarCheckbox.checked = show;
+}
+
+const seekbarStatus = document.getElementById('seekbarStatus');
+
+if (showSeekbarCheckbox) {
+  showSeekbarCheckbox.addEventListener('change', async (e) => {
+    await browserAPI.storage.sync.set({ showSeekbar: e.target.checked });
+    showStatus(seekbarStatus, 'Seekbar setting saved!', 'success');
+  });
+}
+
+loadShowSeekbar();
+
+// ==================== Seekbar Time Display Setting ====================
+
+const seekbarShowRemainingCheckbox = document.getElementById('seekbarShowRemaining');
+
+async function loadSeekbarTimeDisplay() {
+  const result = await browserAPI.storage.sync.get(['seekbarTimeDisplay']);
+  const pref = result.seekbarTimeDisplay ?? DEFAULTS.seekbarTimeDisplay;
+  if (seekbarShowRemainingCheckbox) seekbarShowRemainingCheckbox.checked = pref === 'remaining';
+}
+
+if (seekbarShowRemainingCheckbox) {
+  seekbarShowRemainingCheckbox.addEventListener('change', async (e) => {
+    await browserAPI.storage.sync.set({ seekbarTimeDisplay: e.target.checked ? 'remaining' : 'total' });
+    showStatus(seekbarStatus, 'Seekbar time display saved!', 'success');
+  });
+}
+
+loadSeekbarTimeDisplay();
+
+// ==================== Custom Visualizer Color Setting ====================
+
+const useCustomVisualizerColorCheckbox = document.getElementById('useCustomVisualizerColor');
+const visualizerColorPicker = document.getElementById('visualizerColorPicker');
+
+async function loadVisualizerColor() {
+  const result = await browserAPI.storage.sync.get(['visualizerColor']);
+  if (result.visualizerColor) {
+    useCustomVisualizerColorCheckbox.checked = true;
+    visualizerColorPicker.value = result.visualizerColor;
+    visualizerColorPicker.disabled = false;
+  } else {
+    useCustomVisualizerColorCheckbox.checked = false;
+    visualizerColorPicker.disabled = true;
+  }
+}
+
+useCustomVisualizerColorCheckbox.addEventListener('change', async (e) => {
+  if (e.target.checked) {
+    visualizerColorPicker.disabled = false;
+    const color = visualizerColorPicker.value;
+    // Write sync first (try/catch so local always runs even if sync rate-limited)
+    try { await browserAPI.storage.sync.set({ visualizerColor: color }); } catch (e) {}
+    await browserAPI.storage.local.set({ visualizerColor: color });
+  } else {
+    visualizerColorPicker.disabled = true;
+    try { await browserAPI.storage.sync.remove(['visualizerColor']); } catch (e) {}
+    await browserAPI.storage.local.remove(['visualizerColor']);
+  }
+  showStatus(visualizerStatus, 'Visualizer color saved!', 'success');
+});
+
+// Live color dragging - only write to local (storage.sync has 120 writes/min limit)
+visualizerColorPicker.addEventListener('input', async () => {
+  if (useCustomVisualizerColorCheckbox.checked) {
+    const color = visualizerColorPicker.value;
+    await browserAPI.storage.local.set({ visualizerColor: color });
+  }
+});
+
+// Final color commit (picker closed) - persist to sync for cross-device
+visualizerColorPicker.addEventListener('change', async () => {
+  if (useCustomVisualizerColorCheckbox.checked) {
+    const color = visualizerColorPicker.value;
+    try { await browserAPI.storage.sync.set({ visualizerColor: color }); } catch (e) {}
+    await browserAPI.storage.local.set({ visualizerColor: color });
+  }
+});
+
+loadVisualizerColor();
+
 // ==================== Tab Info Location Setting ====================
 
 const tabInfoLocationRadios = document.querySelectorAll('input[name="tabInfoLocation"]');
+const tabInfoStatus = document.getElementById('tabInfoStatus');
 
 // Load setting
 async function loadTabInfoLocation() {
   const result = await browserAPI.storage.sync.get(['tabInfoLocation']);
-  // Default to 'below' if not set
-  const location = result.tabInfoLocation || 'below';
+  // Default to 'inside' if not set
+  const location = result.tabInfoLocation || DEFAULTS.tabInfoLocation;
   tabInfoLocationRadios.forEach(radio => {
     radio.checked = radio.value === location;
   });
@@ -175,7 +352,7 @@ async function loadTabInfoLocation() {
 // Save setting
 async function saveTabInfoLocation(location) {
   await browserAPI.storage.sync.set({ tabInfoLocation: location });
-  showStatus(visualizerStatus, 'Visualizer setting saved!', 'success');
+  showStatus(tabInfoStatus, 'Tab title location saved!', 'success');
 }
 
 // Add listeners
@@ -190,50 +367,112 @@ tabInfoLocationRadios.forEach(radio => {
 // Load on init
 loadTabInfoLocation();
 
-// ==================== EQ Control Mode (Presets vs Sliders) ====================
+// ==================== Reset Visualizer Settings ====================
 
-const eqControlModeRadios = document.querySelectorAll('input[name="eqControlMode"]');
-const eqControlModeStatus = document.getElementById('eqControlModeStatus');
+const resetVisualizerBtn = document.getElementById('resetVisualizerBtn');
+if (resetVisualizerBtn) {
+  resetVisualizerBtn.addEventListener('click', async () => {
+    // Reset visualizer-only settings to defaults
+    await browserAPI.storage.sync.set({
+      visualizerType: DEFAULTS.visualizerType,
+      showVisualizer: DEFAULTS.showVisualizer
+    });
+    // Also update local storage for popup
+    await browserAPI.storage.local.set({ visualizerType: DEFAULTS.visualizerType });
 
-// Apply EQ control mode (toggle body class to show/hide preset sections)
-function applyEqControlModeUI(mode) {
-  if (mode === 'sliders') {
-    document.body.classList.add('sliders-mode');
-  } else {
-    document.body.classList.remove('sliders-mode');
+    // Remove custom visualizer color from both storage areas
+    await browserAPI.storage.sync.remove(['visualizerColor']);
+    await browserAPI.storage.local.remove(['visualizerColor']);
+
+    // Update UI to match defaults
+    const defaultRadio = document.querySelector(`input[name="visualizerType"][value="${DEFAULTS.visualizerType}"]`);
+    if (defaultRadio) defaultRadio.checked = true;
+
+    showVisualizerCheckbox.checked = DEFAULTS.showVisualizer;
+
+    // Reset custom color UI
+    useCustomVisualizerColorCheckbox.checked = false;
+    visualizerColorPicker.value = '#60a5fa';
+    visualizerColorPicker.disabled = true;
+
+    updateTabInfoInsideState();
+    showStatus(visualizerStatus, 'Visualizer settings reset to defaults!', 'success');
+  });
+}
+
+// ==================== EQ Control Mode ====================
+// Per-item S/P toggles are handled by options-popup-sections.js
+// The body class (sliders-mode) is managed by updateEqBodyClass() there
+
+// ==================== Popup Mode (Basic/Advanced) ====================
+
+const popupModeRadios = document.querySelectorAll('input[name="popupMode"]');
+const popupModeStatus = document.getElementById('popupModeStatus');
+
+async function loadPopupMode() {
+  const result = await browserAPI.storage.sync.get(['popupMode']);
+  const mode = result.popupMode || DEFAULTS.popupMode;
+  const radio = document.querySelector(`input[name="popupMode"][value="${mode}"]`);
+  if (radio) radio.checked = true;
+}
+
+popupModeRadios.forEach(radio => {
+  radio.addEventListener('change', async (e) => {
+    await browserAPI.storage.sync.set({ popupMode: e.target.value });
+    showStatus(popupModeStatus, 'Popup mode saved!', 'success');
+  });
+});
+
+// Live sync: update if changed from popup while options page is open
+browserAPI.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.popupMode) {
+    const radio = document.querySelector(`input[name="popupMode"][value="${changes.popupMode.newValue}"]`);
+    if (radio) radio.checked = true;
   }
+});
+
+loadPopupMode();
+
+// ==================== Shortcuts Footer Setting ====================
+
+const showShortcutsFooterCheckbox = document.getElementById('showShortcutsFooter');
+const showShortcutsFooterStatus = document.getElementById('showShortcutsFooterStatus');
+
+async function loadShowShortcutsFooter() {
+  const result = await browserAPI.storage.sync.get(['showShortcutsFooter']);
+  const show = result.showShortcutsFooter ?? DEFAULTS.showShortcutsFooter;
+  showShortcutsFooterCheckbox.checked = show;
 }
 
-// Load EQ control mode (synced across devices)
-async function loadEqControlMode() {
-  const result = await browserAPI.storage.sync.get(['eqControlMode']);
-  const mode = result.eqControlMode || 'sliders';
+showShortcutsFooterCheckbox.addEventListener('change', async (e) => {
+  await browserAPI.storage.sync.set({ showShortcutsFooter: e.target.checked });
+  showStatus(showShortcutsFooterStatus, 'Shortcuts footer setting saved!', 'success');
+});
 
-  const radio = document.querySelector(`input[name="eqControlMode"][value="${mode}"]`);
-  if (radio) {
-    radio.checked = true;
-  }
-  applyEqControlModeUI(mode);
+loadShowShortcutsFooter();
+
+// ==================== Badge Style Setting ====================
+
+const badgeStyleRadios = document.querySelectorAll('input[name="badgeStyle"]');
+const badgeStyleStatus = document.getElementById('badgeStyleStatus');
+
+async function loadBadgeStyle() {
+  const result = await browserAPI.storage.sync.get(['badgeStyle']);
+  const style = result.badgeStyle || DEFAULTS.badgeStyle;
+  const radio = document.querySelector(`input[name="badgeStyle"][value="${style}"]`);
+  if (radio) radio.checked = true;
 }
 
-// Save EQ control mode
-async function saveEqControlMode(mode) {
-  await browserAPI.storage.sync.set({ eqControlMode: mode });
-  applyEqControlModeUI(mode);
-  showStatus(eqControlModeStatus, 'Control style saved!', 'success');
-}
-
-// Add listeners to radio buttons
-eqControlModeRadios.forEach(radio => {
-  radio.addEventListener('change', (e) => {
+badgeStyleRadios.forEach(radio => {
+  radio.addEventListener('change', async (e) => {
     if (e.target.checked) {
-      saveEqControlMode(e.target.value);
+      await browserAPI.storage.sync.set({ badgeStyle: e.target.value });
+      showStatus(badgeStyleStatus, 'Badge style saved!', 'success');
     }
   });
 });
 
-// Load EQ control mode on init
-loadEqControlMode();
+loadBadgeStyle();
 
 // ==================== Volume Presets ====================
 
@@ -572,6 +811,152 @@ resetVoiceBtn.addEventListener('click', resetVoicePresets);
 
 [voiceLow, voiceMed, voiceHigh].forEach(input => {
   input.addEventListener('change', saveVoicePresets);
+});
+
+// ==================== Speed Fast Presets ====================
+
+const speedFastLow = document.getElementById('speedFastLow');
+const speedFastMed = document.getElementById('speedFastMed');
+const speedFastHigh = document.getElementById('speedFastHigh');
+const resetSpeedFastBtn = document.getElementById('resetSpeedFastBtn');
+const speedFastStatus = document.getElementById('speedFastStatus');
+
+// Load saved speed fast presets
+async function loadSpeedFastPresets() {
+  const result = await browserAPI.storage.sync.get(['speedFastPresets']);
+  const presets = result.speedFastPresets || DEFAULT_SPEED_FAST_PRESETS;
+
+  speedFastLow.value = presets[0];
+  speedFastMed.value = presets[1];
+  speedFastHigh.value = presets[2];
+}
+
+// Save speed fast presets (auto-save)
+async function saveSpeedFastPresets() {
+  clampFloatRangeInput(speedFastLow, 'low', SPEED_FAST_RANGES);
+  clampFloatRangeInput(speedFastMed, 'medium', SPEED_FAST_RANGES);
+  clampFloatRangeInput(speedFastHigh, 'high', SPEED_FAST_RANGES);
+
+  const values = [
+    parseFloat(speedFastLow.value),
+    parseFloat(speedFastMed.value),
+    parseFloat(speedFastHigh.value)
+  ];
+
+  await browserAPI.storage.sync.set({ speedFastPresets: values });
+}
+
+// Reset speed fast presets to defaults
+async function resetSpeedFastPresets() {
+  await browserAPI.storage.sync.remove(['speedFastPresets']);
+  speedFastLow.value = DEFAULT_SPEED_FAST_PRESETS[0];
+  speedFastMed.value = DEFAULT_SPEED_FAST_PRESETS[1];
+  speedFastHigh.value = DEFAULT_SPEED_FAST_PRESETS[2];
+  showStatus(speedFastStatus, 'Reset to defaults', 'success');
+}
+
+// Event listeners for speed fast presets (auto-save on change)
+resetSpeedFastBtn.addEventListener('click', resetSpeedFastPresets);
+
+[speedFastLow, speedFastMed, speedFastHigh].forEach(input => {
+  input.addEventListener('change', saveSpeedFastPresets);
+});
+
+// ==================== Speed Slow Presets ====================
+
+const speedSlowLow = document.getElementById('speedSlowLow');
+const speedSlowMed = document.getElementById('speedSlowMed');
+const speedSlowHigh = document.getElementById('speedSlowHigh');
+const resetSpeedSlowBtn = document.getElementById('resetSpeedSlowBtn');
+const speedSlowStatus = document.getElementById('speedSlowStatus');
+
+// Load saved speed slow presets
+async function loadSpeedSlowPresets() {
+  const result = await browserAPI.storage.sync.get(['speedSlowPresets']);
+  const presets = result.speedSlowPresets || DEFAULT_SPEED_SLOW_PRESETS;
+
+  speedSlowLow.value = presets[0];
+  speedSlowMed.value = presets[1];
+  speedSlowHigh.value = presets[2];
+}
+
+// Save speed slow presets (auto-save)
+async function saveSpeedSlowPresets() {
+  clampFloatRangeInput(speedSlowLow, 'low', SPEED_SLOW_RANGES);
+  clampFloatRangeInput(speedSlowMed, 'medium', SPEED_SLOW_RANGES);
+  clampFloatRangeInput(speedSlowHigh, 'high', SPEED_SLOW_RANGES);
+
+  const values = [
+    parseFloat(speedSlowLow.value),
+    parseFloat(speedSlowMed.value),
+    parseFloat(speedSlowHigh.value)
+  ];
+
+  await browserAPI.storage.sync.set({ speedSlowPresets: values });
+}
+
+// Reset speed slow presets to defaults
+async function resetSpeedSlowPresets() {
+  await browserAPI.storage.sync.remove(['speedSlowPresets']);
+  speedSlowLow.value = DEFAULT_SPEED_SLOW_PRESETS[0];
+  speedSlowMed.value = DEFAULT_SPEED_SLOW_PRESETS[1];
+  speedSlowHigh.value = DEFAULT_SPEED_SLOW_PRESETS[2];
+  showStatus(speedSlowStatus, 'Reset to defaults', 'success');
+}
+
+// Event listeners for speed slow presets (auto-save on change)
+resetSpeedSlowBtn.addEventListener('click', resetSpeedSlowPresets);
+
+[speedSlowLow, speedSlowMed, speedSlowHigh].forEach(input => {
+  input.addEventListener('change', saveSpeedSlowPresets);
+});
+
+// ==================== Balance Presets ====================
+
+const balancePresetLeft = document.getElementById('balancePresetLeft');
+const balancePresetRight = document.getElementById('balancePresetRight');
+const resetBalancePresetsBtn = document.getElementById('resetBalancePresetsBtn');
+const balancePresetsStatus = document.getElementById('balancePresetsStatus');
+
+// Load saved balance presets
+async function loadBalancePresetsOptions() {
+  const result = await browserAPI.storage.sync.get(['balancePresets']);
+  const presets = result.balancePresets || DEFAULTS.balancePresets;
+
+  balancePresetLeft.value = presets.left;
+  balancePresetRight.value = presets.right;
+}
+
+// Save balance presets (auto-save)
+async function saveBalancePresets() {
+  let left = parseInt(balancePresetLeft.value, 10);
+  let right = parseInt(balancePresetRight.value, 10);
+
+  // Clamp to valid range
+  if (isNaN(left) || left < 1) left = 1;
+  if (left > 100) left = 100;
+  if (isNaN(right) || right < 1) right = 1;
+  if (right > 100) right = 100;
+
+  balancePresetLeft.value = left;
+  balancePresetRight.value = right;
+
+  await browserAPI.storage.sync.set({ balancePresets: { left, right } });
+}
+
+// Reset balance presets to defaults
+async function resetBalancePresetsDefaults() {
+  await browserAPI.storage.sync.remove(['balancePresets']);
+  balancePresetLeft.value = DEFAULTS.balancePresets.left;
+  balancePresetRight.value = DEFAULTS.balancePresets.right;
+  showStatus(balancePresetsStatus, 'Reset to defaults', 'success');
+}
+
+// Event listeners for balance presets (auto-save on change)
+resetBalancePresetsBtn.addEventListener('click', resetBalancePresetsDefaults);
+
+[balancePresetLeft, balancePresetRight].forEach(input => {
+  input.addEventListener('change', saveBalancePresets);
 });
 
 // ==================== Volume Steps ====================
