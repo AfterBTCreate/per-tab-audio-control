@@ -205,6 +205,11 @@ async function loadTabSettings() {
     tabId: currentTabId
   });
 
+  // Show dormant indicator if tab hasn't been activated yet
+  if (response.dormant === true) {
+    showStatus('Dormant — adjust any control to activate', 'info', 5000);
+  }
+
   currentVolume = response.volume !== undefined ? response.volume : VOLUME_DEFAULT;
 
   // Load previous volume from storage for unmute functionality
@@ -229,6 +234,13 @@ async function loadTabSettings() {
 
   // Load audio devices after we have the tab ID
   await loadAudioDevices(isFirefox);
+
+  // Load sleep timer state (non-critical)
+  if (typeof loadSleepTimerState === 'function') {
+    loadSleepTimerState().catch(e => {
+      console.debug('[TabVolume] Could not load sleep timer state:', e.message);
+    });
+  }
 }
 
 // Switch to a different tab in the audible tabs list
@@ -1289,8 +1301,16 @@ async function addSiteRule() {
   let pattern;
   if (isDomain) {
     pattern = extractDomain(currentTabUrl);
+    if (!pattern || !sanitizeHostname(pattern)) {
+      showError('Invalid domain for site rule');
+      return;
+    }
   } else {
     pattern = currentTabUrl;
+    if (!pattern) {
+      showError('Invalid URL for site rule');
+      return;
+    }
   }
 
   // Load existing rules
@@ -1387,11 +1407,17 @@ async function init() {
     // Load effect presets (bass/voice boost)
     await loadEffectPresets();
 
+    // Load sleep slider persisted value
+    if (typeof loadSleepSliderValue === 'function') {
+      await loadSleepSliderValue();
+    }
+
     // Load EQ control mode (presets vs sliders)
     await loadEqControlMode();
 
     // Get current active tab first
-    const [activeTab] = await browserAPI.tabs.query({ active: true, currentWindow: true });
+    let activeTab;
+    [activeTab] = await browserAPI.tabs.query({ active: true, currentWindow: true });
     if (!activeTab) return;
 
     // Get all audible tabs

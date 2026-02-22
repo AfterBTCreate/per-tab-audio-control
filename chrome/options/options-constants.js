@@ -97,11 +97,21 @@ const POPUP_SECTION_DATA = {
   range: { name: 'Range', description: 'Dynamic range compression' },
   speed: { name: 'Speed', description: 'Playback speed control' },
   output: { name: 'Output', description: 'Audio output device selector' },
-  siteRule: { name: 'Site Rule', description: 'Site-specific audio rules' }
+  siteRule: { name: 'Site Rule', description: 'Site-specific audio rules' },
+  sleepTimer: { name: 'Sleep Timer', description: 'Auto-fade and pause after set time' }
 };
 
-const HIDEABLE_POPUP_SECTIONS = ['balance', 'bass', 'treble', 'voice', 'range', 'speed', 'output', 'siteRule'];
+const HIDEABLE_POPUP_SECTIONS = ['balance', 'bass', 'treble', 'voice', 'range', 'speed', 'output', 'siteRule', 'sleepTimer'];
 const MIN_VISIBLE_POPUP_SECTIONS = 1; // At least one control must be visible
 
 // Items that support both presets and sliders mode (have .eq-presets-mode and .eq-slider-mode rows)
-const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance']);
+// Sleep timer preset defaults and ranges
+const DEFAULT_SLEEP_TIMER_PRESETS = DEFAULTS.sleepTimerPresets;
+const SLEEP_TIMER_RANGES = {
+  quick: { min: 1, max: 10 },
+  short: { min: 5, max: 30 },
+  medium: { min: 15, max: 60 },
+  long: { min: 30, max: 120 }
+};
+
+const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance', 'sleepTimer']);

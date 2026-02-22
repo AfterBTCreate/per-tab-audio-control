@@ -65,6 +65,7 @@
   let currentChannelMode = 'stereo'; // 'stereo', 'mono', 'swap'
   const audioContexts = new Set();
   const contextData = new WeakMap();
+  let isActive = false; // Dormant until content script activates via __tabVolumeControl_init
 
   // Track user interaction to avoid AudioContext autoplay warnings
   let userHasInteracted = false;
@@ -147,23 +148,24 @@
 
     try {
       const realDest = ctx.destination;
+      const nyquist = ctx.sampleRate / 2;
 
       // Create bass filter (low shelf at 200Hz)
       const bassFilter = ctx.createBiquadFilter();
       bassFilter.type = 'lowshelf';
-      bassFilter.frequency.value = 200;
+      bassFilter.frequency.value = Math.min(200, nyquist);
       bassFilter.gain.value = currentBassGain;
 
       // Create treble filter (high shelf at 6kHz)
       const trebleFilter = ctx.createBiquadFilter();
       trebleFilter.type = 'highshelf';
-      trebleFilter.frequency.value = 6000;
+      trebleFilter.frequency.value = Math.min(6000, nyquist);
       trebleFilter.gain.value = currentTrebleGain;
 
       // Create voice filter (peaking at 3kHz)
       const voiceFilter = ctx.createBiquadFilter();
       voiceFilter.type = 'peaking';
-      voiceFilter.frequency.value = 3000;
+      voiceFilter.frequency.value = Math.min(3000, nyquist);
       voiceFilter.Q.value = 1.0;
       voiceFilter.gain.value = currentVoiceGain;
 
@@ -242,8 +244,8 @@
   // Intercept connect method to redirect destination connections
   if (originalConnect) {
     AudioNode.prototype.connect = function(destination, outputIndex, inputIndex) {
-      // Check if connecting to a destination node
-      if (destination instanceof AudioDestinationNode) {
+      // Check if connecting to a destination node — only intercept when active
+      if (destination instanceof AudioDestinationNode && isActive) {
         const ctx = this.context;
         const data = getMasterGain(ctx);
 
@@ -264,9 +266,12 @@
 
     const Patched = function(...args) {
       const ctx = new Original(...args);
+      audioContexts.add(ctx);  // Always track
 
-      // Pre-create master gain node
-      getMasterGain(ctx);
+      // Only create processing chain when active (dormant tabs skip this)
+      if (isActive) {
+        getMasterGain(ctx);
+      }
 
       return ctx;
     };
@@ -597,8 +602,9 @@
   }
   const VALID_CHANNEL_MODES = ['stereo', 'mono', 'swap'];
 
-  // Listen for volume changes
+  // Listen for volume changes (only when active — prevents page scripts from pre-seeding volume)
   window.addEventListener('__tabVolumeControl_set', function(e) {
+    if (!isActive) return;
     if (e.detail && isFiniteInRange(e.detail.volume, VOLUME_MIN, VOLUME_MAX)) {
       applyVolume(e.detail.volume);
     }
@@ -608,6 +614,17 @@
   let storedVizNonce = null;
 
   window.addEventListener('__tabVolumeControl_init', function(e) {
+    // Activate: start intercepting Web Audio connections
+    if (!isActive) {
+      isActive = true;
+      // Create processing chains for any AudioContexts created while dormant
+      audioContexts.forEach(ctx => {
+        if (!contextData.has(ctx) && ctx.state !== 'closed') {
+          getMasterGain(ctx);
+        }
+      });
+    }
+
     if (e.detail && isFiniteInRange(e.detail.volume, VOLUME_MIN, VOLUME_MAX)) {
       currentVolume = e.detail.volume;
       applyVolume(e.detail.volume);
@@ -737,6 +754,6 @@
     console.debug('[TabVolume] Cleaned up AudioContexts on page hide');
   });
 
-  console.debug('[TabVolume] Page script loaded, intercepting AudioNode.connect');
+  console.debug('[TabVolume] Page script loaded (dormant - awaiting activation)');
 
 })();

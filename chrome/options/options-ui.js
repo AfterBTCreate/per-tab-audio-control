@@ -200,6 +200,7 @@ loadVoicePresets();
 loadSpeedFastPresets();
 loadSpeedSlowPresets();
 loadBalancePresetsOptions();
+loadSleepPresets();
 loadVolumeSteps();
 loadRules();
 updateQuotaDisplay();

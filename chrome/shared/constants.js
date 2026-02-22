@@ -57,12 +57,16 @@ const DEFAULTS = {
     spacerCount: 4
   },
 
+  // Sleep timer default duration (minutes) and preset buttons
+  sleepTimerDuration: 30,
+  sleepTimerPresets: [5, 15, 30, 60],
+
   // Balance presets (values 1-100, applied as negative/positive pan)
   balancePresets: { left: 100, right: 100 },
 
   // Popup sections layout (individual advanced controls)
   popupSectionsLayout: {
-    order: ['balance', 'speed', 'bass', 'treble', 'voice', 'range', 'output', 'siteRule'],
+    order: ['balance', 'speed', 'bass', 'treble', 'voice', 'range', 'output', 'siteRule', 'sleepTimer'],
     hidden: [],
     controlMode: {}  // per-item overrides, e.g. { speed: 'presets', bass: 'sliders' }
   }
@@ -124,7 +128,8 @@ const TAB_STORAGE = {
   BALANCE: 'balance',   // tab_123_balance
   CHANNEL_MODE: 'channelMode', // tab_123_channelMode
   SPEED: 'speed',       // tab_123_speed
-  RULE_APPLIED: 'ruleAppliedDomain' // tab_123_ruleAppliedDomain
+  RULE_APPLIED: 'ruleAppliedDomain', // tab_123_ruleAppliedDomain
+  ACTIVE: 'active'     // tab_123_active (dormant mode: false = dormant, true = user activated)
 };
 
 // Known DRM-protected streaming domains (EME/Encrypted Media Extensions)

@@ -482,6 +482,31 @@
           <div id="ruleStatus" class="rule-status compact" role="status" aria-live="polite"></div>
         </div>
       </div>
+      <div class="advanced-item" data-item-id="sleepTimer">
+        <div class="effects-divider" aria-hidden="true"></div>
+        <!-- Sleep Timer -->
+        <div class="sleep-timer-section compact-row" role="group" aria-label="Sleep timer">
+          <span class="compact-label">Sleep</span>
+          <div class="effect-buttons sleep-timer-buttons eq-presets-mode hidden">
+            <button class="effect-btn sleep-btn" data-minutes="5">5m</button>
+            <button class="effect-btn sleep-btn" data-minutes="15">15m</button>
+            <button class="effect-btn sleep-btn" data-minutes="30">30m</button>
+            <button class="effect-btn sleep-btn" data-minutes="60">60m</button>
+          </div>
+          <div class="sleep-slider-container eq-slider-mode">
+            <input type="range" id="sleepSlider" class="eq-slider sleep-slider"
+                   min="1" max="120" value="30" step="1"
+                   aria-label="Sleep timer duration" title="Sleep timer: 30 minutes">
+            <span class="eq-slider-value sleep-slider-value" id="sleepSliderValue">30m</span>
+          </div>
+          <button class="sleep-go-btn eq-slider-mode" id="sleepGoBtn" title="Start sleep timer" aria-label="Start sleep timer">Go</button>
+          <label class="domain-checkbox" title="Apply sleep timer to all tabs">
+            <input type="checkbox" id="sleepAllTabsCheckbox" aria-label="Apply to all tabs">
+            <span>All Tabs</span>
+          </label>
+          <div id="sleepTimerCountdown" class="sleep-status compact" role="button" tabindex="0" aria-live="polite" title="Click to cancel sleep timer"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Global status message area for error feedback -->

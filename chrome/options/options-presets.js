@@ -959,6 +959,60 @@ resetBalancePresetsBtn.addEventListener('click', resetBalancePresetsDefaults);
   input.addEventListener('change', saveBalancePresets);
 });
 
+// ==================== Sleep Timer Presets ====================
+
+const sleepQuick = document.getElementById('sleepQuick');
+const sleepShort = document.getElementById('sleepShort');
+const sleepMedium = document.getElementById('sleepMedium');
+const sleepLong = document.getElementById('sleepLong');
+const resetSleepPresetsBtn = document.getElementById('resetSleepPresetsBtn');
+const sleepPresetsStatus = document.getElementById('sleepPresetsStatus');
+
+// Load saved sleep timer presets
+async function loadSleepPresets() {
+  const result = await browserAPI.storage.sync.get(['sleepTimerPresets']);
+  const presets = result.sleepTimerPresets || DEFAULT_SLEEP_TIMER_PRESETS;
+
+  sleepQuick.value = presets[0];
+  sleepShort.value = presets[1];
+  sleepMedium.value = presets[2];
+  sleepLong.value = presets[3];
+}
+
+// Save sleep timer presets (auto-save)
+async function saveSleepPresets() {
+  clampRangeInput(sleepQuick, 'quick', SLEEP_TIMER_RANGES);
+  clampRangeInput(sleepShort, 'short', SLEEP_TIMER_RANGES);
+  clampRangeInput(sleepMedium, 'medium', SLEEP_TIMER_RANGES);
+  clampRangeInput(sleepLong, 'long', SLEEP_TIMER_RANGES);
+
+  const values = [
+    parseInt(sleepQuick.value),
+    parseInt(sleepShort.value),
+    parseInt(sleepMedium.value),
+    parseInt(sleepLong.value)
+  ];
+
+  await browserAPI.storage.sync.set({ sleepTimerPresets: values });
+}
+
+// Reset sleep timer presets to defaults
+async function resetSleepPresets() {
+  await browserAPI.storage.sync.remove(['sleepTimerPresets']);
+  sleepQuick.value = DEFAULT_SLEEP_TIMER_PRESETS[0];
+  sleepShort.value = DEFAULT_SLEEP_TIMER_PRESETS[1];
+  sleepMedium.value = DEFAULT_SLEEP_TIMER_PRESETS[2];
+  sleepLong.value = DEFAULT_SLEEP_TIMER_PRESETS[3];
+  showStatus(sleepPresetsStatus, 'Reset to defaults', 'success');
+}
+
+// Event listeners for sleep timer presets (auto-save on change)
+resetSleepPresetsBtn.addEventListener('click', resetSleepPresets);
+
+[sleepQuick, sleepShort, sleepMedium, sleepLong].forEach(input => {
+  input.addEventListener('change', saveSleepPresets);
+});
+
 // ==================== Volume Steps ====================
 
 const stepScroll = document.getElementById('stepScroll');

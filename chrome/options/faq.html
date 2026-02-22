@@ -383,18 +383,18 @@
         </svg>
       </h3>
       <div class="faq-subsection-content">
-        <p class="section-desc">The extension icon shows different colored <strong>!</strong> badges to indicate the current state. These are checked in priority order.</p>
+        <p class="section-desc">The extension icon shows different colored <strong>!</strong> badges to indicate the current state. These are checked in priority order (highest first).</p>
+        <div class="info-box">
+          <h4>Yellow ! — Restricted page (highest priority)</h4>
+          <p>The extension can't run on this page type. This appears on browser-internal pages like <code>chrome://</code>, <code>about:</code>, extension pages, and browser stores. Audio control isn't available on these pages.</p>
+        </div>
+        <div class="info-box">
+          <h4>Red ! — Site rule pending</h4>
+          <p>A saved site rule is waiting to be applied. On Chrome, this appears when a site rule exists for the current domain but Tab Capture hasn't been activated yet. Click the extension icon to apply the rule.</p>
+        </div>
         <div class="info-box">
           <h4>Blue ! — Tab Capture pending (Chrome only)</h4>
           <p>Tab Capture needs a user gesture to activate on this tab. Click the extension icon or use a keyboard shortcut to enable it. Once activated, the badge changes to the normal volume display.</p>
-        </div>
-        <div class="info-box">
-          <h4>Red ! — Site rule pending (Chrome only)</h4>
-          <p>A saved site rule is waiting to be applied. This appears instead of the blue badge when a site rule exists for the current domain, since the rule can't apply until Tab Capture is activated. Click the extension icon to apply both.</p>
-        </div>
-        <div class="info-box">
-          <h4>Yellow ! — Restricted page</h4>
-          <p>The extension can't run on this page type. This appears on browser-internal pages like <code>chrome://</code>, <code>about:</code>, extension pages, and browser stores. Audio control isn't available on these pages.</p>
         </div>
         <div class="info-box">
           <h4>Volume percentage badge (normal state)</h4>
@@ -409,7 +409,41 @@
       </div>
     </div>
 
-    <!-- Q10: What syncs -->
+    <!-- Q10: Dormant mode -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>What is dormant mode?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">The extension stays dormant (inactive) on every tab until you interact with it. This prevents interference with page audio on sites you haven't touched.</p>
+        <div class="info-box">
+          <h4>Why dormant mode exists</h4>
+          <p>Without dormant mode, the extension would intercept audio on every page load, which could cause issues like volume slider snap-back on sites like YouTube. Dormant mode ensures the extension only touches audio when you want it to.</p>
+        </div>
+        <div class="info-box">
+          <h4>How tabs activate</h4>
+          <ul class="feature-list">
+            <li><strong>Opening the popup</strong> — Clicking the extension icon activates the current tab</li>
+            <li><strong>Keyboard shortcuts</strong> — Using volume up/down or mute activates the tab</li>
+            <li><strong>Site rules</strong> — Tabs with matching site rules activate when you click the extension (shown as a red ! badge)</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>What happens when dormant</h4>
+          <ul class="feature-list">
+            <li>No badge appears on the extension icon</li>
+            <li>Page audio works exactly as it normally would</li>
+            <li>No audio processing chain is created</li>
+            <li>Zero impact on page performance or audio behavior</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q11: What syncs -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
         <span>What settings sync across my devices?</span>
@@ -422,7 +456,7 @@
         <div class="info-box">
           <h4>Synced settings</h4>
           <ul class="feature-list">
-            <li>All preset values (volume, bass, treble, voice, speed, balance, volume steps)</li>
+            <li>All preset values (volume, bass, treble, voice, speed, balance, volume steps, sleep timer)</li>
             <li>Site rules and disabled domains list</li>
             <li>Audio mode overrides (Tab Capture, Web Audio, and Disabled sites)</li>
             <li>Default audio mode</li>
@@ -447,7 +481,7 @@
       </div>
     </div>
 
-    <!-- Q10: Reset everything -->
+    <!-- Q12: Reset everything -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
         <span>How do I reset everything to defaults?</span>
@@ -490,7 +524,7 @@
       </div>
     </div>
 
-    <!-- Q12: Keyboard shortcuts -->
+    <!-- Q13: Keyboard shortcuts -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
         <span>Does the extension have keyboard shortcuts?</span>
@@ -519,7 +553,7 @@
       </div>
     </div>
 
-    <!-- Q13: DRM / protected sites -->
+    <!-- Q14: DRM / protected sites -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
         <span>Does the extension work on Spotify, Netflix, and other DRM sites?</span>
@@ -544,7 +578,7 @@
       </div>
     </div>
 
-    <!-- Q14: Privacy -->
+    <!-- Q15: Privacy -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
         <span>Does the extension collect any data?</span>

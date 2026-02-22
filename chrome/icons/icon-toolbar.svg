@@ -1,0 +1,16 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Per-Tab Audio Control - Toolbar Icon (Yellow Speaker) -->
+  <!-- Extracted from the bottom-right quadrant of the full ABTC logo -->
+
+  <!-- Yellow background -->
+  <rect width="200" height="200" rx="40" fill="#d4c78a"/>
+
+  <!-- Speaker body (scaled up ~1.3x for toolbar clarity) -->
+  <path d="M42 78 L42 122 L62 122 L96 154 L96 46 L62 78 Z" fill="#0f172a"/>
+
+  <!-- Sound wave - small arc -->
+  <path d="M110 66 Q126 100 110 134" stroke="#0f172a" stroke-width="10" stroke-linecap="round" fill="none"/>
+
+  <!-- Sound wave - large arc -->
+  <path d="M132 50 Q152 100 132 150" stroke="#0f172a" stroke-width="10" stroke-linecap="round" fill="none"/>
+</svg>

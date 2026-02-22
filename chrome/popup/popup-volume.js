@@ -447,7 +447,9 @@ volumeDownBtn.addEventListener('mouseleave', stopHold);
 
 // Listen for volume changes from background (keyboard shortcuts)
 browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (sender.id !== browserAPI.runtime.id) return;
   if (request.type === 'VOLUME_CHANGED' && request.tabId === currentTabId) {
+    if (!Number.isFinite(request.volume)) return;
     // Suppress UI updates during 404% easter egg audio cutoff
     if (easterEgg404Active) return;
     currentVolume = request.volume;

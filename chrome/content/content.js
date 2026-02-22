@@ -34,6 +34,10 @@
   const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
   const isFirefox = typeof browser !== 'undefined';
 
+  // Dormant mode: tabs start dormant (no audio interference) until user explicitly
+  // interacts via popup, keyboard shortcuts, or site rules activate the tab
+  let isDormant = true;
+
   // Helper function to toggle play/pause with multiple fallback methods
   // Works on sites like Spotify where direct media element control fails
   function toggleMediaPlayPause() {
@@ -84,7 +88,7 @@
           break;
         }
       } catch (e) {
-        // Selector might be invalid, continue
+        console.debug('[TabVolume] Selector failed:', selector, e.message);
       }
     }
 
@@ -158,7 +162,7 @@
 
         success = true;
       } catch (e) {
-        // Keyboard simulation failed
+        console.debug('[TabVolume] Keyboard simulation failed:', e.message);
       }
     }
 
@@ -377,6 +381,8 @@
           }
           if (position) {
             sendResponse({ success: true, position });
+          } else {
+            sendResponse({ success: false });
           }
           return false;
         } else if (request.type === 'SEEK_MEDIA') {
@@ -792,6 +798,9 @@
   }
 
   function processMediaElement(element) {
+    // Don't touch media elements while dormant — no audio interference until user activates
+    if (isDormant) return;
+
     // Apply playback rate to all new elements regardless of mode
     if (currentPlaybackRate !== 1) {
       element.preservesPitch = true;
@@ -953,13 +962,6 @@
         }
 
         // Sync play/pause with source element
-        const syncPlayback = () => {
-          if (!element.paused && outputAudioElement.paused) {
-            outputAudioElement.play().catch(() => {});
-          } else if (element.paused && !outputAudioElement.paused) {
-            outputAudioElement.pause();
-          }
-        };
         element.addEventListener('play', () => {
           outputAudioElement.play().catch(() => {});
         });
@@ -1088,6 +1090,11 @@
   }
 
   function applyVolumeToMedia(volume) {
+    // In Tab Capture mode, volume is controlled by the offscreen document's gain node.
+    // Don't touch element.volume — processMediaElement keeps it at 1.0 so Tab Capture
+    // captures full-volume audio and applies gain changes downstream.
+    if (isTabCaptureMode) return;
+
     // Apply compressor compensation to maintain similar perceived loudness
     const compensatedGain = (volume / 100) * compressorCompensation;
     document.querySelectorAll('audio, video').forEach(element => {
@@ -1494,6 +1501,7 @@
 
   // Watch for new media elements
   const observer = new MutationObserver((mutations) => {
+    if (isDormant) return;
     if (extensionDisabledOnDomain) return;
     let found = false;
     for (const m of mutations) {
@@ -1512,6 +1520,7 @@
   // Periodic safety check for unprocessed media elements
   // Catches edge cases where MutationObserver might miss elements (e.g., Twitch ad transitions)
   const periodicCheckInterval = setInterval(() => {
+    if (isDormant) return;
     if (extensionDisabledOnDomain) return;
     document.querySelectorAll('audio, video').forEach(element => {
       // Skip if already processed
@@ -1653,12 +1662,44 @@
     'SET_BALANCE', 'SET_CHANNEL_MODE', 'SET_COMPRESSOR', 'SET_SPEED',
     'TOGGLE_PLAY_PAUSE', 'TOGGLE_PLAYBACK',
     'GET_MEDIA_POSITION', 'SEEK_MEDIA',
-    'GET_NATIVE_MODE_STATUS', 'UNMUTE_MEDIA'
+    'GET_NATIVE_MODE_STATUS', 'UNMUTE_MEDIA',
+    'ACTIVATE_TAB'
   ];
 
   // Valid presets/modes
   const VALID_CHANNEL_MODES = ['stereo', 'mono', 'swap'];
   const VALID_COMPRESSOR_PRESETS = ['off', 'podcast', 'movie', 'maximum'];
+
+  // Activate from dormant state: initialize audio pipeline that was deferred
+  async function activateFromDormant() {
+    if (!isDormant) return;
+    console.log('[TabVolume] Activating from dormant mode');
+    try {
+      const response = await browserAPI.runtime.sendMessage({ type: 'CONTENT_READY', activating: true });
+      if (response && response.volume !== undefined && response.volume !== null) {
+        isDormant = false;
+        currentVolume = response.volume;
+        initPageScript(response.volume);
+        applyVolumeToMedia(response.volume);
+        processAllMedia();
+
+        // Apply saved device if set
+        if (response.deviceId && (audioMode === 'device' || !isFirefox)) {
+          let deviceIdToUse = response.deviceId;
+          if (response.deviceLabel) {
+            const localDeviceId = await resolveDeviceByLabel(response.deviceLabel);
+            if (localDeviceId) deviceIdToUse = localDeviceId;
+          }
+          currentDeviceId = deviceIdToUse;
+          applyDeviceToAllMedia(deviceIdToUse, response.deviceLabel);
+        }
+      }
+    } catch (e) {
+      // Background might not be ready, initialize with defaults
+      isDormant = false;
+      initPageScript(100);
+    }
+  }
 
   // Listen for messages from background script and popup
   browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -1674,11 +1715,37 @@
       return false;
     }
 
-    if (request.type === 'SET_VOLUME') {
+    if (request.type === 'ACTIVATE_TAB') {
+      // Explicit activation from background (keyboard shortcut, context menu reset)
+      if (isDormant) {
+        activateFromDormant().then(() => {
+          sendResponse({ success: true });
+        }).catch(() => {
+          sendResponse({ success: false });
+        });
+        return true;
+      }
+      sendResponse({ success: true });
+    } else if (request.type === 'SET_VOLUME') {
       // Validate volume is a number between 0 and 500
       if (!isValidNumber(request.volume, VOLUME_MIN, VOLUME_MAX)) {
         sendResponse({ success: false, error: 'Invalid volume (must be 0-500)' });
         return;
+      }
+      // If dormant, activate first then apply volume
+      if (isDormant) {
+        activateFromDormant().then(() => {
+          if (isGlobalNativeMode) {
+            applyNativeVolumeToMedia(request.volume);
+            currentVolume = Math.min(100, request.volume);
+          } else {
+            applyVolume(request.volume);
+          }
+          sendResponse({ success: true });
+        }).catch(() => {
+          sendResponse({ success: false });
+        });
+        return true;
       }
       // Use native mode if globally enabled
       if (isGlobalNativeMode) {
@@ -1742,6 +1809,10 @@
         sendResponse({ success: false, error: 'Invalid bass gain' });
         return;
       }
+      if (isDormant) {
+        activateFromDormant().then(() => { applyBassBoost(request.gain); sendResponse({ success: true }); }).catch(() => sendResponse({ success: false }));
+        return true;
+      }
       applyBassBoost(request.gain);
       sendResponse({ success: true });
     } else if (request.type === 'SET_TREBLE') {
@@ -1750,6 +1821,10 @@
         sendResponse({ success: false, error: 'Invalid treble gain' });
         return;
       }
+      if (isDormant) {
+        activateFromDormant().then(() => { applyTrebleBoost(request.gain); sendResponse({ success: true }); }).catch(() => sendResponse({ success: false }));
+        return true;
+      }
       applyTrebleBoost(request.gain);
       sendResponse({ success: true });
     } else if (request.type === 'SET_VOICE') {
@@ -1757,6 +1832,10 @@
       if (!isValidNumber(request.gain, EFFECT_RANGES.voice.min, EFFECT_RANGES.voice.max)) {
         sendResponse({ success: false, error: 'Invalid voice gain' });
         return;
+      }
+      if (isDormant) {
+        activateFromDormant().then(() => { applyVoiceBoost(request.gain); sendResponse({ success: true }); }).catch(() => sendResponse({ success: false }));
+        return true;
       }
       applyVoiceBoost(request.gain);
       sendResponse({ success: true });
@@ -1769,6 +1848,10 @@
       }
       // Normalize to -1 to 1 range if given as percentage, then clamp
       const normalizedPan = Math.max(-1, Math.min(1, Math.abs(pan) > 1 ? pan / 100 : pan));
+      if (isDormant) {
+        activateFromDormant().then(() => { applyBalance(normalizedPan); sendResponse({ success: true }); }).catch(() => sendResponse({ success: false }));
+        return true;
+      }
       applyBalance(normalizedPan);
       sendResponse({ success: true });
     } else if (request.type === 'SET_CHANNEL_MODE') {
@@ -1776,6 +1859,10 @@
       if (!isValidString(request.mode, VALID_CHANNEL_MODES)) {
         sendResponse({ success: false, error: 'Invalid channel mode' });
         return;
+      }
+      if (isDormant) {
+        activateFromDormant().then(() => { applyChannelMode(request.mode); sendResponse({ success: true }); }).catch(() => sendResponse({ success: false }));
+        return true;
       }
       applyChannelMode(request.mode);
       sendResponse({ success: true });
@@ -1785,6 +1872,10 @@
         sendResponse({ success: false, error: 'Invalid compressor preset' });
         return;
       }
+      if (isDormant) {
+        activateFromDormant().then(() => { applyCompressor(request.preset); sendResponse({ success: true }); }).catch(() => sendResponse({ success: false }));
+        return true;
+      }
       applyCompressor(request.preset);
       sendResponse({ success: true });
     } else if (request.type === 'SET_SPEED') {
@@ -1792,6 +1883,10 @@
       if (!isValidNumber(request.rate, EFFECT_RANGES.speed.min, EFFECT_RANGES.speed.max)) {
         sendResponse({ success: false, error: 'Invalid speed (must be 0.05 to 5)' });
         return;
+      }
+      if (isDormant) {
+        activateFromDormant().then(() => { applyPlaybackRate(request.rate); sendResponse({ success: true }); }).catch(() => sendResponse({ success: false }));
+        return true;
       }
       applyPlaybackRate(request.rate);
       sendResponse({ success: true });
@@ -2063,6 +2158,16 @@
 
     try {
       const response = await browserAPI.runtime.sendMessage({ type: 'CONTENT_READY' });
+
+      // If tab is dormant, skip audio pipeline initialization entirely
+      // The extension won't interfere with native site audio until activated
+      if (response && response.dormant === true) {
+        isDormant = true;
+        console.log('[TabVolume] Tab is dormant — deferring audio initialization');
+        return; // Skip initPageScript, applyVolume, processAllMedia
+      }
+
+      isDormant = false;
       if (response && response.volume !== undefined) {
         currentVolume = response.volume;
 
@@ -2152,7 +2257,7 @@
   }
 
   window.addEventListener('load', () => {
-    processAllMedia();
+    if (!isDormant) processAllMedia();
     checkAndReportMedia();
   });
 

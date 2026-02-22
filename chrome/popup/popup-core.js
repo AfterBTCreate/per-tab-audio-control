@@ -30,30 +30,60 @@ let isDomainDisabled = false;
 let isRestrictedPage = false;
 
 // ==================== DOM Elements ====================
-const volumeSlider = document.getElementById('volumeSlider');
-const volumeValue = document.getElementById('volumeValue');
-const sliderFill = document.getElementById('sliderFill');
-const tabTitle = document.getElementById('tabTitle');
-const tabUrl = document.getElementById('tabUrl');
-const tabTitleExternal = document.getElementById('tabTitleExternal');
-const muteBtn = document.getElementById('muteBtn');
-const presetButtons = document.querySelectorAll('.preset-btn');
-const logo = document.querySelector('.logo');
-const themeToggle = document.getElementById('themeToggle');
-const deviceSelect = document.getElementById('deviceSelect');
-const refreshDevicesBtn = document.getElementById('refreshDevices');
-const volumeUpBtn = document.getElementById('volumeUp');
-const volumeDownBtn = document.getElementById('volumeDown');
-const settingsBtn = document.getElementById('settingsBtn');
-const prevTabBtn = document.getElementById('prevTabBtn');
-const nextTabBtn = document.getElementById('nextTabBtn');
-const tabCounter = document.getElementById('tabCounter');
-const addSiteRuleBtn = document.getElementById('addSiteRuleBtn');
-const ruleDomainCheckbox = document.getElementById('ruleDomainCheckbox');
-const ruleStatus = document.getElementById('ruleStatus');
-const statusMessage = document.getElementById('statusMessage');
-const audioModeToggle = document.getElementById('audioModeToggle');
-const modeToggle = document.getElementById('modeToggle');
+// Core shared elements (referenced by multiple popup modules)
+// Each module also caches its own private elements at module level.
+const DOM = {
+  volumeSlider: document.getElementById('volumeSlider'),
+  volumeValue: document.getElementById('volumeValue'),
+  sliderFill: document.getElementById('sliderFill'),
+  tabTitle: document.getElementById('tabTitle'),
+  tabUrl: document.getElementById('tabUrl'),
+  tabTitleExternal: document.getElementById('tabTitleExternal'),
+  muteBtn: document.getElementById('muteBtn'),
+  presetButtons: document.querySelectorAll('.preset-btn'),
+  logo: document.querySelector('.logo'),
+  themeToggle: document.getElementById('themeToggle'),
+  deviceSelect: document.getElementById('deviceSelect'),
+  refreshDevicesBtn: document.getElementById('refreshDevices'),
+  volumeUpBtn: document.getElementById('volumeUp'),
+  volumeDownBtn: document.getElementById('volumeDown'),
+  settingsBtn: document.getElementById('settingsBtn'),
+  prevTabBtn: document.getElementById('prevTabBtn'),
+  nextTabBtn: document.getElementById('nextTabBtn'),
+  tabCounter: document.getElementById('tabCounter'),
+  addSiteRuleBtn: document.getElementById('addSiteRuleBtn'),
+  ruleDomainCheckbox: document.getElementById('ruleDomainCheckbox'),
+  ruleStatus: document.getElementById('ruleStatus'),
+  statusMessage: document.getElementById('statusMessage'),
+  audioModeToggle: document.getElementById('audioModeToggle'),
+  modeToggle: document.getElementById('modeToggle'),
+};
+
+// Backwards-compatible aliases (existing modules reference these as bare variables)
+const volumeSlider = DOM.volumeSlider;
+const volumeValue = DOM.volumeValue;
+const sliderFill = DOM.sliderFill;
+const tabTitle = DOM.tabTitle;
+const tabUrl = DOM.tabUrl;
+const tabTitleExternal = DOM.tabTitleExternal;
+const muteBtn = DOM.muteBtn;
+const presetButtons = DOM.presetButtons;
+const logo = DOM.logo;
+const themeToggle = DOM.themeToggle;
+const deviceSelect = DOM.deviceSelect;
+const refreshDevicesBtn = DOM.refreshDevicesBtn;
+const volumeUpBtn = DOM.volumeUpBtn;
+const volumeDownBtn = DOM.volumeDownBtn;
+const settingsBtn = DOM.settingsBtn;
+const prevTabBtn = DOM.prevTabBtn;
+const nextTabBtn = DOM.nextTabBtn;
+const tabCounter = DOM.tabCounter;
+const addSiteRuleBtn = DOM.addSiteRuleBtn;
+const ruleDomainCheckbox = DOM.ruleDomainCheckbox;
+const ruleStatus = DOM.ruleStatus;
+const statusMessage = DOM.statusMessage;
+const audioModeToggle = DOM.audioModeToggle;
+const modeToggle = DOM.modeToggle;
 
 // Effect button elements
 const effectButtons = document.querySelectorAll('.effect-btn');
@@ -511,7 +541,8 @@ browserAPI.storage.onChanged.addListener((changes, area) => {
     if (changes.bassBoostPresets || changes.bassCutPresets ||
         changes.trebleBoostPresets || changes.trebleCutPresets ||
         changes.voiceBoostPresets ||
-        changes.speedSlowPresets || changes.speedFastPresets) {
+        changes.speedSlowPresets || changes.speedFastPresets ||
+        changes.sleepTimerPresets) {
       loadEffectPresets();
     }
   }
@@ -754,3 +785,4 @@ settingsBtn.addEventListener('click', () => {
   browserAPI.tabs.create({ url: browserAPI.runtime.getURL('options/options.html?from=popup') });
   window.close();
 });
+

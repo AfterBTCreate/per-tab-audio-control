@@ -170,7 +170,7 @@
             <li><strong>→ (Right Arrow)</strong> — Switch to next audio tab</li>
             <li><strong>↺ (Reset)</strong> — Reset current tab to default settings</li>
           </ul>
-          <p style="margin-top: 8px;"><em>Note: Tab navigation arrows only appear when multiple tabs have audio playing.</em></p>
+          <p style="margin-top: 8px;"><em>Note: Tab navigation arrows only appear when multiple tabs have audio playing. You can also adjust volume by scrolling the mouse wheel over the popup.</em></p>
         </div>
 
         <div class="info-box">
@@ -181,6 +181,7 @@
             <li><strong style="background: #4A90D9; color: #fff; padding: 1px 4px; border-radius: 2px;">!</strong> — <strong>Blue:</strong> Tab Capture needs activation (Chrome only). Click the extension or use a keyboard shortcut to enable.</li>
             <li><strong style="background: #D94A4A; color: #fff; padding: 1px 4px; border-radius: 2px;">!</strong> — <strong>Red:</strong> A site rule exists for this page but hasn't been applied yet. Click the extension to apply it.</li>
             <li><strong style="background: #fbbf24; color: #000; padding: 1px 4px; border-radius: 2px;">!</strong> — <strong>Yellow:</strong> Restricted browser page (e.g., chrome:// or about: pages) where audio control is not available.</li>
+            <li><strong>No badge</strong> — The extension is dormant on this tab. Audio processing is inactive until you interact with the extension (open the popup, use a keyboard shortcut, or have a matching site rule).</li>
           </ul>
         </div>
 
@@ -334,10 +335,8 @@
         <div class="info-box">
           <h4>Switching Modes</h4>
           <ul class="feature-list">
-            <li><strong>Tab Capture button</strong> — Click in header to enable Tab Capture mode (Chrome only, blue when active)</li>
-            <li><strong>Web Audio button</strong> — Click in header to enable Web Audio mode (orange when active)</li>
-            <li><strong>Disable button (⊘)</strong> — Click in header to disable audio processing (red when active)</li>
-            <li><strong>Context menu</strong> — Right-click and select the audio mode option</li>
+            <li><strong>Audio Mode toggle</strong> — A single button in the popup header cycles through modes: Tab Capture (blue) → Web Audio (orange) → Disabled (red). On Firefox, Tab Capture is skipped.</li>
+            <li><strong>Context menu</strong> — Right-click and select the specific audio mode option</li>
           </ul>
           <p style="margin-top: 8px;">Your preference is saved per-site. The page refreshes when switching modes.</p>
         </div>
@@ -724,6 +723,49 @@
       </div>
     </div>
 
+    <!-- Sleep Timer -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Sleep Timer</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Set a timer to automatically stop audio playback after a specified duration. Useful for falling asleep to music or podcasts.</p>
+
+        <div class="info-box">
+          <h4>How to Use</h4>
+          <ul class="feature-list">
+            <li><strong>Quick presets</strong> — Four buttons with customizable durations (default: 5, 15, 30, 60 minutes)</li>
+            <li><strong>Slider</strong> — Drag to set any duration from 1 to 120 minutes (scroll wheel adjusts in 1-minute steps)</li>
+            <li><strong>All tabs option</strong> — Toggle whether the timer stops audio on just the current tab or all tabs</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Timer Behavior</h4>
+          <ul class="feature-list">
+            <li>A countdown appears in the popup showing time remaining</li>
+            <li>When the timer expires, media is paused (not muted)</li>
+            <li>You can cancel the timer at any time from the popup</li>
+            <li>The timer continues running even when the popup is closed</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Customizing Presets</h4>
+          <p>In Settings → Presets → Sleep Timer Presets, you can customize the four quick-select durations:</p>
+          <ul class="feature-list">
+            <li><strong>Quick</strong> — 1 to 10 minutes (default: 5)</li>
+            <li><strong>Short</strong> — 5 to 30 minutes (default: 15)</li>
+            <li><strong>Medium</strong> — 15 to 60 minutes (default: 30)</li>
+            <li><strong>Long</strong> — 30 to 120 minutes (default: 60)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <!-- Device Switching -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
@@ -813,7 +855,7 @@
         <div class="info-box">
           <h4>What Syncs</h4>
           <ul class="feature-list">
-            <li>All preset values (volume, bass, treble, voice, speed, balance, volume steps)</li>
+            <li>All preset values (volume, bass, treble, voice, speed, balance, volume steps, sleep timer)</li>
             <li>Site rules</li>
             <li>Audio mode overrides (Tab Capture, Web Audio, and Disabled mode sites)</li>
             <li>Default audio mode setting</li>
@@ -859,7 +901,7 @@
           <h4>Backup All Data</h4>
           <p>Downloads a CSV file containing all your settings:</p>
           <ul class="feature-list">
-            <li>All presets (volume, bass, treble, voice, speed, balance, volume steps)</li>
+            <li>All presets (volume, bass, treble, voice, speed, balance, volume steps, sleep timer)</li>
             <li>Site rules and audio mode overrides</li>
             <li>Appearance settings (theme, visualizer, badge style, seekbar, header layout, popup sections)</li>
             <li>Default audio mode and popup mode</li>
@@ -912,6 +954,7 @@
             <li><strong>Scripting</strong> — Inject audio processing scripts into pages</li>
             <li><strong>Offscreen</strong> — Process Tab Capture audio in background (Chrome only)</li>
             <li><strong>Context Menus</strong> — Provide right-click menu options</li>
+            <li><strong>Alarms</strong> — Schedule sleep timer countdowns reliably in the background</li>
             <li><strong>Microphone (browser prompt)</strong> — Not a manifest permission. The browser may prompt for microphone access when listing audio output devices. This is only used to enumerate devices — the extension never records audio.</li>
           </ul>
         </div>

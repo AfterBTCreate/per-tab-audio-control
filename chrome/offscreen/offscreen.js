@@ -59,7 +59,7 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case 'START_VISUALIZER_CAPTURE':
-      handleStartVisualizerCapture(message.streamId, message.tabId).then(sendResponse);
+      handleStartVisualizerCapture(message.streamId, message.tabId, message.initialVolume).then(sendResponse);
       return true;
 
     case 'STOP_VISUALIZER_CAPTURE':
@@ -135,7 +135,7 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Security: Validate numeric parameters to prevent NaN/Infinity issues
 function isValidTabId(tabId) {
-  return Number.isInteger(tabId) && tabId > 0;
+  return Number.isInteger(tabId) && tabId > 0 && tabId < 2147483647;
 }
 
 function isValidVolume(volume) {
@@ -393,15 +393,15 @@ async function setTabCaptureDevice(tabId, deviceId, deviceLabel) {
   log('Active captures:', Array.from(visualizerCaptures.keys()));
 
   const capture = visualizerCaptures.get(tabId);
-  if (!capture || !capture.audioElement) {
-    log('No capture/audioElement found for tab', tabId);
+  if (!capture || !capture.audioContext) {
+    log('No capture/audioContext found for tab', tabId);
     return { success: false, error: 'No active capture for this tab' };
   }
 
   try {
-    // Check if setSinkId is supported on the audio element
-    if (typeof capture.audioElement.setSinkId !== 'function') {
-      console.error('[Offscreen] setSinkId not supported on Audio element');
+    // Check if setSinkId is supported on the AudioContext
+    if (typeof capture.audioContext.setSinkId !== 'function') {
+      console.error('[Offscreen] setSinkId not supported on AudioContext');
       return { success: false, error: 'Device switching not supported in this browser' };
     }
 
@@ -418,11 +418,10 @@ async function setTabCaptureDevice(tabId, deviceId, deviceLabel) {
       }
     }
 
-    // Set the output device on the Audio element
-    // The audio chain goes: filters -> MediaStreamDestination -> Audio element -> speakers
-    // So we need to set the sink on the Audio element, not the AudioContext
+    // Set the output device on the AudioContext
+    // Audio routes directly: filters -> audioContext.destination -> speakers
     const sinkId = targetDeviceId || '';
-    await capture.audioElement.setSinkId(sinkId);
+    await capture.audioContext.setSinkId(sinkId);
 
     log('Set device for tab', tabId, ':', deviceLabel || sinkId || 'default');
     return { success: true };
@@ -479,7 +478,7 @@ async function handleGetDevices(requestPermission) {
  * This is a lightweight capture that just provides analyser data
  * Audio is passed through unchanged to the destination
  */
-async function handleStartVisualizerCapture(streamId, tabId) {
+async function handleStartVisualizerCapture(streamId, tabId, initialVolume) {
   log('Starting visualizer capture for tab:', tabId);
 
   // Validate streamId before attempting capture
@@ -508,8 +507,17 @@ async function handleStartVisualizerCapture(streamId, tabId) {
 
     log('Got media stream for tab', tabId);
 
+    // Match AudioContext sample rate to the capture stream to prevent
+    // pitch artifacts from sample rate mismatch during initial sync.
+    // Without this, a fresh AudioContext may default to a different rate
+    // than the captured audio, causing Chrome's resampler to drift briefly
+    // (audible as high pitch for several seconds on first capture).
+    const audioTrack = stream.getAudioTracks()[0];
+    const trackSettings = audioTrack ? audioTrack.getSettings() : {};
+    const ctxOptions = trackSettings.sampleRate ? { sampleRate: trackSettings.sampleRate } : {};
+
     // Create audio context
-    const audioContext = new AudioContext();
+    const audioContext = new AudioContext(ctxOptions);
 
     // Resume AudioContext if suspended (Chrome autoplay policy)
     if (audioContext.state === 'suspended') {
@@ -576,9 +584,12 @@ async function handleStartVisualizerCapture(streamId, tabId) {
     const stereoPanner = audioContext.createStereoPanner();
     stereoPanner.pan.value = 0;
 
-    // Master gain for volume control
+    // Master gain for volume control — apply stored volume immediately
+    // to prevent a burst at 100% before syncStoredSettingsToTabCapture runs
     const gainNode = audioContext.createGain();
-    gainNode.gain.value = 1.0;
+    const safeInitialVolume = (typeof initialVolume === 'number' && isFinite(initialVolume))
+      ? Math.max(0, Math.min(initialVolume, 500)) : 100;
+    gainNode.gain.value = safeInitialVolume / 100;
 
     // Limiter (compressor configured as limiter)
     const limiter = audioContext.createDynamicsCompressor();
@@ -595,11 +606,13 @@ async function handleStartVisualizerCapture(streamId, tabId) {
     analyser.maxDecibels = -10;
     analyser.minDecibels = -90;
 
-    // Create MediaStreamDestination for processed output
-    const destination = audioContext.createMediaStreamDestination();
-
-    // Connect processing chain:
-    // source → bass → treble → voice → compressor → channelMatrix → panner → gain → limiter → analyser → destination
+    // Connect processing chain directly to audioContext.destination.
+    // Previous versions routed through MediaStreamDestination → Audio element,
+    // but that created two independent clock domains causing pitch/speed
+    // artifacts during initial synchronization on first capture.
+    // Routing directly to audioContext.destination keeps everything on
+    // a single clock and eliminates the first-open audio artifact.
+    // Device selection uses audioContext.setSinkId() instead.
     source.connect(bassFilter);
     bassFilter.connect(trebleFilter);
     trebleFilter.connect(voiceFilter);
@@ -609,12 +622,7 @@ async function handleStartVisualizerCapture(streamId, tabId) {
     stereoPanner.connect(gainNode);
     gainNode.connect(limiter);
     limiter.connect(analyser);
-    analyser.connect(destination);
-
-    // Play processed audio through Audio element
-    const audioElement = new Audio();
-    audioElement.srcObject = destination.stream;
-    await audioElement.play();
+    analyser.connect(audioContext.destination);
 
     // Pre-allocate typed arrays for efficiency
     const freqArray = new Uint8Array(analyser.frequencyBinCount);
@@ -626,7 +634,6 @@ async function handleStartVisualizerCapture(streamId, tabId) {
       analyser,
       stream,
       source,
-      audioElement,
       // Processing nodes for control
       gainNode,
       bassFilter,
@@ -639,7 +646,7 @@ async function handleStartVisualizerCapture(streamId, tabId) {
       freqArray,
       waveArray,
       // Track current values for compensation
-      currentVolume: 100,
+      currentVolume: safeInitialVolume,
       currentCompressor: 'off'
     });
 
@@ -673,12 +680,6 @@ async function handleStopVisualizerCapture(tabId) {
   }
 
   try {
-    // Stop audio element playback
-    if (capture.audioElement) {
-      capture.audioElement.pause();
-      capture.audioElement.srcObject = null;
-    }
-
     // Stop all tracks in the media stream
     if (capture.stream) {
       capture.stream.getTracks().forEach(track => {
