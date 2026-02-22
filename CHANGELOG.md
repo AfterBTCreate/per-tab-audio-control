@@ -10,7 +10,225 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [Unreleased]
+## [5.4.6] - Release - 2026-02-21 — Dormant Mode for page-script.js
+
+### Security
+- **Q1** — Guard `__tabVolumeControl_set` listener with `isActive` check — prevents page scripts from pre-seeding `currentVolume` to arbitrary values (e.g. 500%) before extension activates, which would be used by `getMasterGain()` when building the processing chain
+
+### Fixed
+- **YouTube volume slider snap-back** — page-script.js no longer intercepts Web Audio connections on dormant tabs (tabs where the user hasn't opened the extension popup). Previously, the 9-node processing chain was created immediately for every AudioContext, causing YouTube's volume slider to malfunction (audio lowered while dragging but snapped back on release). Now page-script.js tracks AudioContexts but remains inert until content.js dispatches `__tabVolumeControl_init`, which only happens when the user activates the extension on that tab.
+- **Site rules auto-activating dormant tabs** — `applyMatchingSiteRule()` in the `onUpdated` handler was calling `activateTab()` immediately when a site rule matched, bypassing dormant mode even on tabs with the red "!" pending badge. Now defers rule application when Tab Capture is pending — the tab stays dormant and the red badge shows until the user clicks the popup, which triggers `APPLY_PENDING_SITE_RULE` to activate properly.
+- **Q2** — `activateFromDormant()` now restores saved effects (bass, treble, voice, balance, channel mode, compressor, speed) via `sendTabSettingsToContentScript()` after the `CONTENT_READY` activating response — previously only volume and device were restored, silently dropping saved effects
+- **Q3** — `CONTENT_READY` error catch block now defaults to `dormant: true` instead of `{volume: 100}` — prevents storage failures from accidentally activating dormant tabs
+
+### QA Fixes
+- **Q-C1** — Add missing `speed_1` handler to context menu click handler — clicking "Normal (1x)" now correctly resets speed to off
+- **Q-C2** — Remove dead `syncPlayback` function from content.js — replaced by direct event listeners, never called
+- **Q-I1** — Move `isDormant = false` after async confirmation in `activateFromDormant()` — prevents stuck half-state if background responds with dormant or sendMessage fails
+- **Q-I3** — Remove redundant `activateTab()` call from `applyMatchingSiteRule()` — `setTabVolume()` already calls it internally
+- **Q-I5** — Add fallback `sendResponse({ success: false })` for `GET_MEDIA_POSITION` in disabled-domain handler when no media element is found
+- **S-1** — Add `isValidTabId()` check to `UPDATE_SLEEP_TIMER` handler, matching other sleep timer handlers
+
+### Backup/Restore
+- **B-1** — Add `sleepTimerPresets` to backup export, restore parsing, and Reset All — previously omitted from all three
+- **B-2** — Add `expandedSections` to `resetAllSettings()` sync.remove list
+- **B-3** — Add 5 MB file size limit check before reading backup file (typical backups are < 50 KB)
+- **B-4** — Add `.slice(0, 500)` / `.slice(0, 200)` length limits to restored `globalDefaultDevice` deviceId/deviceLabel
+- **B-5** — Fix `isValidHostname` fallback in Site Audio Mode Overrides restore — reject hostnames when validator is missing (fail-closed) instead of accepting all (fail-open)
+
+### Documentation
+- **D-1** — Add Sleep Timer section to User Guide (presets, behavior, customization)
+- **D-2** — Fix badge priority order in FAQ (Yellow → Red → Blue, matching code priority)
+- **D-3** — Fix "Switching Modes" section in User Guide — describe single cycling toggle, not 3 separate buttons
+- **D-4** — Add scroll wheel volume mention to User Guide popup controls
+- **D-5** — Add dormant mode FAQ entry explaining why extension stays inactive until user interaction
+- **D-6** — Add `alarms` permission to User Guide Privacy section
+- **D-7** — Document dormant badge behavior (no badge = dormant) in User Guide
+- **D-8** — Fix duplicate Q10 numbering in FAQ
+
+### Changed
+- Added `isActive` flag to page-script.js — gates `AudioNode.prototype.connect` interception and `AudioContext` constructor chain creation behind user activation
+- On activation, retroactively creates processing chains for any AudioContexts that were tracked while dormant
+- Deferred site rule application in `onUpdated` when `isTabCapturePending()` returns true (Chrome only; Firefox rules still auto-apply)
+
+---
+
+## [5.4.5] - Release - 2026-02-21 — Security & QA Hardening
+
+### Security
+- **M1** — Sanitize hostname in `GET_EFFECTIVE_MODE` handler via `sanitizeHostname()`, matching other hostname-accepting handlers
+- **M2** — Add sender ID validation and volume type check to popup volume change listener
+- **L1** — Remove `VOLUME_CHANGED` from inbound `VALID_MESSAGE_TYPES` and `THROTTLED_MESSAGE_TYPES` (outbound-only message)
+
+### Fixed
+- **Q1** — Fix `balance` → `pan` field name in `SET_BALANCE` message sent during site rule application, matching content.js handler expectations
+- **Q2** — Move `lastActiveTabId` update before async work in `onFocusChanged`, preventing race conditions (matches `onActivated` pattern)
+- **Q3** — Serialize sleep timer state writes via promise queue to prevent read-modify-write races between concurrent `setSleepTimerState`/`clearSleepTimerState` calls
+- **Q4** — Add `isValidTabId()` check to `GET_SLEEP_TIMER` handler, matching `START_SLEEP_TIMER` and `CANCEL_SLEEP_TIMER`
+- **Q5** — Change two `console.log` calls to `console.debug` in tab unmute handler (matches logging policy)
+- **Q6** — Disambiguate speed preset context menu IDs (`speed_slow_`/`speed_fast_` prefixes) to prevent ID collisions with custom presets
+
+---
+
+## [5.4.4] - Release - 2026-02-21 — Tab Capture Clock Fix
+
+### Fixed
+- **First-open audio pitch/speed artifact** — When opening the popup for the first time on a tab with audio, the audio would sound sped up or high-pitched for ~5 seconds before normalizing. Root cause: the `MediaStreamDestination → Audio element` routing created two independent clock domains that needed to synchronize on first capture, causing Chrome's media pipeline to play back buffered audio at an accelerated rate. Fixed by routing audio directly to `audioContext.destination` (single clock domain). Device selection now uses `AudioContext.setSinkId()` instead of `Audio.setSinkId()`
+
+---
+
+## [5.4.2] - Release - 2026-02-20 — Sync Fix
+
+### Fixed
+- `isValidTabId()` in offscreen.js now includes upper bound check (`tabId < 2147483647`) matching background.js — prevents accepting invalid 32-bit tab IDs
+
+---
+
+## [5.4.1] - Release - 2026-02-19 — Code Quality & Test Infrastructure
+
+### New Features
+- **Automated test suite** — 97 unit tests via Vitest covering volume scaling, validation, site rule matching, and message throttling
+- **Sync-check script** — `scripts/check-sync.sh` verifies duplicated functions haven't drifted across files
+
+### Changed
+- Refactored EQ gain handlers (bass/treble/voice) into generic `applyEqGain()` with config-driven `EQ_EFFECTS` map, eliminating ~120 lines of repetition
+- Added table of contents to `background.js` (3,982 lines) for navigability
+- Added capture method state machine diagram to `popup-visualizer.js`
+- Centralized core DOM element references into `DOM` namespace in `popup-core.js`
+- Site rule creation now validates domain pattern via `sanitizeHostname()` before storage
+- Visualizer rendering skips draw loop when section is collapsed (saves CPU)
+- Added `console.debug` logging to media selector catch blocks in `content.js`
+
+---
+
+## [5.4.0] - Release - 2026-02-19 — Per-Tab Sleep Timers, UI & Audio Fixes
+
+### New Features
+- **Per-tab sleep timers** — each tab can now have its own independent sleep timer; setting a timer on one tab no longer cancels another tab's timer
+
+### Changed
+- Sleep timer storage migrated from single `sleepTimer` key to per-tab `sleepTimers` map in session storage
+- Alarm names now include tabId suffix (`sleepTimer_123`, `sleepTimerFade_123`) for per-tab isolation
+- Fade abort tracking changed from single boolean to per-tab Set
+- `CANCEL_SLEEP_TIMER` and `UPDATE_SLEEP_TIMER` messages now require `tabId`
+- `GET_SLEEP_TIMER` checks both the specific tab and any active "All Tabs" timers
+- Sleep timer state is automatically cleaned up when a tab is closed
+- Keyboard shortcuts footer now displays on a single line instead of wrapping to two lines
+
+### Fixed
+- BiquadFilter frequency values now clamped to Nyquist frequency for low-sample-rate AudioContexts (fixes console warning on sites like Target.com)
+
+---
+
+## [5.3.10] - Release - 2026-02-18 — Per-Tab Sleep Timers
+
+### New Features
+- **Per-tab sleep timers** — each tab can now have its own independent sleep timer; setting a timer on one tab no longer cancels another tab's timer
+
+### Changed
+- Sleep timer storage migrated from single `sleepTimer` key to per-tab `sleepTimers` map in session storage
+- Alarm names now include tabId suffix (`sleepTimer_123`, `sleepTimerFade_123`) for per-tab isolation
+- Fade abort tracking changed from single boolean to per-tab Set
+- `CANCEL_SLEEP_TIMER` and `UPDATE_SLEEP_TIMER` messages now require `tabId`
+- `GET_SLEEP_TIMER` checks both the specific tab and any active "All Tabs" timers
+- Sleep timer state is automatically cleaned up when a tab is closed
+
+---
+
+## [5.3.9] - Release - 2026-02-18 — Sleep Timer Tab Switch Fix
+
+### Fixed
+- **Sleep timer countdown now loads correctly on tab switch** — fixed race condition where switching tabs within the popup could cause a stale async response to overwrite the new tab's sleep timer state; added staleness guard (`currentTabId` check after `await`) and immediate UI cleanup before each load
+
+---
+
+## [5.3.8] - Release - 2026-02-18 — Sleep Timer Tab Scoping Fix
+
+### Fixed
+- **Sleep timer countdown only shows on relevant tabs** — when a timer is set for a single tab (not "All Tabs"), opening the popup on a different tab now correctly shows the slider/preset controls instead of the countdown
+
+---
+
+## [5.3.7] - Release - 2026-02-18 — Sleep Slider Scroll Wheel
+
+### New Features
+- **Sleep slider mousewheel support** — scroll wheel adjusts the sleep timer in 1-minute increments, matching the existing pattern on EQ/speed/compressor sliders
+
+---
+
+## [5.3.6] - Release - 2026-02-18 — Sleep Slider Wider
+
+### Changed
+- **Sleep slider wider** — reduced `sleep-slider-value` min-width from 38px to 28px (no longer needs space for `1h 30m` format), giving the slider more room
+
+---
+
+## [5.3.5] - Release - 2026-02-18 — Sleep Timer Compact Display
+
+### Changed
+- **Sleep timer duration format** — always show minutes only (e.g., `90m` instead of `1h 30m`) to save horizontal space in the popup
+
+---
+
+## [5.3.4] - Release - 2026-02-18 — Sleep Timer Dual-Mode
+
+### New Features
+- **Sleep timer dual-mode** — added `sleepTimer` to `EQ_DUAL_MODE_ITEMS`, giving it the same S/P toggle as EQ controls
+- **Presets mode** shows 4 customizable quick-select buttons (default: 5m, 15m, 30m, 60m)
+- **Slider mode** (default) retains the draggable 1–120 minute slider with Go button
+- Options → Presets: Sleep Timer subsection with Quick/Short/Medium/Long inputs restored
+- Options → Advanced Controls: S/P toggle now available for Sleep Timer
+
+### Fixed
+- Go button no longer overlaps the time display (`flex-shrink: 0`)
+
+---
+
+## [5.3.3] - Release - 2026-02-18 — Sleep Timer Slider
+
+### Changed
+- **Sleep timer redesign** — replaced 4 preset buttons with a draggable slider (1–120 minutes) and "Go" button for continuous duration control
+- Slider value persists across popup sessions via `sleepTimerDuration` storage key
+- Value display shows "Xm" for short durations and "Xh Ym" for 60+ minutes
+- Purple gradient track matches the sleep timer theme
+
+### Removed
+- Sleep timer preset buttons and preset configuration from options page
+- `sleepTimerPresets` storage key and all related options page UI (Quick/Short/Medium/Long inputs)
+- `DEFAULT_SLEEP_TIMER_PRESETS`, `SLEEP_TIMER_RANGES` from options constants
+
+---
+
+## [5.3.2] - Release - 2026-02-17 — Sleep Timer
+
+### New Features
+- **Sleep timer** — set a timer that gradually fades audio to zero over 30 seconds, then pauses playback and restores the original volume. Supports single-tab or all-tabs mode. Uses `chrome.alarms` API to survive service worker suspension
+- Sleep timer appears as a compact row in the advanced enhancements section, reorderable and hideable via the options page
+- **Customizable sleep timer presets** — configure Quick, Short, Medium, and Long timer durations in Settings → Presets → Sleep Timer (defaults: 5m, 15m, 30m, 60m)
+- Sleep timer countdown replaces the entire button row when active — click the purple countdown bar to cancel, saving vertical space
+- Removed Off button — 4th preset replaces it; cancellation handled by the countdown bar
+
+### Bug Fixes
+- Fixed sleep timer fade volume bouncing — in Tab Capture mode, `applyVolumeToMedia` was setting `element.volume` via a fallback path while the periodic safety check reset it to 1.0 every 2 seconds, causing audible volume jumps. Now skips `element.volume` in Tab Capture mode since the offscreen document's gain node controls volume. Also uses a lightweight serial fade loop to avoid storage/badge/notification side effects
+
+---
+
+## [5.3.1] - Release - 2026-02-17 — Remove Detached Popup on Settings Page
+
+### Removed
+- Removed detached popup preview window that opened when clicking the toolbar icon on the settings page — the standard popup now opens on all pages
+
+---
+
+## [5.3.0] - Release - 2026-02-16 — Dormant Mode, Detached Preview, New Toolbar Icon
+
+### New Features
+- **Dormant mode** — tabs start dormant with zero audio interference; the extension only activates per-tab when the user explicitly adjusts a control (popup slider, keyboard shortcut, or site rule). This prevents the extension's default 100% volume from overriding native site volume controls
+- **Settings page popup persistence** — when the active tab is the options page, clicking the toolbar icon opens the popup as a detached window that stays open while interacting with settings, allowing live appearance preview
+- **New toolbar icon** — simplified yellow speaker icon for the toolbar that's easier to distinguish at small sizes; full ABTC logo remains on the extensions page and Chrome Web Store
+
+### Bug Fixes
+- Fixed volume interference where `processMediaElement()` set `element.volume = 1.0` on every media element in Tab Capture mode, overriding native site volume controls for users who hadn't interacted with the extension
 
 ---
 

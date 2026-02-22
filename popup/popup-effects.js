@@ -9,6 +9,8 @@ let trebleCutPresets = [...DEFAULTS.trebleCutPresets];
 let voicePresets = [...DEFAULTS.voiceBoostPresets];
 let speedSlowPresets = [...DEFAULTS.speedSlowPresets];
 let speedFastPresets = [...DEFAULTS.speedFastPresets];
+let sleepTimerPresets = [...DEFAULTS.sleepTimerPresets];
+let sleepTimerLastDuration = DEFAULTS.sleepTimerDuration;
 
 // ==================== Effect Presets ====================
 
@@ -21,7 +23,8 @@ async function loadEffectPresets() {
     trebleCutPresets: [...DEFAULTS.trebleCutPresets],
     voiceBoostPresets: [...DEFAULTS.voiceBoostPresets],
     speedSlowPresets: [...DEFAULTS.speedSlowPresets],
-    speedFastPresets: [...DEFAULTS.speedFastPresets]
+    speedFastPresets: [...DEFAULTS.speedFastPresets],
+    sleepTimerPresets: [...DEFAULTS.sleepTimerPresets]
   });
 
   bassPresets = presets.bassBoostPresets;
@@ -31,6 +34,7 @@ async function loadEffectPresets() {
   voicePresets = presets.voiceBoostPresets;
   speedSlowPresets = presets.speedSlowPresets;
   speedFastPresets = presets.speedFastPresets;
+  sleepTimerPresets = presets.sleepTimerPresets;
   updateEffectButtonLabels();
 
   // Load balance presets (non-critical — use defaults if storage fails)
@@ -98,6 +102,17 @@ function updateEffectButtonLabels() {
   if (speedFastLow) speedFastLow.textContent = `${speedFastPresets[0]}x`;
   if (speedFastMed) speedFastMed.textContent = `${speedFastPresets[1]}x`;
   if (speedFastHigh) speedFastHigh.textContent = `${speedFastPresets[2]}x`;
+
+  // Sleep timer preset buttons
+  const sleepTimerButtons = document.querySelectorAll('.sleep-timer-buttons .sleep-btn');
+  sleepTimerButtons.forEach((btn, i) => {
+    if (i < sleepTimerPresets.length) {
+      const minutes = sleepTimerPresets[i];
+      btn.dataset.minutes = minutes;
+      btn.textContent = formatSleepDuration(minutes);
+    }
+  });
+
 }
 
 // ==================== EQ Control Mode (Presets vs Sliders) ====================
@@ -111,7 +126,7 @@ const voiceSlider = document.getElementById('voiceSlider');
 const voiceSliderValue = document.getElementById('voiceSliderValue');
 
 // Per-item EQ control mode
-const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance']);
+const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance', 'sleepTimer']);
 let eqControlMode = 'sliders'; // global default
 let eqItemControlModes = {}; // per-item overrides from popupSectionsLayout.controlMode
 
@@ -230,228 +245,132 @@ function updateEqSliderValueDisplay(element, value, boostOnly = false) {
   }
 }
 
-// Apply bass gain directly (for slider mode)
-async function applyBassGain(gain) {
+// ==================== Generic EQ Gain Handler ====================
+// Config-driven EQ effect application (eliminates repetition across bass/treble/voice)
+
+const EQ_EFFECTS = {
+  bass: {
+    storageSuffix: TAB_STORAGE.BASS,
+    messageType: 'SET_BASS',
+    tabCaptureType: 'SET_TAB_CAPTURE_BASS',
+    getSlider: () => bassSlider,
+    getDisplay: () => bassSliderValue,
+    getState: () => currentBassBoost,
+    setState: (v) => { currentBassBoost = v; },
+    range: EFFECT_RANGES.bass,
+    boostOnly: false,
+  },
+  treble: {
+    storageSuffix: TAB_STORAGE.TREBLE,
+    messageType: 'SET_TREBLE',
+    tabCaptureType: 'SET_TAB_CAPTURE_TREBLE',
+    getSlider: () => trebleSlider,
+    getDisplay: () => trebleSliderValue,
+    getState: () => currentTrebleBoost,
+    setState: (v) => { currentTrebleBoost = v; },
+    range: EFFECT_RANGES.treble,
+    boostOnly: false,
+  },
+  voice: {
+    storageSuffix: TAB_STORAGE.VOICE,
+    messageType: 'SET_VOICE',
+    tabCaptureType: 'SET_TAB_CAPTURE_VOICE',
+    getSlider: () => voiceSlider,
+    getDisplay: () => voiceSliderValue,
+    getState: () => currentVoiceBoost,
+    setState: (v) => { currentVoiceBoost = v; },
+    range: EFFECT_RANGES.voice,
+    boostOnly: true,
+  },
+};
+
+// Apply EQ gain for any effect type (bass, treble, or voice)
+async function applyEqGain(effectType, gain) {
   if (!currentTabId) return;
+  const cfg = EQ_EFFECTS[effectType];
+  if (!cfg) return;
 
-  // Determine the level string for storage
-  // In slider mode, we store as 'slider:VALUE'
   const level = gain === 0 ? 'off' : `slider:${gain}`;
-  const storageKey = getTabStorageKey(currentTabId, TAB_STORAGE.BASS);
+  const storageKey = getTabStorageKey(currentTabId, cfg.storageSuffix);
 
-  // Save setting
   await browserAPI.storage.local.set({ [storageKey]: level });
-  currentBassBoost = level;
+  cfg.setState(level);
 
-  // Update slider display
-  updateEqSliderValueDisplay(bassSliderValue, gain);
+  updateEqSliderValueDisplay(cfg.getDisplay(), gain, cfg.boostOnly);
 
-  // Send to content script (skip on restricted browser pages)
   if (!isRestrictedUrl(currentTabUrl)) {
     try {
       await browserAPI.tabs.sendMessage(currentTabId, {
-        type: 'SET_BASS',
+        type: cfg.messageType,
         gain: gain
       });
     } catch (e) {
-      console.error('[TabVolume Popup] SET_BASS failed:', e.message);
+      console.error(`[TabVolume Popup] ${cfg.messageType} failed:`, e.message);
     }
   }
 
-  // Also send to Tab Capture if active
   if (window.isTabCaptureActive && window.isTabCaptureActive()) {
     browserAPI.runtime.sendMessage({
-      type: 'SET_TAB_CAPTURE_BASS',
+      type: cfg.tabCaptureType,
       tabId: currentTabId,
       gain: gain
     }).catch(() => {});
   }
 }
 
-// Apply treble gain directly (for slider mode)
-async function applyTrebleGain(gain) {
-  if (!currentTabId) return;
+// Convenience wrappers (preserves existing call sites)
+async function applyBassGain(gain) { return applyEqGain('bass', gain); }
+async function applyTrebleGain(gain) { return applyEqGain('treble', gain); }
 
-  // Determine the level string for storage
-  const level = gain === 0 ? 'off' : `slider:${gain}`;
-  const storageKey = getTabStorageKey(currentTabId, TAB_STORAGE.TREBLE);
-
-  // Save setting
-  await browserAPI.storage.local.set({ [storageKey]: level });
-  currentTrebleBoost = level;
-
-  // Update slider display
-  updateEqSliderValueDisplay(trebleSliderValue, gain);
-
-  // Send to content script (skip on restricted browser pages)
-  if (!isRestrictedUrl(currentTabUrl)) {
-    try {
-      await browserAPI.tabs.sendMessage(currentTabId, {
-        type: 'SET_TREBLE',
-        gain: gain
-      });
-    } catch (e) {
-      console.error('[TabVolume Popup] SET_TREBLE failed:', e.message);
-    }
-  }
-
-  // Also send to Tab Capture if active
-  if (window.isTabCaptureActive && window.isTabCaptureActive()) {
-    browserAPI.runtime.sendMessage({
-      type: 'SET_TAB_CAPTURE_TREBLE',
-      tabId: currentTabId,
-      gain: gain
-    }).catch(() => {});
+// EQ slider input handlers (bass, treble, voice)
+for (const [type, cfg] of Object.entries(EQ_EFFECTS)) {
+  const slider = cfg.getSlider();
+  if (slider) {
+    slider.addEventListener('input', (e) => {
+      const rawGain = parseInt(e.target.value, 10);
+      if (isNaN(rawGain)) return;
+      const gain = Math.max(cfg.range.min, Math.min(cfg.range.max, rawGain));
+      applyEqGain(type, gain);
+    });
   }
 }
 
-// Bass slider input handler
-if (bassSlider) {
-  bassSlider.addEventListener('input', (e) => {
-    const rawGain = parseInt(e.target.value, 10);
-    if (isNaN(rawGain)) return;
-    // Clamp to valid range
-    const gain = Math.max(EFFECT_RANGES.bass.min, Math.min(EFFECT_RANGES.bass.max, rawGain));
-    applyBassGain(gain);
-  });
-}
+async function applyVoiceGain(gain) { return applyEqGain('voice', gain); }
 
-// Treble slider input handler
-if (trebleSlider) {
-  trebleSlider.addEventListener('input', (e) => {
-    const rawGain = parseInt(e.target.value, 10);
-    if (isNaN(rawGain)) return;
-    // Clamp to valid range
-    const gain = Math.max(EFFECT_RANGES.treble.min, Math.min(EFFECT_RANGES.treble.max, rawGain));
-    applyTrebleGain(gain);
-  });
-}
-
-// Apply voice gain directly (for slider mode)
-async function applyVoiceGain(gain) {
-  if (!currentTabId) return;
-
-  // Determine the level string for storage
-  const level = gain === 0 ? 'off' : `slider:${gain}`;
-  const storageKey = getTabStorageKey(currentTabId, TAB_STORAGE.VOICE);
-
-  // Save setting
-  await browserAPI.storage.local.set({ [storageKey]: level });
-  currentVoiceBoost = level;
-
-  // Update slider display
-  updateEqSliderValueDisplay(voiceSliderValue, gain, true);
-
-  // Send to content script (skip on restricted browser pages)
-  if (!isRestrictedUrl(currentTabUrl)) {
-    try {
-      await browserAPI.tabs.sendMessage(currentTabId, {
-        type: 'SET_VOICE',
-        gain: gain
-      });
-    } catch (e) {
-      console.error('[TabVolume Popup] SET_VOICE failed:', e.message);
-    }
-  }
-
-  // Also send to Tab Capture if active
-  if (window.isTabCaptureActive && window.isTabCaptureActive()) {
-    browserAPI.runtime.sendMessage({
-      type: 'SET_TAB_CAPTURE_VOICE',
-      tabId: currentTabId,
-      gain: gain
-    }).catch(() => {});
-  }
-}
-
-// Voice slider input handler
-if (voiceSlider) {
-  voiceSlider.addEventListener('input', (e) => {
-    const rawGain = parseInt(e.target.value, 10);
-    if (isNaN(rawGain)) return;
-    // Clamp to valid voice range
-    const gain = Math.max(EFFECT_RANGES.voice.min, Math.min(EFFECT_RANGES.voice.max, rawGain));
-    applyVoiceGain(gain);
-  });
-}
+// (Voice slider input handler is registered in the generic loop above)
 
 // ==================== EQ Slider Mousewheel Support ====================
 
-// Mousewheel on bass slider
-if (bassSlider) {
-  bassSlider.parentElement.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const step = 1;
-    const currentValue = parseInt(bassSlider.value, 10) || 0;
-    const delta = e.deltaY < 0 ? step : -step;
-    const newValue = Math.max(EFFECT_RANGES.bass.min, Math.min(EFFECT_RANGES.bass.max, currentValue + delta));
-    bassSlider.value = newValue;
-    applyBassGain(newValue);
-  }, { passive: false });
-}
-
-// Mousewheel on treble slider
-if (trebleSlider) {
-  trebleSlider.parentElement.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const step = 1;
-    const currentValue = parseInt(trebleSlider.value, 10) || 0;
-    const delta = e.deltaY < 0 ? step : -step;
-    const newValue = Math.max(EFFECT_RANGES.treble.min, Math.min(EFFECT_RANGES.treble.max, currentValue + delta));
-    trebleSlider.value = newValue;
-    applyTrebleGain(newValue);
-  }, { passive: false });
-}
-
-// Mousewheel on voice slider
-if (voiceSlider) {
-  voiceSlider.parentElement.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const step = 1;
-    const currentValue = parseInt(voiceSlider.value, 10) || 0;
-    const delta = e.deltaY < 0 ? step : -step;
-    const newValue = Math.max(EFFECT_RANGES.voice.min, Math.min(EFFECT_RANGES.voice.max, currentValue + delta));
-    voiceSlider.value = newValue;
-    applyVoiceGain(newValue);
-  }, { passive: false });
+for (const [type, cfg] of Object.entries(EQ_EFFECTS)) {
+  const slider = cfg.getSlider();
+  if (slider) {
+    slider.parentElement.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const currentValue = parseInt(slider.value, 10) || 0;
+      const delta = e.deltaY < 0 ? 1 : -1;
+      const newValue = Math.max(cfg.range.min, Math.min(cfg.range.max, currentValue + delta));
+      slider.value = newValue;
+      applyEqGain(type, newValue);
+    }, { passive: false });
+  }
 }
 
 // ==================== EQ Reset Buttons (Slider Mode) ====================
 
-// Bass reset button
-const bassReset = document.getElementById('bassReset');
-if (bassReset) {
-  bassReset.addEventListener('click', () => {
-    if (bassSlider) {
-      bassSlider.value = 0;
-      updateEqSliderValueDisplay(bassSliderValue, 0);
-    }
-    applyBassGain(0);
-  });
-}
-
-// Treble reset button
-const trebleReset = document.getElementById('trebleReset');
-if (trebleReset) {
-  trebleReset.addEventListener('click', () => {
-    if (trebleSlider) {
-      trebleSlider.value = 0;
-      updateEqSliderValueDisplay(trebleSliderValue, 0);
-    }
-    applyTrebleGain(0);
-  });
-}
-
-// Voice reset button
-const voiceReset = document.getElementById('voiceReset');
-if (voiceReset) {
-  voiceReset.addEventListener('click', () => {
-    if (voiceSlider) {
-      voiceSlider.value = 0;
-      updateEqSliderValueDisplay(voiceSliderValue, 0);
-    }
-    applyVoiceGain(0);
-  });
+const eqResetIds = { bass: 'bassReset', treble: 'trebleReset', voice: 'voiceReset' };
+for (const [type, resetId] of Object.entries(eqResetIds)) {
+  const resetBtn = document.getElementById(resetId);
+  const cfg = EQ_EFFECTS[type];
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      const slider = cfg.getSlider();
+      if (slider) {
+        slider.value = 0;
+        updateEqSliderValueDisplay(cfg.getDisplay(), 0, cfg.boostOnly);
+      }
+      applyEqGain(type, 0);
+    });
+  }
 }
 
 // ==================== Effect Settings ====================
@@ -1270,5 +1189,262 @@ if (balanceResetPresets) {
   balanceResetPresets.addEventListener('click', () => {
     applyBalance(0);
     updateBalancePresetButtons();
+  });
+}
+
+// ==================== Sleep Timer ====================
+
+const sleepSlider = document.getElementById('sleepSlider');
+const sleepSliderValue = document.getElementById('sleepSliderValue');
+const sleepGoBtn = document.getElementById('sleepGoBtn');
+const sleepAllTabsCheckbox = document.getElementById('sleepAllTabsCheckbox');
+const sleepCountdownEl = document.getElementById('sleepTimerCountdown');
+const sleepTimerSection = document.querySelector('.sleep-timer-section');
+const sleepTimerButtons = document.querySelectorAll('.sleep-timer-buttons .sleep-btn');
+let sleepCountdownInterval = null;
+let sleepSaveTimeout = null;
+
+// Highlight the active sleep preset button (0 = none active)
+function setSleepButtonActive(minutes) {
+  sleepTimerButtons.forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.minutes, 10) === minutes);
+  });
+}
+
+// Check if remaining minutes matches a preset value
+function getPresetFromRemaining(minutes) {
+  return sleepTimerPresets.includes(minutes) ? minutes : 0;
+}
+
+// Sleep preset button click handlers (presets mode)
+sleepTimerButtons.forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const minutes = parseInt(btn.dataset.minutes, 10);
+    if (!currentTabId || !minutes) return;
+
+    const allTabs = sleepAllTabsCheckbox ? sleepAllTabsCheckbox.checked : false;
+    try {
+      const response = await browserAPI.runtime.sendMessage({
+        type: 'START_SLEEP_TIMER',
+        minutes: minutes,
+        tabId: currentTabId,
+        allTabs: allTabs
+      });
+      if (response && response.success) {
+        startSleepCountdownInterval(response.endTime);
+        setSleepTimerActive(true);
+        setSleepButtonActive(minutes);
+      }
+    } catch (e) {
+      console.error('[TabVolume] Start sleep timer failed:', e.message);
+    }
+  });
+});
+
+// Format minutes for slider value display: always "Xm"
+function formatSleepDuration(minutes) {
+  return `${minutes}m`;
+}
+
+// Format milliseconds as MM:SS for countdown
+function formatSleepCountdown(ms) {
+  if (ms <= 0) return '';
+  const totalSeconds = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// Show/hide timer-active state (countdown bar replaces slider row)
+function setSleepTimerActive(active) {
+  if (sleepTimerSection) {
+    sleepTimerSection.classList.toggle('timer-active', active);
+  }
+}
+
+// Update countdown display
+function updateSleepCountdownDisplay(endTime) {
+  if (!sleepCountdownEl) return;
+  const remaining = endTime - Date.now();
+  if (remaining <= 0) {
+    sleepCountdownEl.textContent = '';
+    clearSleepCountdownInterval();
+    setSleepTimerActive(false);
+    setSleepButtonActive(0);
+    return;
+  }
+  sleepCountdownEl.textContent = `Sleep: ${formatSleepCountdown(remaining)} remaining — cancel`;
+}
+
+// Start countdown interval
+function startSleepCountdownInterval(endTime) {
+  clearSleepCountdownInterval();
+  updateSleepCountdownDisplay(endTime);
+  sleepCountdownInterval = setInterval(() => {
+    updateSleepCountdownDisplay(endTime);
+  }, 1000);
+}
+
+// Clear countdown interval
+function clearSleepCountdownInterval() {
+  if (sleepCountdownInterval) {
+    clearInterval(sleepCountdownInterval);
+    sleepCountdownInterval = null;
+  }
+}
+
+// Cancel sleep timer and reset UI
+async function cancelSleepTimerUI() {
+  try {
+    await browserAPI.runtime.sendMessage({ type: 'CANCEL_SLEEP_TIMER', tabId: currentTabId });
+  } catch (e) {
+    console.error('[TabVolume] Cancel sleep timer failed:', e.message);
+  }
+  clearSleepCountdownInterval();
+  setSleepTimerActive(false);
+  setSleepButtonActive(0);
+  if (sleepCountdownEl) sleepCountdownEl.textContent = '';
+}
+
+// Click countdown bar to cancel timer
+if (sleepCountdownEl) {
+  sleepCountdownEl.addEventListener('click', cancelSleepTimerUI);
+  sleepCountdownEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      cancelSleepTimerUI();
+    }
+  });
+}
+
+// Load persisted slider value from storage
+async function loadSleepSliderValue() {
+  try {
+    const result = await browserAPI.storage.sync.get({ sleepTimerDuration: DEFAULTS.sleepTimerDuration });
+    const duration = result.sleepTimerDuration;
+    sleepTimerLastDuration = duration;
+    if (sleepSlider) {
+      sleepSlider.value = duration;
+      sleepSlider.title = `Sleep timer: ${formatSleepDuration(duration)}`;
+    }
+    if (sleepSliderValue) {
+      sleepSliderValue.textContent = formatSleepDuration(duration);
+    }
+  } catch (e) {
+    console.debug('[TabVolume] Could not load sleep slider value:', e.message);
+  }
+}
+
+// Slider input handler — update display + debounced save
+if (sleepSlider) {
+  sleepSlider.addEventListener('input', () => {
+    const minutes = parseInt(sleepSlider.value, 10);
+    const label = formatSleepDuration(minutes);
+    if (sleepSliderValue) sleepSliderValue.textContent = label;
+    sleepSlider.title = `Sleep timer: ${label}`;
+    sleepTimerLastDuration = minutes;
+
+    // Debounced save to storage (300ms)
+    if (sleepSaveTimeout) clearTimeout(sleepSaveTimeout);
+    sleepSaveTimeout = setTimeout(() => {
+      browserAPI.storage.sync.set({ sleepTimerDuration: minutes });
+    }, 300);
+  });
+}
+
+// Mousewheel on sleep slider (1-minute increments)
+if (sleepSlider) {
+  sleepSlider.parentElement.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const currentValue = parseInt(sleepSlider.value, 10) || 1;
+    const delta = e.deltaY < 0 ? 1 : -1;
+    const newValue = Math.max(1, Math.min(120, currentValue + delta));
+    sleepSlider.value = newValue;
+    sleepSlider.dispatchEvent(new Event('input'));
+  }, { passive: false });
+}
+
+// Go button — start sleep timer
+if (sleepGoBtn) {
+  sleepGoBtn.addEventListener('click', async () => {
+    const minutes = sleepSlider ? parseInt(sleepSlider.value, 10) : sleepTimerLastDuration;
+    if (!currentTabId || !minutes) return;
+
+    const allTabs = sleepAllTabsCheckbox ? sleepAllTabsCheckbox.checked : false;
+    try {
+      const response = await browserAPI.runtime.sendMessage({
+        type: 'START_SLEEP_TIMER',
+        minutes: minutes,
+        tabId: currentTabId,
+        allTabs: allTabs
+      });
+      if (response && response.success) {
+        startSleepCountdownInterval(response.endTime);
+        setSleepTimerActive(true);
+      }
+    } catch (e) {
+      console.error('[TabVolume] Start sleep timer failed:', e.message);
+    }
+  });
+}
+
+// Load sleep timer state on popup open or tab switch
+async function loadSleepTimerState() {
+  if (!currentTabId) return;
+
+  // Clear previous countdown immediately (prevents stale UI from lingering)
+  clearSleepCountdownInterval();
+  setSleepTimerActive(false);
+  if (sleepCountdownEl) sleepCountdownEl.textContent = '';
+
+  // Capture tab ID before async call to detect stale responses
+  const requestTabId = currentTabId;
+  try {
+    const response = await browserAPI.runtime.sendMessage({
+      type: 'GET_SLEEP_TIMER',
+      tabId: requestTabId
+    });
+    // Stale response guard: user switched tabs while we were waiting
+    if (currentTabId !== requestTabId) return;
+    if (response && response.active) {
+      const remaining = response.endTime - Date.now();
+      if (remaining > 0) {
+        startSleepCountdownInterval(response.endTime);
+        setSleepTimerActive(true);
+        setSleepButtonActive(response.originalMinutes || 0);
+        if (sleepAllTabsCheckbox) {
+          sleepAllTabsCheckbox.checked = !!response.allTabs;
+        }
+        return;
+      }
+    }
+    // No active timer (only update if still on same tab)
+    setSleepTimerActive(false);
+    setSleepButtonActive(0);
+    if (sleepCountdownEl) sleepCountdownEl.textContent = '';
+  } catch (e) {
+    console.debug('[TabVolume] Could not load sleep timer state:', e.message);
+  }
+}
+
+// All Tabs checkbox change handler — update running timer if active
+if (sleepAllTabsCheckbox) {
+  sleepAllTabsCheckbox.addEventListener('change', async () => {
+    if (!currentTabId) return;
+    try {
+      const response = await browserAPI.runtime.sendMessage({
+        type: 'GET_SLEEP_TIMER',
+        tabId: currentTabId
+      });
+      if (response && response.active) {
+        await browserAPI.runtime.sendMessage({
+          type: 'UPDATE_SLEEP_TIMER',
+          tabId: currentTabId,
+          allTabs: sleepAllTabsCheckbox.checked
+        });
+      }
+    } catch (e) {
+      console.debug('[TabVolume] Could not update sleep timer allTabs:', e.message);
+    }
   });
 }

@@ -4,6 +4,36 @@
 // Note: This file intentionally duplicates some utilities from shared/validation.js
 // and shared/constants.js because service workers can't easily share code
 // via HTML script tags. Keep these in sync with the shared versions.
+//
+// ====================== TABLE OF CONTENTS ======================
+//
+//   Section                                        Lines
+//   -------                                        -----
+//   Debug Config & Flags                           9-11
+//   Duplicated Constants (KEEP IN SYNC)            13-55
+//   Tab Storage Utilities                          57-78
+//   Keyboard Step Loader & Tab ID Validation       80-102
+//   Duplicated Validation (KEEP IN SYNC)           104-170
+//   Site Rule Matching                             174-252
+//   Site Rule Application                          256-343
+//   Content Script Settings Sync                   347-456
+//   Tab Capture Settings Sync                      458-538
+//   Badge Updates                                  541-650
+//   Tab Capture & Focus Mode Helpers               653-712
+//   Volume Get/Set/Activate                        714-787
+//   Tab Lifecycle (onRemoved cleanup)              790-852
+//   Tab Activation & Dormant Mode                  854-1025
+//   Tab URL Change & Site Rule Triggers            1027-1148
+//   Offscreen Document Management (Chrome)         1150-1375
+//   Sleep Timer Engine                             1377-1647
+//   Message Validation & Rate Limiting             1649-1722
+//   Main Message Handler (onMessage)               1725-2698
+//   Page Script Injection & Domain Mode Override   2700-2828
+//   Storage Migration & Cleanup Utilities          2829-2916
+//   Initialization (onInstalled)                   2919-2956
+//   Context Menu                                   2957-3982
+//
+// ================================================================
 
 // Debug flag - set to true for verbose logging during development
 const DEBUG = false;
@@ -49,7 +79,8 @@ const TAB_STORAGE = {
   BALANCE: 'balance',   // tab_123_balance
   CHANNEL_MODE: 'channelMode', // tab_123_channelMode
   SPEED: 'speed',       // tab_123_speed
-  RULE_APPLIED: 'ruleAppliedDomain' // tab_123_ruleAppliedDomain
+  RULE_APPLIED: 'ruleAppliedDomain', // tab_123_ruleAppliedDomain
+  ACTIVE: 'active'     // tab_123_active (dormant mode flag)
 };
 
 // Helper to generate consistent tab storage keys — KEEP IN SYNC with shared/constants.js
@@ -258,7 +289,8 @@ async function applyMatchingSiteRule(tabId, url) {
 
   log('applyMatchingSiteRule: Applying rule for tab', tabId, 'volume:', matchingRule.volume);
 
-  // Apply volume
+  // Apply volume (setTabVolume calls activateTab internally, exiting dormant mode)
+
   await setTabVolume(tabId, matchingRule.volume);
 
   // Apply device from rule if specified
@@ -413,7 +445,7 @@ async function sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLab
     }
 
     if (effectResult[balanceKey] !== undefined) {
-      await browserAPI.tabs.sendMessage(tabId, { type: 'SET_BALANCE', balance: effectResult[balanceKey] });
+      await browserAPI.tabs.sendMessage(tabId, { type: 'SET_BALANCE', pan: effectResult[balanceKey] });
     }
 
     if (effectResult[channelKey]) {
@@ -592,6 +624,15 @@ async function updateBadge(tabId, volume, tabUrl = null) {
       return;
     }
 
+    // Dormant tabs: show priority badges above but not the volume number.
+    // Volume badge only appears after the user explicitly changes a control.
+    const active = await isTabActive(tabId);
+    if (!active) {
+      await browserAPI.action.setBadgeText({ text: '', tabId });
+      await browserAPI.action.setTitle({ title: 'Per-Tab Audio Control', tabId });
+      return;
+    }
+
     // Reset tooltip to default when showing volume
     await browserAPI.action.setTitle({
       title: 'Per-Tab Audio Control',
@@ -704,11 +745,29 @@ async function getTabVolume(tabId) {
   return result[key] !== undefined ? validateVolume(result[key]) : VOLUME_DEFAULT;
 }
 
+// Check if a tab has been activated (not dormant)
+async function isTabActive(tabId) {
+  const key = getTabStorageKey(tabId, TAB_STORAGE.ACTIVE);
+  const result = await browserAPI.storage.local.get([key]);
+  return result[key] === true;
+}
+
+// Activate a tab (transition from dormant to active) and show badge
+async function activateTab(tabId) {
+  const key = getTabStorageKey(tabId, TAB_STORAGE.ACTIVE);
+  await browserAPI.storage.local.set({ [key]: true });
+  // Show the volume badge now that the tab is active
+  const volume = await getTabVolume(tabId);
+  await updateBadge(tabId, volume);
+}
+
 // Set volume for a tab
 async function setTabVolume(tabId, volume) {
   const key = getTabStorageKey(tabId);
   const validatedVolume = validateVolume(volume);
   await browserAPI.storage.local.set({ [key]: validatedVolume });
+  // Auto-activate tab on first volume set (exits dormant mode)
+  await activateTab(tabId);
   await updateBadge(tabId, validatedVolume);
 
   // Notify content script
@@ -769,7 +828,8 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
     getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR),  // compressor/limiter
     getTabStorageKey(tabId, TAB_STORAGE.BALANCE),     // stereo balance
     getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE),// channel mode (stereo/mono/swap)
-    getTabStorageKey(tabId, TAB_STORAGE.SPEED)        // playback speed
+    getTabStorageKey(tabId, TAB_STORAGE.SPEED),       // playback speed
+    getTabStorageKey(tabId, TAB_STORAGE.ACTIVE)       // dormant mode flag
   ];
   try {
     await browserAPI.storage.local.remove(keysToRemove);
@@ -782,6 +842,9 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
 
   // Clean up fullscreen state tracking (don't restore window state — tab is already gone)
   fullscreenStateByTab.delete(tabId);
+
+  // Cancel any sleep timer for this tab
+  cancelSleepTimer(tabId, false).catch(() => {});
 
   // Clear tracked tab if it was closed (Active Tab Audio mode continues)
   if (focusModeState.active && focusModeState.lastActiveTabId === tabId) {
@@ -899,6 +962,7 @@ browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
   await updateTabCaptureIndicator(activeInfo.tabId);
 });
 
+
 // Active Tab Audio mode - handle window focus changes (cross-window tab switching)
 browserAPI.windows.onFocusChanged.addListener(async (windowId) => {
   // Ignore when focus is lost (no window has focus)
@@ -932,6 +996,10 @@ browserAPI.windows.onFocusChanged.addListener(async (windowId) => {
     if (tabs.length === 0) return;
 
     const newActiveTabId = tabs[0].id;
+
+    // Update tracked active tab immediately (before async work) to prevent race
+    // conditions when multiple onFocusChanged events fire in rapid succession
+    focusModeState.lastActiveTabId = newActiveTabId;
 
     // Skip if it's the same tab (user just clicked the same window again)
     if (newActiveTabId === previousTabId) return;
@@ -975,8 +1043,7 @@ browserAPI.windows.onFocusChanged.addListener(async (windowId) => {
       // Tab error
     }
 
-    // Update tracked active tab
-    focusModeState.lastActiveTabId = newActiveTabId;
+    // Persist tracked active tab to session storage
     try {
       await browserAPI.storage.session.set({ activeTabAudioLastTabId: newActiveTabId });
     } catch (e) {
@@ -996,7 +1063,7 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.mutedInfo.muted === false) {
     try {
       await browserAPI.tabs.sendMessage(tabId, { type: 'UNMUTE_MEDIA' });
-      console.log('[TabVolume] Tab unmuted, sent UNMUTE_MEDIA to tab:', tabId);
+      console.debug('[TabVolume] Tab unmuted, sent UNMUTE_MEDIA to tab:', tabId);
     } catch (e) {
       // Content script might not be loaded - that's OK
     }
@@ -1010,7 +1077,7 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
           tabId: tabId,
           volume: savedVolume
         });
-        console.log('[TabVolume] Tab unmuted, restored Tab Capture volume to:', savedVolume);
+        console.debug('[TabVolume] Tab unmuted, restored Tab Capture volume to:', savedVolume);
       } catch (tcErr) {
         // Tab might not have Tab Capture active - that's fine
       }
@@ -1045,10 +1112,17 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         // Only apply rule if this is a new domain (not navigation within same site)
         if (lastAppliedDomain !== currentDomain) {
           log('Domain changed, checking for matching rule...');
-          const matchedRule = await applyMatchingSiteRule(tabId, tab.url);
-          if (matchedRule) {
-            volume = matchedRule.rule.volume;
-            ruleDeviceLabel = matchedRule.deviceLabel;
+          // If Tab Capture is pending, defer rule application — keep tab dormant
+          // Red badge will show via hasPendingSiteRule(); user clicks popup to activate
+          const tcPending = await isTabCapturePending(tabId);
+          if (tcPending) {
+            log('Tab Capture pending — deferring site rule (tab stays dormant)');
+          } else {
+            const matchedRule = await applyMatchingSiteRule(tabId, tab.url);
+            if (matchedRule) {
+              volume = matchedRule.rule.volume;
+              ruleDeviceLabel = matchedRule.deviceLabel;
+            }
           }
           // If no rule matched, don't store domain - allows rules added later to apply
         } else {
@@ -1060,48 +1134,53 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       }
     }
 
-    // Update badge - shows Tab Capture pending indicator or volume
+    // Update badge - shows Tab Capture pending indicator, or volume for active tabs,
+    // or nothing for dormant tabs (dormancy check is inside updateBadge)
     await updateTabCaptureIndicator(tabId);
 
-    // Get saved device for this tab (handles both old string format and new object format)
-    const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
-    const deviceResult = await browserAPI.storage.local.get([deviceKey]);
-    const savedDevice = deviceResult[deviceKey];
+    // Skip sending settings to dormant tabs — they haven't been activated by the user yet
+    const tabIsActive = await isTabActive(tabId);
+    if (tabIsActive) {
+      // Get saved device for this tab (handles both old string format and new object format)
+      const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
+      const deviceResult = await browserAPI.storage.local.get([deviceKey]);
+      const savedDevice = deviceResult[deviceKey];
 
-    // Extract deviceId and deviceLabel from storage
-    let deviceId = '';
-    let deviceLabel = ruleDeviceLabel; // Use rule device if just applied
-    if (savedDevice) {
-      if (typeof savedDevice === 'string') {
-        // Old format - just device ID
-        deviceId = savedDevice;
-      } else {
-        // New format - object with deviceId and deviceLabel
-        deviceId = savedDevice.deviceId || '';
-        deviceLabel = savedDevice.deviceLabel || '';
-      }
-    }
-
-    // If no tab-specific device and no rule device, check for global default (local - device-specific)
-    if (!deviceId && !deviceLabel) {
-      const globalSettings = await browserAPI.storage.local.get(['useLastDeviceAsDefault', 'globalDefaultDevice']);
-      if (globalSettings.useLastDeviceAsDefault && globalSettings.globalDefaultDevice) {
-        const globalDefault = globalSettings.globalDefaultDevice;
-        deviceId = globalDefault.deviceId || '';
-        deviceLabel = globalDefault.deviceLabel || '';
-        console.log('[TabVolume] Applying global default device on navigation:', deviceLabel);
-
-        // Save as tab-specific device so it persists
-        if (deviceLabel) {
-          await browserAPI.storage.local.set({
-            [deviceKey]: { deviceId, deviceLabel }
-          });
+      // Extract deviceId and deviceLabel from storage
+      let deviceId = '';
+      let deviceLabel = ruleDeviceLabel; // Use rule device if just applied
+      if (savedDevice) {
+        if (typeof savedDevice === 'string') {
+          // Old format - just device ID
+          deviceId = savedDevice;
+        } else {
+          // New format - object with deviceId and deviceLabel
+          deviceId = savedDevice.deviceId || '';
+          deviceLabel = savedDevice.deviceLabel || '';
         }
       }
-    }
 
-    // Re-send all settings to content script after navigation
-    await sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLabel);
+      // If no tab-specific device and no rule device, check for global default (local - device-specific)
+      if (!deviceId && !deviceLabel) {
+        const globalSettings = await browserAPI.storage.local.get(['useLastDeviceAsDefault', 'globalDefaultDevice']);
+        if (globalSettings.useLastDeviceAsDefault && globalSettings.globalDefaultDevice) {
+          const globalDefault = globalSettings.globalDefaultDevice;
+          deviceId = globalDefault.deviceId || '';
+          deviceLabel = globalDefault.deviceLabel || '';
+          console.log('[TabVolume] Applying global default device on navigation:', deviceLabel);
+
+          // Save as tab-specific device so it persists
+          if (deviceLabel) {
+            await browserAPI.storage.local.set({
+              [deviceKey]: { deviceId, deviceLabel }
+            });
+          }
+        }
+      }
+
+      // Re-send all settings to content script after navigation
+      await sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLabel);
+    }
   }
 });
 
@@ -1333,6 +1412,287 @@ async function getAudioDevicesDirectly(requestPermission) {
   }
 }
 
+// ==================== Sleep Timer Engine ====================
+// Uses chrome.alarms API to survive service worker suspension.
+// State is stored in chrome.storage.session for persistence across restarts.
+// Supports multiple concurrent per-tab timers via tab-keyed storage and alarm names.
+// Flow: START → fade alarm (30s before end) → sequential fade loop → final alarm → pause + restore
+
+const SLEEP_TIMER_FADE_DURATION = 30; // seconds
+const SLEEP_TIMER_FADE_STEPS = 30;
+const fadeAbortedTabs = new Set(); // Per-tab fade abort signals
+
+// Read sleep timer state for a specific tab from session storage
+async function getSleepTimerState(tabId) {
+  try {
+    const result = await browserAPI.storage.session.get(['sleepTimers']);
+    const timers = result.sleepTimers || {};
+    return timers[tabId] || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Serialize sleep timer state writes to prevent read-modify-write races
+let sleepTimerWriteQueue = Promise.resolve();
+
+// Write sleep timer state for a specific tab to session storage
+async function setSleepTimerState(tabId, state) {
+  sleepTimerWriteQueue = sleepTimerWriteQueue.then(async () => {
+    try {
+      const result = await browserAPI.storage.session.get(['sleepTimers']);
+      const timers = result.sleepTimers || {};
+      timers[tabId] = state;
+      await browserAPI.storage.session.set({ sleepTimers: timers });
+    } catch (e) {
+      console.error('[TabVolume] Failed to save sleep timer state:', e.message);
+    }
+  });
+  return sleepTimerWriteQueue;
+}
+
+// Clear sleep timer state for a specific tab from session storage
+async function clearSleepTimerState(tabId) {
+  sleepTimerWriteQueue = sleepTimerWriteQueue.then(async () => {
+    try {
+      const result = await browserAPI.storage.session.get(['sleepTimers']);
+      const timers = result.sleepTimers || {};
+      delete timers[tabId];
+      await browserAPI.storage.session.set({ sleepTimers: timers });
+    } catch (e) {
+      console.error('[TabVolume] Failed to clear sleep timer state:', e.message);
+    }
+  });
+  return sleepTimerWriteQueue;
+}
+
+// Clear sleep timer alarms for a specific tab
+async function clearSleepTimerAlarms(tabId) {
+  fadeAbortedTabs.add(tabId);
+  await browserAPI.alarms.clear(`sleepTimer_${tabId}`);
+  await browserAPI.alarms.clear(`sleepTimerFade_${tabId}`);
+}
+
+// Start sleep timer for a specific tab
+async function startSleepTimer(minutes, tabId, allTabs) {
+  // Clear any existing timer for THIS tab only
+  await clearSleepTimerAlarms(tabId);
+
+  const now = Date.now();
+  const endTime = now + (minutes * 60 * 1000);
+  const fadeStartTime = endTime - (SLEEP_TIMER_FADE_DURATION * 1000);
+
+  // Get current volume for the target tab(s) to restore after pause
+  let originalVolume = VOLUME_DEFAULT;
+  try {
+    originalVolume = await getTabVolume(tabId);
+  } catch (e) {
+    originalVolume = VOLUME_DEFAULT;
+  }
+
+  // Save state
+  const state = {
+    tabId: tabId,
+    allTabs: allTabs,
+    endTime: endTime,
+    originalMinutes: minutes,
+    originalVolume: originalVolume,
+    fadeStarted: false,
+    currentFadeStep: 0
+  };
+  await setSleepTimerState(tabId, state);
+  fadeAbortedTabs.delete(tabId);
+
+  // Create fade-start alarm (30 seconds before end, or immediately if timer < 30s)
+  if (fadeStartTime > now) {
+    browserAPI.alarms.create(`sleepTimerFade_${tabId}`, { when: fadeStartTime });
+  } else {
+    // Timer is shorter than fade duration — start fading immediately
+    browserAPI.alarms.create(`sleepTimerFade_${tabId}`, { when: now + 100 });
+  }
+
+  // Create final alarm
+  browserAPI.alarms.create(`sleepTimer_${tabId}`, { when: endTime });
+
+  return { success: true, endTime: endTime };
+}
+
+// Cancel sleep timer for a specific tab and optionally restore volume
+async function cancelSleepTimer(tabId, restoreVolume = true) {
+  const state = await getSleepTimerState(tabId);
+  await clearSleepTimerAlarms(tabId);
+
+  // If fade was in progress, restore original volume
+  if (state && state.fadeStarted && restoreVolume) {
+    try {
+      if (state.allTabs) {
+        const tabs = await browserAPI.tabs.query({});
+        for (const tab of tabs) {
+          await setTabVolume(tab.id, state.originalVolume);
+        }
+      } else {
+        await setTabVolume(state.tabId, state.originalVolume);
+      }
+    } catch (e) {
+      console.error('[TabVolume] Failed to restore volume after cancel:', e.message);
+    }
+  }
+
+  await clearSleepTimerState(tabId);
+  return { success: true };
+}
+
+// Lightweight volume setter for fade steps only.
+// Skips storage writes, badge updates, and tab activation to avoid side effects.
+// Sends gain changes to the active audio pipeline and notifies the popup for visual feedback.
+async function setFadeVolume(tabId, volume) {
+  const validatedVolume = validateVolume(volume);
+
+  // Send to content script (Web Audio mode gain)
+  try {
+    await browserAPI.tabs.sendMessage(tabId, {
+      type: 'SET_VOLUME',
+      volume: validatedVolume
+    });
+  } catch (e) { /* content script might not be ready */ }
+
+  // Send to Tab Capture (Chrome only)
+  if (!isFirefox && chrome.offscreen) {
+    try {
+      const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
+      const existingContexts = await chrome.runtime.getContexts({
+        contextTypes: ['OFFSCREEN_DOCUMENT'],
+        documentUrls: [offscreenUrl]
+      });
+      if (existingContexts.length > 0) {
+        await chrome.runtime.sendMessage({
+          type: 'SET_TAB_CAPTURE_VOLUME',
+          tabId: tabId,
+          volume: validatedVolume
+        });
+      }
+    } catch (e) { /* offscreen might not be active */ }
+  }
+
+  // Notify popup so the volume display shows the fade progress
+  try {
+    browserAPI.runtime.sendMessage({
+      type: 'VOLUME_CHANGED',
+      tabId: tabId,
+      volume: validatedVolume
+    });
+  } catch (e) { /* popup might not be open */ }
+}
+
+// Start the fade sequence as a sequential loop.
+// Each step awaits completion before the next begins, eliminating race conditions
+// from the previous approach where 30 concurrent alarm handlers could interleave.
+// The pending sleepTimer alarm keeps the service worker alive for the 30s fade.
+async function startFadeSequence(tabId, state) {
+  if (!state) return;
+
+  state.fadeStarted = true;
+  state.currentFadeStep = 0;
+  await setSleepTimerState(tabId, state);
+  fadeAbortedTabs.delete(tabId);
+
+  const fadeStartTime = state.endTime - (SLEEP_TIMER_FADE_DURATION * 1000);
+  const stepDelay = (SLEEP_TIMER_FADE_DURATION * 1000) / SLEEP_TIMER_FADE_STEPS;
+
+  for (let step = 0; step < SLEEP_TIMER_FADE_STEPS; step++) {
+    if (fadeAbortedTabs.has(tabId)) return;
+
+    // Time-based volume: always reflects real elapsed time
+    const elapsed = Date.now() - fadeStartTime;
+    const progress = Math.min(1, Math.max(0, elapsed / (SLEEP_TIMER_FADE_DURATION * 1000)));
+    const newVolume = Math.max(0, Math.round(state.originalVolume * (1 - progress)));
+
+    try {
+      if (state.allTabs) {
+        const tabs = await browserAPI.tabs.query({});
+        for (const tab of tabs) {
+          await setFadeVolume(tab.id, newVolume);
+        }
+      } else {
+        await setFadeVolume(state.tabId, newVolume);
+      }
+    } catch (e) {
+      console.error('[TabVolume] Fade step failed:', e.message);
+    }
+
+    state.currentFadeStep = step + 1;
+    await setSleepTimerState(tabId, state);
+
+    // Wait before next step (unless this is the last step or fade was aborted)
+    if (step < SLEEP_TIMER_FADE_STEPS - 1 && !fadeAbortedTabs.has(tabId)) {
+      await new Promise(resolve => setTimeout(resolve, stepDelay));
+    }
+  }
+}
+
+// Handle final timer expiry: pause media and restore volume
+async function handleSleepTimerExpiry(tabId, state) {
+  if (!state) return;
+
+  // Stop any in-progress fade loop for this tab
+  fadeAbortedTabs.add(tabId);
+
+  try {
+    if (state.allTabs) {
+      // Pause all tabs and restore volume
+      const tabs = await browserAPI.tabs.query({});
+      for (const tab of tabs) {
+        try {
+          await browserAPI.tabs.sendMessage(tab.id, { type: 'TOGGLE_PLAYBACK' });
+        } catch (e) { /* tab may not have content script */ }
+        // Restore original volume so when user un-pauses, volume is normal
+        await setTabVolume(tab.id, state.originalVolume);
+      }
+    } else {
+      // Pause target tab and restore volume
+      try {
+        await browserAPI.tabs.sendMessage(state.tabId, { type: 'TOGGLE_PLAYBACK' });
+      } catch (e) {
+        console.error('[TabVolume] Could not pause tab:', e.message);
+      }
+      await setTabVolume(state.tabId, state.originalVolume);
+    }
+  } catch (e) {
+    console.error('[TabVolume] Sleep timer expiry handler failed:', e.message);
+  }
+
+  // Clean up this tab's timer
+  await clearSleepTimerAlarms(tabId);
+  await clearSleepTimerState(tabId);
+}
+
+// Parse tabId from per-tab alarm names (e.g., "sleepTimer_123" → 123)
+function parseSleepAlarmTabId(alarmName) {
+  const match = alarmName.match(/^sleepTimer(?:Fade)?_(\d+)$/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+// Alarm listener for sleep timer
+browserAPI.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name.startsWith('sleepTimerFade_')) {
+    const tabId = parseSleepAlarmTabId(alarm.name);
+    if (tabId === null) return;
+    const state = await getSleepTimerState(tabId);
+    if (state) {
+      await startFadeSequence(tabId, state);
+    }
+    return;
+  }
+
+  if (alarm.name.startsWith('sleepTimer_')) {
+    const tabId = parseSleepAlarmTabId(alarm.name);
+    if (tabId === null) return;
+    const state = await getSleepTimerState(tabId);
+    await handleSleepTimerExpiry(tabId, state);
+    return;
+  }
+});
+
 // Validate message sender is from within our extension
 function isValidSender(sender) {
   // Must be from our extension
@@ -1347,7 +1707,7 @@ const VALID_MESSAGE_TYPES = [
   'REQUEST_AUDIO_DEVICES', 'DEVICE_NOT_FOUND', 'GET_VOLUME', 'SET_VOLUME',
   'GET_TAB_ID', 'GET_AUDIBLE_TABS',
   'MUTE_OTHER_TABS', 'UNMUTE_OTHER_TABS', 'GET_FOCUS_STATE',
-  'HAS_MEDIA', 'CONTENT_READY', 'VOLUME_CHANGED',
+  'HAS_MEDIA', 'CONTENT_READY',
   'GET_TAB_CAPTURE_PREF', 'SET_TAB_CAPTURE_PREF',
   // Persistent visualizer Tab Capture (offscreen document)
   'START_PERSISTENT_VISUALIZER_CAPTURE', 'STOP_PERSISTENT_VISUALIZER_CAPTURE',
@@ -1359,7 +1719,9 @@ const VALID_MESSAGE_TYPES = [
   // Fullscreen workaround (Tab Capture mode)
   'FULLSCREEN_CHANGE',
   // Pending site rule application (from popup)
-  'APPLY_PENDING_SITE_RULE'
+  'APPLY_PENDING_SITE_RULE',
+  // Sleep timer (from popup)
+  'START_SLEEP_TIMER', 'CANCEL_SLEEP_TIMER', 'GET_SLEEP_TIMER', 'UPDATE_SLEEP_TIMER'
 ];
 
 function isValidMessageType(type) {
@@ -1372,7 +1734,7 @@ function isValidMessageType(type) {
 const messageThrottles = new Map();
 let lastThrottleCleanup = 0;
 const THROTTLE_INTERVAL_MS = 30; // Max ~33 messages/sec per type per tab
-const THROTTLED_MESSAGE_TYPES = ['SET_VOLUME', 'VOLUME_CHANGED']; // High-frequency types
+const THROTTLED_MESSAGE_TYPES = ['SET_VOLUME']; // High-frequency types
 
 function shouldThrottleMessage(type, tabId) {
   if (!THROTTLED_MESSAGE_TYPES.includes(type)) {
@@ -1477,8 +1839,8 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ volume: 100 }); // Default to 100% for invalid tabId
       return false;
     }
-    getTabVolume(tabId).then(volume => {
-      sendResponse({ volume });
+    Promise.all([getTabVolume(tabId), isTabActive(tabId)]).then(([volume, active]) => {
+      sendResponse({ volume, dormant: !active });
     }).catch(e => {
       console.error('[TabVolume] Failed to get volume:', e.message);
       sendResponse({ volume: 100 }); // Default to 100% on error
@@ -1761,7 +2123,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Get effective audio mode for a hostname (considers default mode and all overrides)
   if (request.type === 'GET_EFFECTIVE_MODE') {
     (async () => {
-      const hostname = request.hostname;
+      const hostname = sanitizeHostname(request.hostname);
       if (!hostname) {
         sendResponse({ success: false, mode: null });
         return;
@@ -1807,11 +2169,18 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
 
-        // Send to offscreen document to start capture
+        // Read stored volume BEFORE starting capture so offscreen can apply
+        // it before play(), preventing a volume burst at gainNode=1.0
+        const volKey = getTabStorageKey(tabId, TAB_STORAGE.VOLUME);
+        const volResult = await browserAPI.storage.local.get([volKey]);
+        const initialVolume = volResult[volKey] !== undefined ? volResult[volKey] : 100;
+
+        // Send to offscreen document to start capture (with initial volume)
         const response = await chrome.runtime.sendMessage({
           type: 'START_VISUALIZER_CAPTURE',
           streamId: streamId,
-          tabId: tabId
+          tabId: tabId,
+          initialVolume: initialVolume
         });
 
         console.log('[TabVolume] Persistent visualizer capture started for tab', tabId);
@@ -1819,8 +2188,8 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Clear the pending indicator now that Tab Capture is active
         if (response && response.success) {
           await updateTabCaptureIndicator(tabId);
-          // Sync stored tab settings (volume, effects) to the offscreen document
-          // so the Tab Capture pipeline matches any previously applied site rules
+          // Sync remaining stored tab settings (effects, balance, etc.) to the
+          // offscreen document. Volume was already applied above before play().
           await syncStoredSettingsToTabCapture(tabId);
         }
 
@@ -2061,8 +2430,21 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     Promise.all([
       getTabVolume(tabId),
       browserAPI.storage.local.get([deviceKey]),
-      browserAPI.storage.local.get(['useLastDeviceAsDefault', 'globalDefaultDevice'])
-    ]).then(([volume, deviceResult, globalSettings]) => {
+      browserAPI.storage.local.get(['useLastDeviceAsDefault', 'globalDefaultDevice']),
+      isTabActive(tabId)
+    ]).then(async ([volume, deviceResult, globalSettings, active]) => {
+      // Content script activating from dormant (user changed a control via popup)
+      if (!active && request.activating) {
+        await activateTab(tabId);
+        active = true;
+      }
+      // If tab is dormant (not yet activated by user), respond with dormant flag
+      // and skip badge update — the tab shouldn't show any audio activity
+      if (!active) {
+        sendResponse({ volume: null, dormant: true, deviceId: '', deviceLabel: '' });
+        return;
+      }
+
       updateBadge(tabId, volume);
 
       // Handle both old format (string) and new format (object with deviceId and deviceLabel)
@@ -2098,9 +2480,17 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         deviceId,
         deviceLabel
       });
+
+      // When activating from dormant, send saved effects (bass, treble, voice, etc.)
+      // The CONTENT_READY response only carries volume and device — effects need separate messages
+      if (request.activating) {
+        sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLabel);
+      }
     }).catch((e) => {
       console.error('[TabVolume] CONTENT_READY failed:', e);
-      sendResponse({ volume: 100, deviceId: '', deviceLabel: '' });
+      // Default to dormant on storage failure — safer than accidentally activating
+      // The user can still activate manually via popup or keyboard shortcut
+      sendResponse({ volume: null, dormant: true, deviceId: '', deviceLabel: '' });
     });
     return true;
   }
@@ -2139,6 +2529,107 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } catch (e) {
         sendResponse({ success: false });
       }
+    })();
+    return true;
+  }
+
+  // ==================== Sleep Timer Message Handlers ====================
+
+  if (request.type === 'START_SLEEP_TIMER') {
+    const minutes = request.minutes;
+    const tabId = request.tabId;
+    const allTabs = !!request.allTabs;
+    if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 1440) {
+      sendResponse({ success: false, error: 'Invalid minutes' });
+      return false;
+    }
+    if (!isValidTabId(tabId)) {
+      sendResponse({ success: false, error: 'Invalid tab ID' });
+      return false;
+    }
+    startSleepTimer(minutes, tabId, allTabs).then(result => {
+      sendResponse(result);
+    }).catch(e => {
+      sendResponse({ success: false, error: e.message });
+    });
+    return true;
+  }
+
+  if (request.type === 'CANCEL_SLEEP_TIMER') {
+    const tabId = request.tabId;
+    if (!isValidTabId(tabId)) {
+      sendResponse({ success: false, error: 'Invalid tab ID' });
+      return false;
+    }
+    cancelSleepTimer(tabId).then(result => {
+      sendResponse(result);
+    }).catch(e => {
+      sendResponse({ success: false, error: e.message });
+    });
+    return true;
+  }
+
+  if (request.type === 'GET_SLEEP_TIMER') {
+    const tabId = request.tabId;
+    if (!isValidTabId(tabId)) {
+      sendResponse({ success: false, error: 'Invalid tab ID' });
+      return false;
+    }
+    (async () => {
+      // Check for a timer on this specific tab
+      const state = await getSleepTimerState(tabId);
+      if (state) {
+        const remaining = state.endTime - Date.now();
+        if (remaining > 0) {
+          sendResponse({
+            active: true,
+            endTime: state.endTime,
+            allTabs: state.allTabs,
+            tabId: state.tabId,
+            originalMinutes: state.originalMinutes
+          });
+          return;
+        }
+      }
+      // Check if any "allTabs" timer applies to this tab
+      try {
+        const result = await browserAPI.storage.session.get(['sleepTimers']);
+        const timers = result.sleepTimers || {};
+        for (const [timerTabId, timerState] of Object.entries(timers)) {
+          if (timerState.allTabs && timerState.endTime - Date.now() > 0) {
+            sendResponse({
+              active: true,
+              endTime: timerState.endTime,
+              allTabs: timerState.allTabs,
+              tabId: parseInt(timerTabId, 10),
+              originalMinutes: timerState.originalMinutes
+            });
+            return;
+          }
+        }
+      } catch (e) { /* fall through to inactive */ }
+      sendResponse({ active: false });
+    })();
+    return true;
+  }
+
+  if (request.type === 'UPDATE_SLEEP_TIMER') {
+    const tabId = request.tabId;
+    if (!isValidTabId(tabId)) {
+      sendResponse({ success: false, error: 'Invalid tab ID' });
+      return true;
+    }
+    (async () => {
+      const state = await getSleepTimerState(tabId);
+      if (!state) {
+        sendResponse({ success: false, error: 'No active timer' });
+        return;
+      }
+      if (typeof request.allTabs === 'boolean') {
+        state.allTabs = request.allTabs;
+      }
+      await setSleepTimerState(tabId, state);
+      sendResponse({ success: true });
     })();
     return true;
   }
@@ -2212,6 +2703,17 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 browserAPI.commands.onCommand.addListener(async (command) => {
   const [tab] = await browserAPI.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
+
+  // If tab is dormant, activate it first and tell content script to wake up
+  const tabActive = await isTabActive(tab.id);
+  if (!tabActive) {
+    await activateTab(tab.id);
+    try {
+      await browserAPI.tabs.sendMessage(tab.id, { type: 'ACTIVATE_TAB' });
+    } catch (e) {
+      // Content script might not be ready
+    }
+  }
 
   // Check if we should auto-initiate Tab Capture (Chrome only)
   // Only initiate if: mode is 'tabcapture', not Firefox, and not already active
@@ -2508,11 +3010,14 @@ browserAPI.runtime.onInstalled.addListener(async (details) => {
   // Clean up stale tab storage keys from previous sessions
   await cleanupStaleTabKeys();
 
-  // Update badge for existing tabs
+  // Update badge for existing tabs (only for active/non-dormant tabs)
   const tabs = await browserAPI.tabs.query({});
   for (const tab of tabs) {
-    const volume = await getTabVolume(tab.id);
-    await updateBadge(tab.id, volume);
+    const active = await isTabActive(tab.id);
+    if (active) {
+      const volume = await getTabVolume(tab.id);
+      await updateBadge(tab.id, volume);
+    }
   }
 
   // Create context menus
@@ -2848,7 +3353,7 @@ async function createContextMenus() {
     speedSlowPresets.forEach((rate, i) => {
       const labels = ['Low', 'Medium', 'High'];
       contextMenusAPI.create({
-        id: `speed_${rate}`,
+        id: `speed_slow_${rate}`,
         parentId: 'speedSubmenu',
         title: `Slow ${labels[i] || ''} (${rate}x)`,
         contexts: MENU_CONTEXTS
@@ -2866,7 +3371,7 @@ async function createContextMenus() {
     speedFastPresets.forEach((rate, i) => {
       const labels = ['Low', 'Medium', 'High'];
       contextMenusAPI.create({
-        id: `speed_${rate}`,
+        id: `speed_fast_${rate}`,
         parentId: 'speedSubmenu',
         title: `Fast ${labels[i] || ''} (${rate}x)`,
         contexts: MENU_CONTEXTS
@@ -3236,8 +3741,19 @@ if (contextMenusAPI) {
     }
 
     // ========== Speed ==========
-    if (menuItemId.startsWith('speed_')) {
-      const rate = parseFloat(menuItemId.replace('speed_', ''));
+    if (menuItemId === 'speed_1') {
+      // Reset speed to normal (1x)
+      const speedKey = getTabStorageKey(tab.id, TAB_STORAGE.SPEED);
+      await browserAPI.storage.local.set({ [speedKey]: 'off' });
+      try {
+        await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_SPEED', rate: 1 });
+      } catch (e) {
+        console.log('[TabVolume] Could not set speed:', e.message);
+      }
+      return;
+    }
+    if (menuItemId.startsWith('speed_slow_') || menuItemId.startsWith('speed_fast_')) {
+      const rate = parseFloat(menuItemId.replace(/^speed_(?:slow|fast)_/, ''));
       if (!Number.isFinite(rate) || rate < EFFECT_RANGES.speed.min || rate > EFFECT_RANGES.speed.max) return;
       // Store as level string matching popup format
       const speedLevel = rate === 1 ? 'off' : `slider:${rate}`;
@@ -3266,6 +3782,12 @@ if (contextMenusAPI) {
         // Reset all audio settings for this tab to defaults
         {
           const tabId = tab.id;
+
+          // Activate tab (exits dormant mode) so reset actually applies
+          await activateTab(tabId);
+          try {
+            await browserAPI.tabs.sendMessage(tabId, { type: 'ACTIVATE_TAB' });
+          } catch (e) {}
 
           // 1. Reset volume to default
           await setTabVolume(tabId, VOLUME_DEFAULT);

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Per-Tab Audio Control",
-  "version": "5.2.14",
+  "version": "5.4.6",
   "description": "The audio controls browsers forgot to include",
   "permissions": [
     "storage",
@@ -10,7 +10,8 @@
     "scripting",
     "offscreen",
     "contextMenus",
-    "tabCapture"
+    "tabCapture",
+    "alarms"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -18,9 +19,8 @@
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "icons/icon-toolbar-16.png",
+      "48": "icons/icon-toolbar-48.png"
     }
   },
   "background": {

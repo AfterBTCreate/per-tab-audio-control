@@ -780,3 +780,23 @@ body.light-mode .eq-slider-value.speed-slow { color: #ea580c; }
 body.light-mode .eq-slider-value.speed-normal { color: #6b5d52; }
 body.light-mode .eq-slider-value.speed-fast { color: #16a34a; }
 body.light-mode .eq-slider-value.voice-off { color: #8b4040; }
+
+/* ==================== Sleep Slider ==================== */
+
+/* Sleep slider gradient: gray (short) → light purple (medium) → deep purple (long) */
+.eq-slider.sleep-slider {
+  background: linear-gradient(to right,
+    #555 0%,         /* 1m short (gray) */
+    #a78bfa 50%,     /* 60m medium (light purple) */
+    #8b5cf6 100%     /* 120m long (deep purple) */
+  );
+}
+
+/* Light mode sleep slider */
+body.light-mode .eq-slider.sleep-slider {
+  background: linear-gradient(to right,
+    #aaa 0%,         /* 1m short (gray) */
+    #a78bfa 50%,     /* 60m medium (light purple) */
+    #7c3aed 100%     /* 120m long (purple) */
+  );
+}

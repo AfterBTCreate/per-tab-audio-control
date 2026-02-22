@@ -2,6 +2,51 @@
 // Canvas rendering, animation loop, audio visualization
 // Uses port-based streaming for better performance on heavy sites
 // Falls back to tabCapture for sites where content script method fails
+//
+// ====================== CAPTURE METHOD STATE MACHINE ======================
+//
+//  On popup open / tab switch:
+//
+//  startVisualizer()
+//       │
+//       ▼
+//  ┌─────────────────────┐
+//  │  1. Port Streaming   │  connectVisualizerPort() → content.js
+//  │  (preferred method)  │  Frequency data pushed via chrome.runtime.Port
+//  └────────┬────────────┘
+//           │ If no data after ZERO_DATA_THRESHOLD (40 pushes / ~2s)
+//           │ OR port disconnects with no data
+//           ▼
+//  ┌─────────────────────────┐
+//  │  2. Persistent Capture   │  Background offscreen document (Chrome only)
+//  │  (offscreen Tab Capture) │  Polls GET_PERSISTENT_VISUALIZER_DATA every 50ms
+//  └────────┬────────────────┘
+//           │ If offscreen unavailable OR capture fails
+//           ▼
+//  ┌─────────────────────────┐
+//  │  3. Local Tab Capture    │  chrome.tabCapture.capture() directly in popup
+//  │  (popup-owned stream)    │  Creates local AudioContext + AnalyserNode
+//  └────────┬────────────────┘
+//           │ If Tab Capture not available (Firefox, permission denied)
+//           ▼
+//  ┌─────────────────────────┐
+//  │  4. Auto-disabled        │  Shows "Visualizer unavailable" message
+//  │  (visualizerAutoDisabled)│  User can click to enable Tab Capture
+//  └─────────────────────────┘
+//
+//  Key State Variables:
+//    visualizerPort          → non-null when method 1 is active
+//    persistentCaptureActive → true when method 2 is active
+//    tabCaptureActive        → true when method 3 is active
+//    visualizerAutoDisabled  → true when method 4 (disabled)
+//    hasEverHadData          → reset on tab switch; tracks if any method succeeded
+//
+//  Detection Thresholds:
+//    ZERO_DATA_THRESHOLD     = 40   (~2s of silent data → try next method)
+//    NO_DATA_THRESHOLD       = 180  (~3s at 60fps → show "unavailable")
+//    AUDIBLE_NO_DATA_THRESHOLD = 6  (~3s of audible + no data → prompt)
+//
+// ==========================================================================
 
 // ==================== Visualizer State ====================
 
@@ -1210,6 +1255,11 @@ function disconnectVisualizerPort() {
 // (requestAnimationFrame can get erratic when popup is over video-heavy pages like Spotify)
 function updateVisualizer() {
   if (!visualizerCanvas) {
+    return;
+  }
+
+  // Skip rendering when visualizer section is collapsed (saves CPU)
+  if (document.body.classList.contains('visualizer-hidden')) {
     return;
   }
 

@@ -602,9 +602,10 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
 /* Shortcuts Footer */
 .shortcuts-footer {
   display: flex;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 12px;
-  padding: 6px 8px 2px;
+  gap: 6px;
+  padding: 6px 6px 2px;
   margin-top: 4px;
   border-top: 1px solid rgba(90, 122, 154, 0.3);
 }
@@ -616,7 +617,8 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
 .shortcuts-footer-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  white-space: nowrap;
 }
 
 .shortcut-action {
@@ -1176,6 +1178,150 @@ body.light-mode .section-title {
   display: none;
   margin: 0;
   padding: 0;
+}
+
+/* ==================== Sleep Timer ==================== */
+
+/* Sleep timer preset buttons (presets mode) */
+.sleep-timer-buttons {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sleep-timer-buttons .sleep-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.sleep-timer-buttons .sleep-btn.active {
+  background: #8b5cf6;
+  color: #ffffff;
+  border-color: #8b5cf6;
+}
+
+.sleep-timer-buttons .sleep-btn.active:hover {
+  background: #7c3aed;
+  border-color: #7c3aed;
+}
+
+/* Sleep slider + Go button */
+.sleep-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sleep-slider-container .sleep-slider {
+  flex: 1;
+  min-width: 0;
+}
+
+.sleep-slider-value {
+  min-width: 28px;
+  flex-shrink: 0;
+  text-align: right;
+  color: #a78bfa;
+}
+
+.sleep-go-btn {
+  order: 1;
+  min-width: 32px;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #8b5cf6;
+  color: #ffffff;
+  border: 1px solid #8b5cf6;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sleep-go-btn:hover {
+  background: #7c3aed;
+  border-color: #7c3aed;
+}
+
+/* Sleep countdown bar — hidden by default, replaces entire row when timer active */
+.sleep-status.compact {
+  display: none;
+  flex-basis: 100%;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sleep-status.compact:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+/* Timer active: hide all controls, show countdown bar */
+.sleep-timer-section.timer-active > .compact-label,
+.sleep-timer-section.timer-active > .sleep-timer-buttons,
+.sleep-timer-section.timer-active > .sleep-slider-container,
+.sleep-timer-section.timer-active > .sleep-go-btn,
+.sleep-timer-section.timer-active > .domain-checkbox {
+  display: none;
+}
+
+.sleep-timer-section.timer-active > .sleep-status.compact {
+  display: block;
+}
+
+/* Sleep timer All Tabs checkbox */
+.sleep-timer-section .domain-checkbox {
+  margin-left: auto;
+}
+
+/* Light mode sleep timer */
+body.light-mode .sleep-go-btn {
+  background: #7c3aed;
+  border-color: #7c3aed;
+}
+
+body.light-mode .sleep-go-btn:hover {
+  background: #6d28d9;
+  border-color: #6d28d9;
+}
+
+body.light-mode .sleep-slider-value {
+  color: #7c3aed;
+}
+
+body.light-mode .sleep-timer-buttons .sleep-btn.active {
+  background: #7c3aed;
+  color: #ffffff;
+  border-color: #7c3aed;
+}
+
+body.light-mode .sleep-timer-buttons .sleep-btn.active:hover {
+  background: #6d28d9;
+  border-color: #6d28d9;
+}
+
+body.light-mode .sleep-status.compact {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+body.light-mode .sleep-status.compact:hover {
+  background: rgba(124, 58, 237, 0.2);
+  border-color: rgba(124, 58, 237, 0.5);
 }
 
 /* Light mode compact rows */

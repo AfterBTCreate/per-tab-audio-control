@@ -54,7 +54,9 @@ async function resetAllSettings() {
     'seekbarTimeDisplay',
     'balancePresets',
     'badgeStyle',
-    'visualizerColor'
+    'visualizerColor',
+    'sleepTimerPresets',
+    'expandedSections'
   ]);
 
   // Reset local settings (device-specific, dual-written settings, and unbounded maps)
@@ -110,6 +112,12 @@ async function resetAllSettings() {
   speedSlowLow.value = DEFAULT_SPEED_SLOW_PRESETS[0];
   speedSlowMed.value = DEFAULT_SPEED_SLOW_PRESETS[1];
   speedSlowHigh.value = DEFAULT_SPEED_SLOW_PRESETS[2];
+
+  // Reset sleep timer presets UI
+  if (typeof sleepQuick !== 'undefined' && sleepQuick) sleepQuick.value = DEFAULT_SLEEP_TIMER_PRESETS[0];
+  if (typeof sleepShort !== 'undefined' && sleepShort) sleepShort.value = DEFAULT_SLEEP_TIMER_PRESETS[1];
+  if (typeof sleepMedium !== 'undefined' && sleepMedium) sleepMedium.value = DEFAULT_SLEEP_TIMER_PRESETS[2];
+  if (typeof sleepLong !== 'undefined' && sleepLong) sleepLong.value = DEFAULT_SLEEP_TIMER_PRESETS[3];
 
   // Reset balance presets UI
   if (balancePresetLeft) balancePresetLeft.value = DEFAULTS.balancePresets.left;
@@ -304,6 +312,13 @@ async function generateBackupCSV() {
   lines.push('Low,Medium,High');
   const speedFastPresetsData = syncData.speedFastPresets || DEFAULT_SPEED_FAST_PRESETS;
   lines.push(speedFastPresetsData.join(','));
+  lines.push('');
+
+  // Sleep Timer Presets
+  lines.push('[Sleep Timer Presets]');
+  lines.push('Quick,Short,Medium,Long');
+  const sleepPresets = syncData.sleepTimerPresets || DEFAULT_SLEEP_TIMER_PRESETS;
+  lines.push(sleepPresets.join(','));
   lines.push('');
 
   // Default Audio Device (from local storage - device-specific)
@@ -702,6 +717,17 @@ async function restoreFromBackup(csvContent) {
         }
         break;
 
+      case 'Sleep Timer Presets':
+        if (!headerRow) {
+          headerRow = trimmedLine;
+        } else {
+          const presets = parseCSVLine(trimmedLine).map(v => parseInt(v, 10)).filter(v => !isNaN(v));
+          if (presets.length === 4) {
+            restoredData.sync.sleepTimerPresets = presets.map(v => Math.max(1, Math.min(120, v)));
+          }
+        }
+        break;
+
       case 'Default Audio Device':
         if (!headerRow) {
           headerRow = trimmedLine;
@@ -711,8 +737,8 @@ async function restoreFromBackup(csvContent) {
             restoredData.local.useLastDeviceAsDefault = values[0] === 'true';
             if (values[1] || values[2]) {
               restoredData.local.globalDefaultDevice = {
-                deviceId: values[1] || '',
-                deviceLabel: values[2] || ''
+                deviceId: (values[1] || '').slice(0, 500),
+                deviceLabel: (values[2] || '').slice(0, 200)
               };
             }
           }
@@ -1021,7 +1047,7 @@ async function restoreFromBackup(csvContent) {
             'offDefault_webAudioSites'
           ];
           if (validKeys.includes(storageKey) && domainsStr) {
-            const domains = domainsStr.split('|').map(d => d.trim()).filter(d => d && (typeof isValidHostname === 'function' ? isValidHostname(d) : true));
+            const domains = domainsStr.split('|').map(d => d.trim()).filter(d => d && (typeof isValidHostname === 'function' ? isValidHostname(d) : false));
             if (domains.length > 0) {
               restoredData.sync[storageKey] = domains;
             }
@@ -1079,6 +1105,12 @@ restoreFileInput.addEventListener('change', async (e) => {
     return;
   }
 
+  // Validate file size (5 MB limit — backup files are typically < 50 KB)
+  if (file.size > 5 * 1024 * 1024) {
+    showResetStatus('Backup file is too large (max 5 MB)', true);
+    return;
+  }
+
   try {
     const content = await file.text();
 
@@ -1104,6 +1136,7 @@ restoreFileInput.addEventListener('change', async (e) => {
     if (restored.sync.speedSlowPresets) counts.push('speed slow presets');
     if (restored.sync.speedFastPresets) counts.push('speed fast presets');
     if (restored.sync.balancePresets) counts.push('balance presets');
+    if (restored.sync.sleepTimerPresets) counts.push('sleep timer presets');
     if (restored.sync.volumeSteps) counts.push('volume steps');
     if (restored.sync.siteVolumeRules) counts.push(`${restored.sync.siteVolumeRules.length} site rules`);
     if (restored.sync.disabledDomains) counts.push(`${restored.sync.disabledDomains.length} native mode domains`);
