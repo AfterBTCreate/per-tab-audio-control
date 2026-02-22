@@ -1639,22 +1639,27 @@ async function handleSleepTimerExpiry(tabId, state) {
 
   try {
     if (state.allTabs) {
-      // Pause all tabs and restore volume
+      // Pause all tabs
       const tabs = await browserAPI.tabs.query({});
       for (const tab of tabs) {
         try {
           await browserAPI.tabs.sendMessage(tab.id, { type: 'TOGGLE_PLAYBACK' });
         } catch (e) { /* tab may not have content script */ }
-        // Restore original volume so when user un-pauses, volume is normal
+      }
+      // Wait for pause to settle before restoring volume
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      for (const tab of tabs) {
         await setTabVolume(tab.id, state.originalVolume);
       }
     } else {
-      // Pause target tab and restore volume
+      // Pause target tab
       try {
         await browserAPI.tabs.sendMessage(state.tabId, { type: 'TOGGLE_PLAYBACK' });
       } catch (e) {
         console.error('[TabVolume] Could not pause tab:', e.message);
       }
+      // Wait for pause to settle before restoring volume
+      await new Promise(resolve => setTimeout(resolve, 3000));
       await setTabVolume(state.tabId, state.originalVolume);
     }
   } catch (e) {
