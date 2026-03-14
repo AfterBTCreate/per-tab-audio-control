@@ -92,6 +92,9 @@ function hasRealDeviceLabels(devices) {
 async function loadAudioDevices(requestPermission = false) {
   if (!currentTabId) return;
 
+  // Snapshot tab ID at entry to prevent stale references after async operations
+  const tabId = currentTabId;
+
   console.log('[TabVolume Popup] loadAudioDevices called, requestPermission:', requestPermission);
 
   try {
@@ -141,14 +144,14 @@ async function loadAudioDevices(requestPermission = false) {
     console.log('[TabVolume Popup] Audio outputs:', audioOutputs);
 
     // Check if there's a saved device for this tab
-    const deviceKey = getTabStorageKey(currentTabId, TAB_STORAGE.DEVICE);
+    const deviceKey = getTabStorageKey(tabId, TAB_STORAGE.DEVICE);
     const result = await browserAPI.storage.local.get([deviceKey]);
     let hasSavedDevice = !!result[deviceKey];
 
     // If no tab-specific device, check for global default
     let globalDefault = null;
     if (!hasSavedDevice) {
-      const settings = await browserAPI.storage.sync.get(['useLastDeviceAsDefault', 'globalDefaultDevice']);
+      const settings = await browserAPI.storage.local.get(['useLastDeviceAsDefault', 'globalDefaultDevice']);
       if (settings.useLastDeviceAsDefault && settings.globalDefaultDevice) {
         globalDefault = settings.globalDefaultDevice;
         console.log('[TabVolume Popup] Using global default device:', globalDefault.deviceLabel);
@@ -204,7 +207,7 @@ async function loadAudioDevices(requestPermission = false) {
 
         // Notify content script to reset to default
         try {
-          await browserAPI.tabs.sendMessage(currentTabId, {
+          await browserAPI.tabs.sendMessage(tabId, {
             type: 'SET_DEVICE',
             deviceId: '',
             deviceLabel: ''
@@ -234,7 +237,7 @@ async function loadAudioDevices(requestPermission = false) {
 
         // Notify content script to apply this device
         try {
-          await browserAPI.tabs.sendMessage(currentTabId, {
+          await browserAPI.tabs.sendMessage(tabId, {
             type: 'SET_DEVICE',
             deviceId: matchedDevice.deviceId,
             deviceLabel: matchedDevice.label

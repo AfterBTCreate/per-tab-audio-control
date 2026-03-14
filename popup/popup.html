@@ -12,12 +12,14 @@
   <link rel="stylesheet" href="popup-effects.css">
   <link rel="stylesheet" href="popup-controls.css">
   <link rel="stylesheet" href="popup-seekbar.css">
+  <link rel="stylesheet" href="popup-header-edit.css">
+  <link rel="stylesheet" href="popup-sections-edit.css">
 </head>
 <body class="initializing">
   <div class="container">
     <header class="header">
       <!-- 1. Brand Logo -->
-      <a data-header-item="companyLogo" href="https://afterbedtimecreations.com" target="_blank" rel="noopener noreferrer" class="brand-logo-link" title="Visit After Bedtime Creations">
+      <a data-header-item="companyLogo" href="https://afterbedtimecreations.com" target="_blank" rel="noopener noreferrer" class="brand-logo-link" title="Hold to edit layout">
         <div class="brand-logo">
           <!-- Dark mode logo -->
           <svg class="logo-dark" width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations">
@@ -34,16 +36,16 @@
           </svg>
           <!-- Light mode logo -->
           <svg class="logo-light" width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations">
-            <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
-            <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
-            <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
-            <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
-            <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
-            <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
-            <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
-            <path d="M61 66 L61 74 L65 74 L71 78 L71 62 L65 66 Z" fill="#faf5ef"/>
-            <path d="M74 66 Q78 70 74 74" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-            <path d="M77 63 Q83 70 77 77" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="rgba(255,255,255,0.7)"/>
+            <line x1="50" y1="10" x2="50" y2="90" stroke="#8aacca" stroke-width="3"/>
+            <line x1="10" y1="50" x2="90" y2="50" stroke="#8aacca" stroke-width="3"/>
+            <rect x="53" y="53" width="34" height="34" rx="3" fill="#4a7a9a"/>
+            <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#b85a5a" text-anchor="middle">A</text>
+            <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a8a48" text-anchor="middle">B</text>
+            <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a6a9a" text-anchor="middle">C</text>
+            <path d="M61 66 L61 74 L65 74 L71 78 L71 62 L65 66 Z" fill="#ffffff"/>
+            <path d="M74 66 Q78 70 74 74" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M77 63 Q83 70 77 77" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
           </svg>
         </div>
       </a>
@@ -51,19 +53,9 @@
       <div data-header-item="spacer1" class="header-spacer" aria-hidden="true"></div>
       <!-- 3. Brand Text -->
       <span data-header-item="brandText" class="brand-text"><span>After Bedtime</span><span>Creations</span></span>
-      <!-- 3. Audio Mode Toggle (cycles: Tab Capture → Web Audio → Disable) -->
-      <button data-header-item="audioMode" class="header-btn audio-mode-toggle" id="audioModeToggle" title="Tab Capture mode (click to switch)" aria-label="Audio mode toggle">
-        <!-- Tab Capture icon -->
-        <svg class="mode-icon mode-tabcapture" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <rect x="7" y="7" width="10" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <!-- Web Audio icon -->
-        <svg class="mode-icon mode-webaudio" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 12h2l2-4 3 8 3-8 2 4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <!-- Disable icon -->
-        <svg class="mode-icon mode-off" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- 3. Enable/Disable Toggle (grey = enabled, red = disabled) -->
+      <button data-header-item="audioMode" class="header-btn audio-mode-toggle" id="audioModeToggle" title="Enabled (click to disable)" aria-label="Audio processing: Enabled (click to disable)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
           <line x1="5.5" y1="5.5" x2="18.5" y2="18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
@@ -92,7 +84,7 @@
         </svg>
       </button>
       <!-- 8. Theme -->
-      <button data-header-item="theme" class="header-btn" id="themeToggle" title="Toggle morning/bedtime" aria-label="Toggle morning/bedtime">
+      <button data-header-item="theme" class="header-btn" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
         <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
           <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -150,6 +142,7 @@
             <path d="M17 7L7 17M7 7l10 10"/>
           </svg>
         </div>
+        <div class="visualizer-style-label" id="visualizerStyleLabel" aria-live="polite"></div>
       </div>
     </div>
 
@@ -182,7 +175,10 @@
     <div class="volume-row" role="group" aria-label="Volume controls">
       <div class="volume-left">
         <button class="tab-nav-btn" id="mediaToggleBtn" title="Toggle play/pause" aria-label="Toggle play/pause">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg class="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
+          </svg>
+          <svg class="play-icon hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polygon points="6 3 20 12 6 21 6 3"></polygon>
           </svg>
         </button>
@@ -264,7 +260,7 @@
         <div class="effects-divider" aria-hidden="true"></div>
         <!-- Balance: Slider mode (default) -->
         <div class="balance-row eq-slider-mode" role="group" aria-label="Audio balance and channel controls">
-          <span class="balance-title">Balance</span>
+          <span class="balance-title" title="Shift audio between left and right channels">Balance</span>
           <span class="balance-label" id="balanceLabelLeft" aria-hidden="true">L</span>
           <input type="range" id="balanceSlider" min="-100" max="100" value="0" class="balance-slider" title="Drag to shift audio left or right" aria-label="Audio balance, left to right" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0">
           <span class="balance-label" id="balanceLabelRight" aria-hidden="true">R</span>
@@ -282,7 +278,7 @@
         </div>
         <!-- Balance: Preset mode (hidden by default) -->
         <div class="balance-row eq-presets-mode hidden" role="group" aria-label="Audio balance presets">
-          <span class="balance-title">Balance</span>
+          <span class="balance-title" title="Shift audio between left and right channels">Balance</span>
           <div class="effect-buttons balance-presets">
             <button class="effect-btn" data-effect="balance" data-level="left" title="Pan audio left" aria-label="Pan audio left">Left</button>
             <button class="effect-btn" data-effect="balance" data-level="center" title="Center audio" aria-label="Center audio balance">Center</button>
@@ -451,7 +447,7 @@
         <div class="effects-divider" aria-hidden="true"></div>
         <!-- Output -->
         <div class="device-selector compact-row" role="group" aria-label="Audio output device selection">
-          <span class="compact-label">Output</span>
+          <span class="compact-label" title="Route audio to a specific output device">Output</span>
           <select id="deviceSelect" class="device-select" title="Route this tab's audio to a specific device" aria-label="Select audio output device">
             <option value="">Default (System Audio)</option>
           </select>
@@ -468,17 +464,18 @@
         <div class="effects-divider" aria-hidden="true"></div>
         <!-- Site Rule -->
         <div class="add-rule-section compact-row" role="group" aria-label="Site rule creation">
-          <span class="compact-label">Site Rule</span>
-          <label class="domain-checkbox" title="Apply rule to all pages on this website">
-            <input type="checkbox" id="ruleDomainCheckbox" aria-label="Apply rule to entire domain">
-            <span>Entire Domain</span>
-          </label>
-          <button id="addSiteRuleBtn" class="add-rule-btn compact" title="Create a site rule with current settings" aria-label="Add site rule with current settings">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Add
-          </button>
+          <span class="compact-label" title="Save volume and effect settings for a site">Site Rule</span>
+          <div class="effect-buttons site-rule-buttons">
+            <button class="effect-btn site-rule-scope active" id="rulePageBtn"
+                    data-scope="page" title="Save rule for this specific page URL"
+                    aria-label="Page scope" aria-pressed="true">Page</button>
+            <button class="effect-btn site-rule-scope" id="ruleDomainBtn"
+                    data-scope="domain" title="Save rule for all pages on this domain"
+                    aria-label="Domain scope" aria-pressed="false">Domain</button>
+          </div>
+          <button id="addSiteRuleBtn" class="effect-btn site-rule-add"
+                  title="Create a site rule with current settings"
+                  aria-label="Add site rule with current settings">+ Add</button>
           <div id="ruleStatus" class="rule-status compact" role="status" aria-live="polite"></div>
         </div>
       </div>
@@ -486,12 +483,12 @@
         <div class="effects-divider" aria-hidden="true"></div>
         <!-- Sleep Timer -->
         <div class="sleep-timer-section compact-row" role="group" aria-label="Sleep timer">
-          <span class="compact-label">Sleep</span>
+          <span class="compact-label" title="Automatically pause playback after a set time">Sleep</span>
           <div class="effect-buttons sleep-timer-buttons eq-presets-mode hidden">
-            <button class="effect-btn sleep-btn" data-minutes="5">5m</button>
-            <button class="effect-btn sleep-btn" data-minutes="15">15m</button>
-            <button class="effect-btn sleep-btn" data-minutes="30">30m</button>
-            <button class="effect-btn sleep-btn" data-minutes="60">60m</button>
+            <button class="effect-btn sleep-btn" data-minutes="5" title="Sleep timer: 5 minutes" aria-label="Set sleep timer to 5 minutes">5m</button>
+            <button class="effect-btn sleep-btn" data-minutes="15" title="Sleep timer: 15 minutes" aria-label="Set sleep timer to 15 minutes">15m</button>
+            <button class="effect-btn sleep-btn" data-minutes="30" title="Sleep timer: 30 minutes" aria-label="Set sleep timer to 30 minutes">30m</button>
+            <button class="effect-btn sleep-btn" data-minutes="60" title="Sleep timer: 60 minutes" aria-label="Set sleep timer to 60 minutes">60m</button>
           </div>
           <div class="sleep-slider-container eq-slider-mode">
             <input type="range" id="sleepSlider" class="eq-slider sleep-slider"
@@ -581,5 +578,7 @@
   <script src="popup-visualizer.js"></script>
   <script src="popup-seekbar.js"></script>
   <script src="popup-tabs.js"></script>
+  <script src="popup-sections-edit.js"></script>
+  <script src="popup-header-edit.js"></script>
 </body>
 </html>

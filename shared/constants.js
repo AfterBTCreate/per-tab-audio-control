@@ -34,11 +34,11 @@ const DEFAULTS = {
   showShortcutsFooter: true,
   badgeStyle: 'light',
 
-  // Audio mode (Chrome uses Tab Capture, Firefox uses Web Audio)
-  audioMode: { chrome: 'tabcapture', firefox: 'auto' },
+  // Audio mode
+  audioMode: 'tabcapture',
 
   // Volume
-  volumePresets: [50, 100, 200, 300, 500],
+  volumePresets: [25, 100, 200, 300, 500],
   volumeSteps: { scrollWheel: 5, keyboard: 1, buttons: 1 },
 
   // EQ presets (Low, Medium, High)
@@ -68,18 +68,39 @@ const DEFAULTS = {
   popupSectionsLayout: {
     order: ['balance', 'speed', 'bass', 'treble', 'voice', 'range', 'output', 'siteRule', 'sleepTimer'],
     hidden: [],
-    controlMode: {}  // per-item overrides, e.g. { speed: 'presets', bass: 'sliders' }
+    controlMode: { speed: 'presets', range: 'presets', sleepTimer: 'presets' }
   }
 };
+
+// Header layout shared constants (used by popup edit mode and options page)
+const LOCKED_HEADER_ITEMS = [];
+const REQUIRED_HEADER_ITEMS = ['modeToggle', 'settings'];
+const HIDEABLE_HEADER_ITEMS = ['audioMode', 'focus', 'theme', 'logo'];
+const MAX_SPACERS = 4;
+const MIN_SPACERS = 1;
+
+// Popup sections layout shared constants (used by popup edit mode and options page)
+const POPUP_SECTION_DATA = {
+  balance: { name: 'Balance', description: 'Audio balance and channel controls' },
+  speed: { name: 'Speed', description: 'Playback speed control' },
+  bass: { name: 'Bass', description: 'Low frequency adjustment' },
+  treble: { name: 'Treble', description: 'High frequency adjustment' },
+  voice: { name: 'Voice', description: 'Vocal clarity enhancement' },
+  range: { name: 'Range', description: 'Dynamic range compression' },
+  output: { name: 'Output', description: 'Audio output device selector' },
+  siteRule: { name: 'Site Rule', description: 'Site-specific audio rules' },
+  sleepTimer: { name: 'Sleep Timer', description: 'Auto-fade and pause after set time' }
+};
+
+const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance', 'sleepTimer']);
+const MIN_VISIBLE_POPUP_SECTIONS = 1;
 
 // Legacy aliases (used by background.js which can't access DEFAULTS)
 const DEFAULT_VOLUME_PRESETS = DEFAULTS.volumePresets;
 const DEFAULT_VOLUME_STEPS = DEFAULTS.volumeSteps;
 
-// Derived: browser-specific audio mode default
-// isFirefox is defined in shared/browser-api.js (loaded before this file by popup/options)
-const DEFAULT_AUDIO_MODE = typeof isFirefox !== 'undefined' && isFirefox
-  ? DEFAULTS.audioMode.firefox : DEFAULTS.audioMode.chrome;
+// Derived: audio mode default
+const DEFAULT_AUDIO_MODE = DEFAULTS.audioMode;
 
 // Effect ranges
 const EFFECT_RANGES = {
@@ -94,7 +115,7 @@ const COMPRESSOR_PRESETS = {
   off: { threshold: -50, knee: 40, ratio: 1, attack: 0, release: 0.25 },
   podcast: { threshold: -24, knee: 20, ratio: 4, attack: 0.003, release: 0.25 },
   movie: { threshold: -30, knee: 30, ratio: 8, attack: 0.001, release: 0.5 },
-  max: { threshold: -40, knee: 40, ratio: 20, attack: 0.001, release: 1.0 }
+  maximum: { threshold: -40, knee: 40, ratio: 20, attack: 0.001, release: 1.0 }
 };
 
 // Storage keys

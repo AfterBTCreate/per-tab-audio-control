@@ -48,6 +48,7 @@ body.visualizer-hidden .tab-info-wrapper {
   border: 1px solid #5a7a9a;
   position: relative;
   overflow: hidden;
+  min-height: 38px;
 }
 
 /* Audio Visualizer Canvas */
@@ -122,54 +123,25 @@ body.visualizer-hidden .tab-info-wrapper {
   display: flex;
 }
 
-/* Visualizer Enable Status (clickable tabCapture fallback prompt) */
-.visualizer-enable {
-  display: none;
+/* Visualizer Style Label (transient toast on style change) */
+.visualizer-style-label {
   position: absolute;
   bottom: 2px;
   right: 4px;
-  flex-direction: row;
-  align-items: center;
-  gap: 3px;
-  z-index: 12;
-  color: #60a5fa;
+  z-index: 13;
+  color: #e2e8f0;
   font-size: 9px;
-  cursor: pointer;
+  pointer-events: none;
   padding: 2px 5px;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.4);
   border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.visualizer-enable svg {
-  flex-shrink: 0;
-}
-
-.visualizer-enable span {
   white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
-.visualizer-enable:hover {
-  color: #93c5fd;
-  background: rgba(59, 130, 246, 0.3);
-}
-
-.visualizer-enable:active {
-  background: rgba(59, 130, 246, 0.5);
-}
-
-.visualizer-enable.visible {
-  display: flex;
-}
-
-body.light-mode .visualizer-enable {
-  color: #2563eb;
-  background: rgba(255, 255, 255, 0.7);
-}
-
-body.light-mode .visualizer-enable:hover {
-  color: #1d4ed8;
-  background: rgba(219, 234, 254, 0.9);
+.visualizer-style-label.is-visible {
+  opacity: 1;
 }
 
 .tab-title {
@@ -212,63 +184,52 @@ body.light-mode .visualizer-enable:hover {
 /* ==================== Light Mode: Tab Info (Morning Theme) ==================== */
 
 body.light-mode .tab-nav-btn {
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .tab-nav-btn:hover:not(:disabled) {
-  background: #faf5ef;
-  color: #2d2520;
-  border-color: #c4b4a0;
+  background: #e8f0f8;
+  color: #1a2a3a;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .tab-info {
-  background: #faf5ef;
-  border-color: #d4c4b0;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .tab-title {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .tab-url {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
-/* External tab title (below visualizer) */
+/* External tab title (above/below visualizer) */
 .tab-title-external {
   display: none;
   font-size: 12px;
   font-weight: 500;
   color: #94a3b8;
-  text-align: center;
-  padding: 6px 10px;
+  text-align: left;
+  padding: 6px 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .tab-title-external.visible {
   display: block;
 }
 
-.tab-title-external.above {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  border-top: none;
-}
-
 body.light-mode .tab-title-external {
-  color: #6b5d52;
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-}
-
-body.light-mode .tab-title-external.above {
-  border-bottom-color: rgba(0, 0, 0, 0.08);
+  color: #4a6278;
 }
 
 body.light-mode .tab-counter {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .visualizer-unavailable {
@@ -277,6 +238,11 @@ body.light-mode .visualizer-unavailable {
 }
 
 body.light-mode .visualizer-off {
-  color: #6b5d52;
+  color: #4a6278;
+  background: rgba(250, 245, 239, 0.8);
+}
+
+body.light-mode .visualizer-style-label {
+  color: #3e3529;
   background: rgba(250, 245, 239, 0.8);
 }

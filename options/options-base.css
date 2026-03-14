@@ -1,6 +1,13 @@
 /* ==================== Base Styles ==================== */
 /* Foundation: resets, body, container, header, theme toggle */
 
+/* Utility classes (CSP-compliant replacements for inline styles) */
+.hidden { display: none; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mb-16 { margin-bottom: 16px; }
+
 /* Comfortaa font for ABTC logo */
 @font-face {
   font-family: 'Comfortaa';
@@ -29,7 +36,20 @@ body {
   line-height: 1.5;
 }
 
+/* Star field canvas background */
+.star-field {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .container {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 600px;
 }
@@ -125,30 +145,20 @@ body {
   margin-top: 24px;
 }
 
-/* Firefox Audio Mode - hidden by default, shown via JS in Firefox */
-.firefox-only {
-  display: none;
-}
-
-/* Chrome-only elements - shown by default, hidden via JS in Firefox */
-.chrome-only {
-  display: block;
-}
-
 /* ==================== Light Mode: Base (Morning Theme) ==================== */
 
 body.light-mode {
-  background: linear-gradient(135deg, #f5e6d3 0%, #e8d9c6 100%);
+  background: linear-gradient(135deg, #dce8f4 0%, #c8d8ea 100%);
   background-attachment: fixed;
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .logo {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .logo svg {
-  filter: drop-shadow(0 0 10px rgba(139, 115, 85, 0.3));
+  filter: drop-shadow(0 0 10px rgba(60, 100, 150, 0.3));
 }
 
 /* Header logo dark/light mode switching */
@@ -169,14 +179,14 @@ body.light-mode .logo .logo-light {
 }
 
 body.light-mode .header-btn {
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .header-btn:hover {
-  background: #faf5ef;
-  color: #2d2520;
-  border-color: #c4b4a0;
+  background: #e8f0f8;
+  color: #1a2a3a;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .header-btn:focus-visible {
@@ -192,5 +202,5 @@ body.light-mode .header-btn .icon-moon {
 }
 
 body.light-mode .header-tagline {
-  color: #6b5d52;
+  color: #4a6278;
 }

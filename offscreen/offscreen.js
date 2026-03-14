@@ -76,10 +76,6 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ isActive, tabId: message.tabId });
       return false;
 
-    case 'STOP_ALL_VISUALIZER_CAPTURES':
-      handleStopAllVisualizerCaptures().then(sendResponse);
-      return true;
-
     case 'TAB_REMOVED':
       // Clean up capture when tab is closed
       if (message.tabId) {
@@ -143,7 +139,7 @@ function isValidVolume(volume) {
 }
 
 function isValidGainDb(gainDb, effectType) {
-  const range = effectType === 'voice' ? EFFECT_RANGES.voice : EFFECT_RANGES.bass;
+  const range = EFFECT_RANGES[effectType] || EFFECT_RANGES.bass;
   return Number.isFinite(gainDb) && gainDb >= range.min && gainDb <= range.max;
 }
 
@@ -389,6 +385,9 @@ function setTabCaptureChannelMode(tabId, mode) {
 }
 
 async function setTabCaptureDevice(tabId, deviceId, deviceLabel) {
+  if (!isValidTabId(tabId)) {
+    return { success: false, error: 'Invalid tab ID' };
+  }
   log('setTabCaptureDevice called:', { tabId, deviceId, deviceLabel });
   log('Active captures:', Array.from(visualizerCaptures.keys()));
 
@@ -651,10 +650,17 @@ async function handleStartVisualizerCapture(streamId, tabId, initialVolume) {
     });
 
     // Clean up if stream tracks end unexpectedly (e.g., tab navigates or closes)
+    // Snapshot the capture reference so stale ended events from a previous capture
+    // don't tear down a newer capture for the same tab
+    const thisCapture = visualizerCaptures.get(tabId);
     stream.getTracks().forEach(track => {
       track.addEventListener('ended', () => {
-        log('Stream track ended for tab', tabId, '- cleaning up');
-        handleStopVisualizerCapture(tabId);
+        if (visualizerCaptures.get(tabId) === thisCapture) {
+          log('Stream track ended for tab', tabId, '- cleaning up');
+          handleStopVisualizerCapture(tabId);
+        } else {
+          log('Stream track ended for tab', tabId, '- ignoring (stale capture)');
+        }
       });
     });
 
@@ -702,20 +708,6 @@ async function handleStopVisualizerCapture(tabId) {
     console.error('[Offscreen] Error stopping visualizer capture:', e);
     return { success: false, error: e.message };
   }
-}
-
-/**
- * Stop all visualizer captures (e.g., on extension update)
- */
-async function handleStopAllVisualizerCaptures() {
-  log('Stopping all visualizer captures');
-
-  const tabIds = Array.from(visualizerCaptures.keys());
-  for (const tabId of tabIds) {
-    await handleStopVisualizerCapture(tabId);
-  }
-
-  return { success: true, stoppedCount: tabIds.length };
 }
 
 /**

@@ -3,16 +3,6 @@
 
 // ==================== Browser-specific UI ====================
 
-// Show Firefox-only elements and hide Chrome-only elements in Firefox
-if (isFirefox) {
-  // Show all firefox-only elements
-  document.querySelectorAll('.firefox-only').forEach(el => el.style.display = 'block');
-  // Hide all chrome-only elements
-  document.querySelectorAll('.chrome-only').forEach(el => el.style.display = 'none');
-  // Hide chrome-only sections (like Auto Mode Sites which only makes sense with Tab Capture)
-  document.querySelectorAll('.chrome-only-section').forEach(el => el.style.display = 'none');
-}
-
 // Audio mode is now automatic based on device selection (no longer a global setting)
 // When a custom device is selected in the popup, that tab uses device mode (100% max)
 // When default device is used, the tab uses boost mode (500% max)
@@ -207,12 +197,7 @@ updateQuotaDisplay();
 loadAudioMode();
 
 // ==================== Unified Site Overrides ====================
-// Shows all site mode overrides in one list: Tab Capture, Web Audio, Disabled
-
-// Add Firefox class to body for CSS
-if (isFirefox) {
-  document.body.classList.add('is-firefox');
-}
+// Shows all site mode overrides in one list: Enabled, Disabled
 
 // Create a trash icon for delete buttons
 function createTrashIcon() {
@@ -239,8 +224,8 @@ function createTrashIcon() {
 
 // Mode display config
 const modeConfig = {
-  tabcapture: { label: 'Tab Capture', className: 'mode-tabcapture' },
-  webaudio: { label: 'Web Audio', className: 'mode-webaudio' },
+  tabcapture: { label: 'Enabled', className: 'mode-tabcapture' },
+  webaudio: { label: 'Enabled', className: 'mode-tabcapture' },
   off: { label: 'Disabled', className: 'mode-off' }
 };
 
@@ -383,12 +368,12 @@ function renderSiteOverrides(overrides) {
     emptyDiv.className = 'no-rules';
     emptyDiv.textContent = 'No site overrides. All sites use your default mode.';
     content.appendChild(emptyDiv);
-    if (clearAllBtn) clearAllBtn.style.display = 'none';
+    if (clearAllBtn) clearAllBtn.classList.add('hidden');
     return;
   }
 
   // Show clear all button only when 2+ sites
-  if (clearAllBtn) clearAllBtn.style.display = overrides.length >= 2 ? 'block' : 'none';
+  if (clearAllBtn) clearAllBtn.classList.toggle('hidden', overrides.length < 2);
 
   // Sort alphabetically by domain
   overrides.sort((a, b) => a.domain.localeCompare(b.domain));
@@ -399,10 +384,13 @@ function renderSiteOverrides(overrides) {
   });
 }
 
-// Remove a site override based on its mode (uses currentDefaultMode)
+// Remove a site override based on its mode (reads fresh default mode from storage)
 async function removeSiteOverride(domain, mode) {
   try {
-    const storageKey = getOverrideStorageKey(currentDefaultMode, mode);
+    // Read current default mode from storage to avoid stale cache
+    const modeResult = await browserAPI.storage.sync.get(['defaultAudioMode']);
+    const defaultMode = modeResult.defaultAudioMode || DEFAULT_AUDIO_MODE;
+    const storageKey = getOverrideStorageKey(defaultMode, mode);
     if (!storageKey) {
       showSiteOverridesStatus('Invalid override type', 'error');
       return;

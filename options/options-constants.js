@@ -70,10 +70,7 @@ const CLEANUP_DAYS = 90; // Rules unused for 90+ days
 
 // Header layout customization constants
 const DEFAULT_HEADER_LAYOUT = DEFAULTS.headerLayout;
-const HIDEABLE_HEADER_ITEMS = ['focus', 'theme', 'logo'];
-const REQUIRED_HEADER_ITEMS = ['audioMode', 'modeToggle', 'settings'];
-const LOCKED_HEADER_ITEMS = ['companyLogo', 'spacer1', 'brandText'];
-const MAX_SPACERS = 4;
+// LOCKED_HEADER_ITEMS, REQUIRED_HEADER_ITEMS, HIDEABLE_HEADER_ITEMS, MAX_SPACERS, MIN_SPACERS defined in shared/constants.js
 const HEADER_ITEM_LABELS = {
   companyLogo: 'ABTC Logo',
   brandText: 'Brand Text',
@@ -89,22 +86,10 @@ const HEADER_ITEM_LABELS = {
 // Popup sections layout customization constants (individual advanced controls)
 const DEFAULT_POPUP_SECTIONS_LAYOUT = DEFAULTS.popupSectionsLayout;
 
-const POPUP_SECTION_DATA = {
-  balance: { name: 'Balance', description: 'Audio balance and channel controls' },
-  bass: { name: 'Bass', description: 'Low frequency adjustment' },
-  treble: { name: 'Treble', description: 'High frequency adjustment' },
-  voice: { name: 'Voice', description: 'Vocal clarity enhancement' },
-  range: { name: 'Range', description: 'Dynamic range compression' },
-  speed: { name: 'Speed', description: 'Playback speed control' },
-  output: { name: 'Output', description: 'Audio output device selector' },
-  siteRule: { name: 'Site Rule', description: 'Site-specific audio rules' },
-  sleepTimer: { name: 'Sleep Timer', description: 'Auto-fade and pause after set time' }
-};
+// POPUP_SECTION_DATA, EQ_DUAL_MODE_ITEMS, MIN_VISIBLE_POPUP_SECTIONS are in shared/constants.js
 
 const HIDEABLE_POPUP_SECTIONS = ['balance', 'bass', 'treble', 'voice', 'range', 'speed', 'output', 'siteRule', 'sleepTimer'];
-const MIN_VISIBLE_POPUP_SECTIONS = 1; // At least one control must be visible
 
-// Items that support both presets and sliders mode (have .eq-presets-mode and .eq-slider-mode rows)
 // Sleep timer preset defaults and ranges
 const DEFAULT_SLEEP_TIMER_PRESETS = DEFAULTS.sleepTimerPresets;
 const SLEEP_TIMER_RANGES = {
@@ -114,4 +99,4 @@ const SLEEP_TIMER_RANGES = {
   long: { min: 30, max: 120 }
 };
 
-const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance', 'sleepTimer']);
+// EQ_DUAL_MODE_ITEMS defined in shared/constants.js

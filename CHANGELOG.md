@@ -10,6 +10,487 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [5.7.12] - Release - 2026-03-13 — Backup/restore fixes, options/FAQ/guide audit
+
+### Fixed
+- **Backup/Restore**: `sleepTimer` was silently dropped from popup sections layout on every restore (missing from `validSectionIds`)
+- **Backup/Restore**: `sleepTimerDuration` was not backed up, restored, or reset — user's custom duration lost on restore
+- **Backup/Restore**: `headerLayout.spacerCount` used wrong default (3 instead of 4) in both export and restore fallbacks
+- **Options**: Reset Visualizer button showed inverted checkbox state (`showVisualizer` checked = hidden, but was setting checked = default true)
+- **Options**: Reset Visualizer button didn't reset seekbar settings (`showSeekbar`, `seekbarTimeDisplay`) despite being in same section
+
+### Removed
+- Dead JS code for `defaultAudioMode` radio group in options-presets.js (HTML was removed but JS remained)
+- Deprecated `nativeModeRefresh` removed from backup export (restore case kept for backward compat with old backups)
+
+### Documentation
+- **FAQ**: Updated Q7 (Tab Capture pipeline note), Q8 (keyboard shortcut activation), Q9 (blue badge clarification), Q10 (site rules mode distinction), Q14 (Firefox shortcut path)
+- **FAQ**: Added Q17 (Focus Mode), Q18 (Sleep Timer), Q19 (Volume Warning)
+- **Guide**: Added Sleep Timer to popup sections and S/P toggle lists
+- **Guide**: Updated Site Rules from checkbox to Page/Domain buttons
+- **Guide**: Fixed scroll wheel default step (5%, not 1%)
+- **Guide**: Removed outdated "page refreshes when toggling" note
+- **Guide**: Fixed visualizer troubleshooting tip (removed nonexistent mode reference)
+- **Guide**: Added Dormant Mode section and Volume Steps documentation
+
+---
+
+## [5.7.11] - Release - 2026-03-13 — Security hardening from 5-agent audit
+
+### Security
+- Add `isActive` dormancy guards to 6 effect event listeners in page-script.js (bass, treble, voice, balance, channelMode, speed) — prevents page scripts from pre-seeding effects before extension activates
+- Add length bound (512 chars) to `deviceResolved` event handler in content.js — hardens unverified MAIN→ISOLATED world channel
+- Cap `lastActiveMode` storage object at 500 entries with eviction — prevents unbounded growth in chrome.storage.local
+- Gate all `console.log` calls in page-script.js behind `DEBUG = false` flag — prevents leaking device IDs and internal state to DevTools (19 calls converted)
+- Genericize error messages in options-backup.js — no longer exposes raw exception text in UI
+- Extract inline `<style>` from permissions.html to external permissions.css — consistent with extension-wide CSP pattern
+
+### Removed
+- Dead `localStorage` writes for `__tabVolumeControl_defaultAudioMode` in options-presets.js and options-backup.js (nothing reads this key)
+
+### Documentation
+- Update SECURITY-FINDINGS.md rate limiting section to match current throttle implementation
+
+---
+
+## [5.7.10] - Release - 2026-03-12 — Fix aria-pressed not updating on S/M/Swap channel mode buttons
+
+### Fixed
+- `aria-pressed` attribute on Stereo/Mono/Swap buttons was set in HTML but never updated by JavaScript when toggling modes
+- Fixed in both slider-mode and presets-mode button sets (`updateChannelModeUI` and `syncChannelModeButtons`)
+
+---
+
+## [5.7.9] - Release - 2026-03-11 — Fix null element errors in options-devices.js
+
+### Fixed
+- TypeError on options page when Firefox-only elements (mic settings, shortcuts buttons) don't exist in HTML
+- Added null guards to all getElementById references for browser-specific elements
+
+---
+
+## [5.7.8] - Release - 2026-03-11 — Fix keyboard shortcuts stuck on "Loading..." in Vivaldi
+
+### Fixed
+- Keyboard shortcuts in options page stuck on "Loading..." when `commands.getAll()` never resolves (Vivaldi and some Chromium forks)
+- Added 2-second timeout with graceful fallback to suggested keys from manifest
+
+---
+
+## [5.7.7] - Release - 2026-03-11 — Fix Advanced Controls reset not restoring default control modes
+
+### Fixed
+- "Reset to Default" in Advanced Controls set `controlMode` to empty object instead of restoring defaults (speed, range, sleep timer should default to presets mode)
+- Same bug in backup reset path (options-backup.js)
+
+---
+
+## [5.7.6] - Release - 2026-03-11 — Format speed preset labels with fixed decimals
+
+### Fixed
+- Speed preset button labels now use consistent 2-decimal formatting (0.50x, 1.50x, 2.00x) instead of stripped trailing zeros (0.5x, 1.5x, 2x)
+
+---
+
+## [5.7.5] - Release - 2026-03-11 — Add tooltips for Output, Site Rule, and Sleep labels
+
+### Added
+- Tooltip descriptions for Output, Site Rule, and Sleep effect labels
+
+---
+
+## [5.7.4] - Release - 2026-03-11 — Fix EQ label tooltips wiped by compressor state
+
+### Fixed
+- Bass, Treble, and Voice label tooltips were cleared to empty string when compressor was inactive, instead of restoring original descriptions
+
+---
+
+## [5.7.3] - Release - 2026-03-11 — Remove Firefox & Web Audio UI references
+
+### Changed
+- Audio mode toggle simplified from 3-state (Tab Capture / Web Audio / Disable) to 2-state (Enabled / Disabled)
+- Toggle button shows grey when enabled, red when disabled (matching existing button style)
+- Tooltips now read "Enabled (click to disable)" / "Disabled (click to enable)"
+- Header layout editors renamed "Audio Mode" to "Enable/Disable"
+- Site override labels simplified: "Tab Capture" / "Web Audio" → "Enabled" / "Disabled"
+
+### Removed
+- All Firefox references from options, guide, FAQ, and README pages
+- All Web Audio mode references from user-facing documentation
+- Default Audio Mode radio button selector from options page (always Tab Capture now)
+- Firefox-specific UI elements (#openShortcutsFirefox, #micPermissionFirefox, #openMicSettingsFirefox)
+- `.firefox-only` / `.chrome-only` CSS class system
+- Web Audio CSS styling from popup
+
+### Note
+- All underlying Web Audio and Firefox logic is preserved in background.js, content.js, and page-script.js
+- The firefox/ directory remains intact for forking purposes
+
+---
+
+## [5.7.2] - Release - 2026-03-11 — Disabled mode: sleep timer + warning fix
+
+### Fixed
+- Native mode warning message now displays correctly (`.hidden` class with `!important` was overriding inline `display: block`)
+
+### Changed
+- Sleep timer remains visible when audio processing is disabled on a domain (previously hidden with entire enhancements section)
+- Enhancement rows are now hidden individually in disabled mode instead of hiding the entire section
+
+---
+
+## [5.7.1] - Release - 2026-03-10 — Balance tooltip
+
+### Added
+- **Balance label tooltip**: Added `title="Shift audio between left and right channels"` to both preset and slider mode Balance labels
+
+---
+
+## [5.7.0] - Release - 2026-03-10 — Comprehensive QA: accessibility, CSP, reduced-motion, light mode
+
+### Fixed
+- **Visualizer basic mode regression**: Canvas now retries sizing when switching from basic to advanced mode (deferred resize in animation loop)
+- **CSP inline style violations**: Replaced all inline `style=` attributes in FAQ and User Guide pages with CSS classes
+- **Warning color inconsistency**: Unified disabled-status and native-mode-status warning orange from `#f5a623` to `#fbbf24` (Tailwind amber-400)
+- **Header button radius**: Corrected `.header-btn` border-radius from 5px to 6px for design consistency
+- **Focus ring color**: Section header focus ring changed from opaque `#4A90D9` to translucent `rgba(96, 165, 250, 0.5)`
+- **Device select focus-visible**: Added visible focus outline for keyboard navigation on output device dropdown
+- **Seekbar touchcancel**: Added `touchcancel` handler to prevent stuck seeking state on mobile
+- **Site rule aria-pressed**: Scope toggle buttons now update `aria-pressed` attribute on click
+- **Heading hierarchy**: Options nav cards changed from `h2` to `h3` (page already has an `h1`)
+
+### Added
+- **Light mode overrides**: `.disabled-status`, `.sections-edit-warning`, and `.timer-mode-info` now have proper light-mode colors
+- **Reduced-motion support**: Valentine overlay, volume pulse, refresh spin, and visualizer animation loop all respect `prefers-reduced-motion: reduce`
+- **Sleep timer accessibility**: Preset buttons now have `title` and `aria-label` attributes
+- **Sleep timer scope accessibility**: Site rule scope buttons now have `aria-label` and `aria-pressed` attributes
+- **Volume color CSS classes**: Badge demos and color legends in User Guide use CSS classes instead of inline styles, with light-mode overrides
+
+---
+
+## [5.6.9] - Release - 2026-03-10 — QA fixes: accessibility and light mode
+
+### Fixed
+- **Audio mode-off light mode**: Disabled audio mode button now retains red semantic styling in light mode instead of blending into neutral buttons
+- **Status message reduced-motion**: `statusFadeIn` animation suppressed when `prefers-reduced-motion` is enabled
+- **Smooth scroll reduced-motion**: Status message `scrollIntoView` uses `instant` instead of `smooth` when reduced motion is preferred
+- **Visualizer resize guard**: Canvas resize now skips when container has zero dimensions, preventing degenerate DPR scaling on hidden/collapsed sections
+
+---
+
+## [5.6.8] - Release - 2026-03-10 — Balance row overflow fix
+
+### Fixed
+- **Balance reset button clipping**: Reduced balance row gap from 10px to 6px so the reset button stays inside the enhancements container border
+
+---
+
+## [5.6.7] - Release - 2026-03-10 — CSP fix, branding, and UI tweaks
+
+### Fixed
+- **CSP compliance**: Replaced inline `style="display:none"` on play icon SVG with `.hidden` CSS class — resolves `style-src 'self'` violation
+- **Status message overflow**: Reduced status message font-size (13px→12px) and padding (10px→8px) to prevent text wrapping at 310px popup width
+
+### Changed
+- **Options branding**: Removed colored A/B/C letter styling from brand text; updated tagline to "Privacy-first extensions, built late." across Options, FAQ, and User Guide pages
+- **Reset button**: Changed from transparent outline to solid red background (`#ef4444`) to visually match the solid green "Done" button
+- **Easter egg**: Added emoji to 404% "Just kidding" message
+
+---
+
+## [5.6.6] - Release - 2026-03-10 — Animated star field on options page
+
+### Added
+- **Star field background**: Options page, FAQ, and User Guide now feature the same animated canvas background as the afterbedtimecreations.com website
+  - Dark mode: twinkling stars with parallax mouse tracking and occasional shooting stars
+  - Light mode: drifting clouds with sun glow, rays, and warm ambient light
+  - Respects `prefers-reduced-motion` — renders a single static frame when enabled
+  - Section backgrounds made semi-transparent (0.85 opacity) so stars/clouds show through subtly
+
+---
+
+## [5.6.5] - Release - 2026-03-10 — Edit mode UI polish
+
+### Improved
+- **Edit mode visual consistency**: Aligned edit mode UI with standard mode styling
+  - Increased border-radius from 4px to 6px on all buttons (S/P toggles, badge, title location, spacers, bulk actions, reset, done) to match standard mode's rounded `.effect-btn` style
+  - Bumped font sizes: section names 10px→11px, button labels 8px→9px, row labels 9px→10px to match `.effect-label` (11px) and `.effect-btn` (10px) sizing
+  - Increased button padding for less cramped appearance
+  - Panel labels, hide labels, and appearance checkboxes all sized up to match standard mode proportions
+
+---
+
+## [5.6.4] - Release - 2026-03-10 — Play/pause icon on media toggle button
+
+### Added
+- **Play/pause icon**: Media toggle button now shows a pause icon (two bars) when media is playing and a play icon (triangle) when paused, matching the website demo
+- Icon state is driven by the seekbar's `GET_MEDIA_POSITION` poll response (`paused` field), not by the button click — ensures the icon always reflects the actual media state
+- Aria-label updates dynamically ("Play" / "Pause") for screen reader accuracy
+
+---
+
+## [5.6.3] - Release - 2026-03-10 — Audit fixes: bugs, security, dead code cleanup
+
+### Fixed
+- **Sleep timer + context menu playback toggle on disabled domains**: `TOGGLE_PLAYBACK` message type was not handled in the disabled-domain listener, causing silent failure when sleep timer fires or context menu "Toggle Playback" is used on domains with audio processing disabled
+- **Basic mode not hiding effects panel**: `.full-mode-only` CSS class had no corresponding `body.basic-mode .full-mode-only { display: none }` rule, so the enhancements section was always visible regardless of mode
+- **Native mode status low contrast in light mode**: Added light-mode color override for `.native-mode-status` (amber on light background was unreadable)
+
+### Security
+- **`setDevice` CustomEvent guard**: Added missing `isActive` check to `__tabVolumeControl_setDevice` listener in page-script.js, preventing page scripts from routing audio to different devices on dormant tabs
+- Removed unconditional `console.log` of device details in MAIN world (was not gated by DEBUG flag)
+
+### Changed
+- **Options visualizer CSS**: Aligned dark-mode palette from off-brand grays (#252525, #333333) to the navy design system (#0f1621, #1a2744) for visual consistency
+- Removed stale `v4.0.3` version string from content.js header and console.log
+
+### Removed (dead code)
+- `STOP_ALL_VISUALIZER_CAPTURES` handler in offscreen.js (no caller existed)
+- `.visualizer-enable` CSS (11 rules, no HTML element)
+- `.global-label`, `.device-label`, `.add-rule-row`, `.effect-btn-spacer`, `.section-header` (popup) — unused CSS classes
+
+---
+
+## [5.6.2] - Release - 2026-03-09 — UI polish & edit mode improvements
+
+### Changed
+- **Extension width** — Reduced popup width from 320px to 310px
+- **Light mode header icons** — Changed to translucent style matching demo aesthetic
+- **Basic/Advanced mode transition** — Animated slide transition instead of instant toggle
+- **Edit mode auto-expand** — Entering edit mode from basic mode now expands to advanced automatically
+- **Edit mode button blocking** — Header buttons silently disabled during edit mode (no visual change)
+- **Reset All to Default** — Moved Reset from edit panel to Done bar as "Reset All to Default" button; resets header layout, sections layout, and all appearance settings
+- **Even split panels** — Hide and Spacers sections evenly split in edit panel
+- **Removed redundant Reset** — Removed Reset button next to All Presets in sections editor
+- **External tab title** — Shows only tab title (no domain), left-aligned, vertically centered between visualizer and volume controls
+- **Tab Title position** — Now correctly applies on edit mode exit
+
+### Fixed
+- **Tab title hiding during edit mode** — External tab title no longer appears during edit mode
+- **Visualizer height preservation** — Internal title/URL use `visibility: hidden` instead of `display: none` to prevent visualizer collapse
+
+---
+
+## [5.6.1] - Release - 2026-03-09 — Edit mode enhancements & appearance controls
+
+### Added
+- **Edit mode appearance controls** — Badge Style selector (Light on Dark / Dark on Light / Volume Color) and Hide checkboxes for Visualizer, Seekbar, and Shortcuts in the popup sections editor
+- **Tab Title Location** — Inside/Below/Above/Hidden selector in the header edit panel, with live sync to options page
+- **Done button bar** — Moved Done button to a bottom notification-style bar; Reset button centered in header panel
+- **Edit mode cleanup** — Volume controls, visualizer, seekbar, and keyboard shortcuts hidden during edit mode for a cleaner editing experience
+
+### Changed
+- **Options page live sync** — Added `storage.onChanged` handlers for `tabInfoLocation`, `badgeStyle`, and `showShortcutsFooter` so changes from popup edit mode sync immediately
+
+---
+
+## [5.6.0] - Release - 2026-03-09 — Popup sections edit mode & options page restyling
+
+### Added
+- **Popup sections edit mode** — Long-press ABTC logo now also shows a sections editor below the header panel: drag-to-reorder, separate Slider/Preset buttons, Hide checkbox, and bulk action buttons (All Sliders, All Presets, Reset)
+- **Two-way live sync** — Popup sections editor and options page Advanced Controls panel sync changes in real-time via `chrome.storage.onChanged`
+
+### Changed
+- **Options page Advanced Controls** — S/P toggle replaced with two separate Slider/Preset buttons matching popup style; "Hide" label added before each visibility checkbox
+- **Shared constants** — `POPUP_SECTION_DATA`, `EQ_DUAL_MODE_ITEMS`, `MIN_VISIBLE_POPUP_SECTIONS` moved from options-constants.js to shared/constants.js to eliminate duplication
+
+---
+
+## [5.5.3] - Release - 2026-03-09 — Live stream seekbar & audio mode flash fix
+
+### Added
+- **Live stream seekbar** — Seekbar now shows "0:00 | LIVE" for live streams instead of hiding entirely; slider disabled, time toggle click ignored
+
+### Fixed
+- **Audio mode button flash** — Button hidden with `visibility: hidden` until mode is determined, preventing the unstyled flash on popup open
+
+---
+
+## [5.5.2] - Release - 2026-03-08 — CSP compliance & tooltip
+
+### Fixed
+- **CSP violation on options page** — Replaced all inline `style=` attributes with CSS utility classes (`.hidden`, `.mt-8`, `.mt-12`, `.mt-16`, `.mb-16`); updated JS toggles to use `classList` instead of `.style.display`
+
+### Changed
+- **Edit mode tooltip** — ABTC logo now shows "Hold to edit header layout" tooltip on hover
+
+---
+
+## [5.5.1] - Release - 2026-03-08 — Edit mode QA fixes
+
+### Fixed
+- **Drag ghost DOM leak** — Clone element now always removed from DOM even if header reference is lost mid-drag
+- **Orphaned drag listeners** — Mid-drag event listeners (pointermove/pointerup/pointercancel) now cleaned up when edit mode exits during an active drag
+- **Options page drag race condition** — Storage sync listener now skips updates when a drag is in progress on the options page
+- **Double save on reset** — `resetHeaderToDefault` no longer triggers redundant storage writes
+
+### Changed
+- **CSP-aligned drag ghost** — Static drag ghost styles moved from inline JS to `.edit-drag-clone` CSS class; only dynamic position/size set inline
+
+---
+
+## [5.5.0] - Release - 2026-03-08 — Popup header edit mode
+
+### Added
+- **Popup header edit mode** — Long-press the ABTC logo to enter edit mode: icons wiggle, drag-to-reorder, show/hide toggles, spacer count buttons, done and reset actions
+- **Live two-way sync** — Header layout changes in the popup instantly reflect on the Settings page and vice versa via storage change listeners
+- **Audio Mode now hideable** — Audio Mode button can be hidden in both popup edit mode and Settings page
+- **New CSS file** — `popup-header-edit.css` for edit mode styles (wiggle animation, control panel, drop indicators)
+- **New JS file** — `popup-header-edit.js` for edit mode logic (long-press, drag-and-drop, panel controls, storage sync)
+
+### Changed
+- **Audio mode button colors** — Tab Capture and Web Audio modes now use grey (#5a5a5a) matching other utility buttons; disabled mode keeps red
+- **Shared constants** — Moved `LOCKED_HEADER_ITEMS`, `REQUIRED_HEADER_ITEMS`, `HIDEABLE_HEADER_ITEMS`, `MAX_SPACERS`, `MIN_SPACERS` to `shared/constants.js` for use by both popup and options
+- **Guide page updated** — Added Quick Edit Mode documentation to Header Layout Customization section
+- **FAQ page updated** — Added "How do I customize the popup header?" entry
+
+---
+
+## [5.4.21] - Release - 2026-03-08 — Sky blue light theme
+
+### Changed
+- **Light mode redesigned with sky blue palette** — Replaced warm cream theme with cooler sky blue across all popup and options pages
+- **Light mode logo updated** — Speaker quadrant now uses steel blue (#4a7a9a) with white speaker icon to match the new palette
+- **All popup header buttons** use white backgrounds with colored icons in light mode
+- **FAQ and Guide pages** updated with new light theme logo
+
+---
+
+## [5.4.20] - Release - 2026-03-08 — Fix per-item control mode defaults not loading
+
+### Fixed
+- **Per-item control mode defaults ignored on fresh install** — `loadEqControlMode()` fell back to empty `{}` instead of `DEFAULTS.popupSectionsLayout.controlMode` when no stored layout existed, causing all items to use the global sliders mode
+
+---
+
+## [5.4.19] - Release - 2026-03-08 — Per-item control mode defaults
+
+### Changed
+- **Default control modes now set per-item** — Speed, Range, and Sleep Timer default to presets mode; Balance, Bass, Treble, and Voice default to sliders mode. Previously all items defaulted to sliders.
+
+---
+
+## [5.4.18] - Release - 2026-03-08 — Align volume presets default with UI
+
+### Changed
+- **Default volume presets changed from [50, 100, 200, 300, 500] to [25, 100, 200, 300, 500]** — Matches the actual preset buttons shown in the popup UI (Mute, 25%, 100%, 200%, 300%, 500%)
+
+---
+
+## [5.4.17] - Release - 2026-03-08 — Sleep timer default to 30 minutes
+
+### Changed
+- **Sleep timer slider default changed from 1 minute to 30 minutes** — More practical starting point for sleep timers
+
+---
+
+## [5.4.16] - Release - 2026-03-08 — Visualizer style label on cycle
+
+### Added
+- **Visualizer style label toast** — When long-pressing the visualizer to cycle styles, a brief label now appears in the bottom-right showing the current style name (e.g., "Bars", "Waveform", "Visualizer Off"). Fades out after 1.5 seconds. Matches the website demo behavior. Supports light/dark mode.
+
+---
+
+## [5.4.15] - Release - 2026-03-08 — Site rule add button visual improvement
+
+### Changed
+- Site rule "+ Add" button now has green accent styling by default (previously only on hover) for better visual distinction as an action button
+
+---
+
+## [5.4.14] - Release - 2026-02-25 — Accessibility fixes, storage bug fix, and cleanup
+
+### Fixed
+- **Mute button `aria-pressed` never updated dynamically** — Screen readers always reported the mute button as "not pressed" regardless of actual mute state. Now updates `aria-pressed` to `"true"` when volume is 0.
+- **Audio mode toggle `aria-label` never updated dynamically** — Screen readers always said "Audio mode toggle" with no indication of current mode. Now updates `aria-label` alongside `title` to announce "Audio mode: Tab Capture", "Audio mode: Web Audio", or "Audio mode: Disabled".
+- **Global default device setting had no effect** — The options page saved `useLastDeviceAsDefault` and `globalDefaultDevice` to `storage.local`, but the popup read them from `storage.sync`. Changed popup to read from `storage.local` to match.
+
+### Changed
+- **Theme toggle button labels updated** — Changed "Toggle morning/bedtime" to "Toggle light/dark mode" across popup.html, options.html, guide.html, and faq.html. The CSS class has always been `light-mode`; the "morning" terminology was a legacy artifact.
+
+---
+
+## [5.4.13] - Release - 2026-02-24 — Fix seekbar countdown desync
+
+### Fixed
+- **Seekbar remaining time ticking out of sync with elapsed time** — When "show remaining" mode was active, the left (elapsed) and right (remaining) labels would switch seconds at different moments because `Math.floor` was applied independently to `currentTime` and `duration - currentTime`. Now floors elapsed time once and derives remaining from it, so both labels tick at the exact same boundary.
+
+---
+
+## [5.4.12] - Release - 2026-02-24 — Second code review: popup, options, and utility fixes
+
+### Fixed
+- **Seekbar left label showing total duration instead of elapsed time** — In "show remaining" mode, `seekbarCurrentTime` displayed `formatTime(duration)` instead of `formatTime(currentTime)`. The current playback position was invisible when this mode was toggled on.
+- **Persistent error/warning messages silently dropped during focus mode** — The `showStatus` guard blocked all `duration === 0` messages when "Active Tab Audio" was showing, including storage-full errors. Now allows `'error'` and `'warning'` types through.
+- **Device reset sent to wrong tab during rapid tab switching** — `loadAudioDevices` used the global `currentTabId` for `tabs.sendMessage` after multiple await points. Snapshotted tab ID at function entry.
+- **Volume message ordering race under extreme-volume warning** — The one-time hearing warning used `await storage.session.get()` between state mutation and volume send, creating a suspension point. Changed to fire-and-forget pattern.
+- **Easter egg 404 flag set even when effect didn't fire** — `easterEgg404Fired` was set unconditionally in the timeout, even when `isTabAudible()` returned false. Moved inside the audible branch.
+- **Concurrent rule deletions corrupting the rules array** — Two rapid delete clicks both read the original array, each spliced a different index, and the last write won. Added `ruleOperationInProgress` guard flag.
+- **Rule operations missing error handling** — `deleteRule`, `clearAllRules`, and `cleanupOldRules` had no try/catch. Storage failures produced unhandled rejections with no user feedback.
+- **Site override delete using stale default mode** — `removeSiteOverride` used cached `currentDefaultMode` which could be stale after changing the default audio mode radio. Now reads fresh value from storage.
+- **Options page status text not cleared after timeout** — `showStatus` in options-utils.js only cleared the CSS class, not the text content. Added `textContent = ''` to match the pattern used by `showSiteOverridesStatus`.
+- **CSV backup not escaping all string fields** — EQ preset fields (`bassBoost`, `trebleBoost`, `voiceBoost`, `compressor`, `channelMode`, `speed`) were not wrapped in `escapeCSV`, risking CSV corruption if values ever contain commas.
+- **Double auto-close countdown timer on permissions page** — Clicking "Refresh Devices" after permission was already granted started a second `setInterval` without cancelling the first, causing countdown display flickering. Stored interval ID at module scope with cancel-before-start.
+- **`isValidGainDb` using bass range for treble validation** — The function only branched on `'voice'`, falling through to `EFFECT_RANGES.bass` for all other types. Changed to dynamic `EFFECT_RANGES[effectType]` lookup. Fixed same pattern in background.js.
+- **`COMPRESSOR_PRESETS` key `'max'` mismatching runtime `'maximum'`** — All runtime code uses `'maximum'` but the constant used `'max'`. Renamed for consistency.
+
+---
+
+## [5.4.11] - Release - 2026-02-24 — Comprehensive bug fixes from code review
+
+### Fixed
+- **Domain rules skipping badge/settings for localhost/IP** — Restructured early return in domain validation so badge updates and settings sync still execute for localhost and IP addresses, not just named domains.
+- **Unmute handler missing offscreen document check** — Tab unmute now verifies the offscreen document exists before sending `SET_TAB_CAPTURE_VOLUME`, preventing errors when Tab Capture is not active.
+- **tabsWithMedia state lost on service worker restart** — Persisted `tabsWithMedia` Set to `chrome.storage.session` so speaker icon badge survives MV3 service worker termination.
+- **MutationObserver not disconnected on page unload** — Moved `nativeModeObserver` to IIFE scope and added disconnect in `pagehide` handler to prevent leaked observers.
+- **Concurrent activateFromDormant() calls causing duplicate setup** — Added `isActivating` guard flag with `finally` cleanup to prevent race condition when multiple media elements trigger activation simultaneously.
+- **Duplicate play listeners accumulating on media elements** — Added `WeakSet` tracking to prevent `processAllMedia()` from attaching multiple `{ once: true }` play listeners on the same element across re-scans.
+- **onMessage return true keeping channel open for sync handlers** — Changed outer `return true` to `return false` since all async handlers already have their own explicit `return true`.
+- **testCtx.close() unhandled promise rejection** — Added `.catch()` to AudioContext close in `checkAudioContextSinkIdSupport` to prevent console errors during page unload.
+- **Closed AudioContexts accumulating in page-script Set** — Added `pruneClosedContexts()` to remove closed AudioContexts from the tracking Set, preventing unbounded memory growth on long-lived SPA tabs.
+- **Stale stream ended listener tearing down new captures** — Added capture identity check so `ended` events from a previous capture's stream tracks don't destroy a newer capture for the same tab.
+- **setTabCaptureDevice missing input validation** — Added `isValidTabId` check to match all other capture control functions.
+- **Tab switch during capture warmup corrupting state** — Snapshotted `currentTabId` at warmup start and added stale-tab checks throughout the async warmup loop to abort cleanly if the user switches tabs.
+
+### Security
+- **Input validation** — Added missing `isValidTabId` check to `setTabCaptureDevice` in offscreen document.
+
+---
+
+## [5.4.10] - Release - 2026-02-24 — Reduce console noise in ad iframes
+
+### Changed
+- **Downgraded "No AudioContext available" log to debug level** — When the extension runs in ad iframes with no media elements, `applyDeviceToContext()` logged a `console.warn`. Changed to `console.debug` since this is expected behavior in frames without audio, not a warning worth surfacing.
+
+---
+
+## [5.4.9] - Release - 2026-02-24 — Improve fullscreen exit reliability (Tab Capture)
+
+### Fixed
+- **Fullscreen exit not always restoring window state** — Added verification and retry logic (up to 3 attempts with increasing delays) when exiting browser fullscreen. Previously, if `chrome.windows.update()` failed silently during the OS window transition, the browser stayed in fullscreen with no recovery mechanism.
+- **Fullscreen state lost on service worker restart** — Persisted fullscreen tracking state to `chrome.storage.session` so it survives MV3 service worker termination/restart. Previously, the in-memory Map was the only state store and would be lost if the service worker recycled during fullscreen viewing.
+- **Tab navigation while fullscreen leaving browser stuck** — Added `tabs.onUpdated` listener that restores window state when a tab navigates during extension-triggered fullscreen. Navigation can destroy the content script before it sends the exit message, leaving no mechanism to exit browser fullscreen.
+- **Tab close while fullscreen leaving browser stuck** — The `tabs.onRemoved` handler now restores the window to its previous state when a fullscreen tab is closed (unless the entire window is closing).
+- **Rapid fullscreen toggle race condition** — Serialized enter/exit fullscreen operations per tab using a Promise queue. Previously, rapid fullscreen toggles could cause `windows.update()` calls to race, resulting in unpredictable final window state.
+- **Enter fullscreen failure leaving orphaned state** — If `windows.update({ state: 'fullscreen' })` fails, the saved previous-state entry is now cleaned up. Previously, a failed enter would leave stale state that could cause incorrect restoration later.
+
+---
+
+## [5.4.8] - Release - 2026-02-22 — Unify Site Rule row to button-group style
+
+### Changed
+- **Site Rule row restyled as button group** — Replaced the checkbox + "Entire Domain" text + standalone "+ Add" button with a unified `[Page] [Domain] [+ Add]` button group that matches the Speed, Range, and Sleep row styling. Page is active by default (same behavior as before when checkbox was unchecked). Uses `.effect-btn` base class for visual consistency across all control rows.
+
+---
+
+## [5.4.7] - Release - 2026-02-22 — Fix sleep timer crash
+
+### Fixed
+- **Sleep timer buttons crashing popup** — Clicking sleep timer buttons (5m/15m/30m/60m) threw `TypeError: Cannot read properties of undefined (reading 'startsWith')` because they share the `.effect-btn` CSS class but lack `data-effect`/`data-level` attributes. The effect button click handler now guards against missing attributes. Also added defense-in-depth null check in `getEffectGain()`.
+
+---
+
 ## [5.4.6] - Release - 2026-02-21 — Dormant Mode for page-script.js
 
 ### Security

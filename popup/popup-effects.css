@@ -5,26 +5,28 @@
 .enhancements-section {
   display: flex;
   flex-direction: column;
-  margin-bottom: 4px;
   padding: 5px 8px;
+  margin-bottom: 4px;
   background: #0f1621;
   border: 1px solid #5a7a9a;
   border-radius: 8px;
+  max-height: 600px;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease, margin 0.3s ease, border-width 0.3s ease;
+}
+
+.enhancements-section.mode-collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding: 0 8px;
+  margin-bottom: 0;
+  border-width: 0;
 }
 
 .advanced-item {
   display: flex;
   flex-direction: column;
-}
-
-.section-header {
-  font-size: 10px;
-  font-weight: 600;
-  color: #7a8fa5;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-  text-align: center;
 }
 
 .effect-row {
@@ -55,13 +57,6 @@
 .effect-buttons.combined .effect-btn {
   padding: 3px 4px;
   font-size: 9px;
-}
-
-/* Spacer to align Bass - buttons with Low/Med/High on other rows */
-.effect-btn-spacer {
-  flex: 1;
-  padding: 3px 8px;
-  border: 1px solid transparent;
 }
 
 .effect-btn {
@@ -303,34 +298,30 @@
 /* ==================== Light Mode: Effects (Morning Theme) ==================== */
 
 body.light-mode .enhancements-section {
-  background: #faf5ef;
-  border-color: #d4c4b0;
-}
-
-body.light-mode .section-header {
-  color: #6b5d52;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .effect-label {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .effect-btn {
-  background: #f5ede3;
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  background: #dce8f2;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .effect-btn:hover {
-  background: #efe7dd;
-  border-color: #c4b4a0;
-  color: #4a3f35;
+  background: #d0e0ee;
+  border-color: #a0b8d0;
+  color: #2a4a60;
 }
 
 body.light-mode .effect-btn.active {
-  background: #e8dfd5;
-  color: #2d2520;
-  border-color: #c4b4a0;
+  background: #ccdcea;
+  color: #1a2a3a;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .effect-btn.low {
@@ -496,19 +487,19 @@ body.light-mode .effect-label.disabled {
 }
 
 body.light-mode .effects-divider {
-  background: #d4c4b0;
+  background: #b0c4d8;
 }
 
 body.light-mode .eq-reset-btn {
-  background: #f5ede3;
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  background: #dce8f2;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .eq-reset-btn:hover {
-  background: #efe7dd;
-  border-color: #c4b4a0;
-  color: #2d2520;
+  background: #d0e0ee;
+  border-color: #a0b8d0;
+  color: #1a2a3a;
 }
 
 /* ==================== EQ Sliders (Bass/Treble) ==================== */
@@ -659,32 +650,32 @@ body.light-mode .eq-slider.voice-slider {
 
 body.light-mode .eq-slider::-webkit-slider-thumb {
   background: #ffffff;
-  border-color: #d4c4b0;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .eq-slider::-webkit-slider-thumb:hover {
-  border-color: #8b7355;
+  border-color: #4a7a9a;
 }
 
 body.light-mode .eq-slider::-moz-range-thumb {
   background: #ffffff;
-  border-color: #d4c4b0;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .eq-slider::-moz-range-thumb:hover {
-  border-color: #8b7355;
+  border-color: #4a7a9a;
 }
 
 body.light-mode .eq-slider:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3), 0 0 0 3px rgba(139, 115, 85, 0.4);
+  box-shadow: 0 2px 8px rgba(60, 100, 150, 0.3), 0 0 0 3px rgba(60, 100, 150, 0.4);
 }
 
 body.light-mode .eq-slider:focus-visible::-moz-range-thumb {
-  box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3), 0 0 0 3px rgba(139, 115, 85, 0.4);
+  box-shadow: 0 2px 8px rgba(60, 100, 150, 0.3), 0 0 0 3px rgba(60, 100, 150, 0.4);
 }
 
 body.light-mode .eq-slider-value {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .eq-slider-value.boost-low {
@@ -777,7 +768,7 @@ body.light-mode .eq-slider.speed-slider {
 }
 
 body.light-mode .eq-slider-value.speed-slow { color: #ea580c; }
-body.light-mode .eq-slider-value.speed-normal { color: #6b5d52; }
+body.light-mode .eq-slider-value.speed-normal { color: #4a6278; }
 body.light-mode .eq-slider-value.speed-fast { color: #16a34a; }
 body.light-mode .eq-slider-value.voice-off { color: #8b4040; }
 

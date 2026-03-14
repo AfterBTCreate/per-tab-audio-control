@@ -1,0 +1,408 @@
+/* Per-Tab Audio Control - Header Edit Mode Styles */
+/* Activated by long-pressing the ABTC logo in the popup header */
+
+/* ==================== Wiggle Animation ==================== */
+
+@keyframes header-wiggle {
+  0%   { transform: rotate(0deg) translate(0, 0); }
+  25%  { transform: rotate(-1.5deg) translate(-0.5px, 0.5px); }
+  50%  { transform: rotate(0.5deg) translate(0.5px, -0.5px); }
+  75%  { transform: rotate(-0.5deg) translate(-0.5px, -0.5px); }
+  100% { transform: rotate(0deg) translate(0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes header-wiggle {
+    0%, 100% { transform: none; }
+  }
+}
+
+/* ==================== Edit Mode Container ==================== */
+
+.header.edit-mode {
+  padding: 3px 2px;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 6px;
+  border: 1px dashed rgba(59, 130, 246, 0.25);
+  flex-wrap: nowrap;
+}
+
+body.light-mode .header.edit-mode {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* ==================== Item States ==================== */
+
+/* All items wiggle in edit mode */
+.header.edit-mode [data-header-item] {
+  animation: header-wiggle 350ms ease-in-out infinite;
+  cursor: grab;
+  position: relative;
+}
+
+/* Stagger delays for organic feel */
+.header.edit-mode [data-header-item]:nth-child(2n)  { animation-delay: 50ms; }
+.header.edit-mode [data-header-item]:nth-child(3n)  { animation-delay: 120ms; }
+.header.edit-mode [data-header-item]:nth-child(5n)  { animation-delay: 80ms; }
+.header.edit-mode [data-header-item]:nth-child(7n)  { animation-delay: 170ms; }
+.header.edit-mode [data-header-item]:nth-child(11n) { animation-delay: 30ms; }
+
+/* Locked items: no wiggle, no drag */
+.header.edit-mode [data-header-item].edit-locked {
+  animation: none;
+  cursor: default;
+}
+
+/* Hidden items */
+.header.edit-mode [data-header-item].edit-hidden {
+  display: none;
+}
+
+/* Dragging state */
+.header.edit-mode .edit-dragging {
+  opacity: 0.25;
+  animation: none;
+}
+
+/* ==================== Brand Text Collapse ==================== */
+/* In edit mode, brand text collapses to "T" icon to save space */
+
+.header.edit-mode .brand-text {
+  flex-direction: row;
+  font-size: 0;
+}
+
+.header.edit-mode .brand-text span {
+  display: none;
+}
+
+.header.edit-mode .brand-text::before {
+  content: 'T';
+  font-size: 14px;
+  font-weight: 700;
+  color: #5a7a9a;
+}
+
+body.light-mode .header.edit-mode .brand-text::before {
+  color: #4a6a8a;
+}
+
+/* ==================== Spacer Visualization ==================== */
+/* In edit mode, spacers appear as small dashed boxes with arrow */
+
+.header.edit-mode .header-spacer {
+  flex: 0 0 auto !important;
+  width: 15px;
+  min-width: 15px;
+  max-width: 15px;
+  height: 15px;
+  border: 1px dashed rgba(90, 122, 154, 0.5);
+  border-radius: 4px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header.edit-mode .header-spacer::before {
+  content: '→';
+  font-size: 8px;
+  color: rgba(90, 122, 154, 0.7);
+  pointer-events: none;
+}
+
+body.light-mode .header.edit-mode .header-spacer {
+  border-color: rgba(90, 122, 154, 0.35);
+}
+
+body.light-mode .header.edit-mode .header-spacer::before {
+  color: rgba(90, 122, 154, 0.8);
+}
+
+/* ==================== Drop Indicator ==================== */
+
+.header-drop-indicator {
+  width: 2px;
+  height: 24px;
+  background: #3b82f6;
+  flex-shrink: 0;
+}
+
+/* ==================== Drag Ghost Clone ==================== */
+
+.edit-drag-clone {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0.85;
+  animation: none !important;
+  transform: scale(1.08);
+  transition: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+}
+
+/* ==================== Long-Press Feedback ==================== */
+
+.brand-logo-link.press-active {
+  transition: transform 0.3s ease;
+  transform: scale(1.1);
+}
+
+/* ==================== Edit Panel (below header) ==================== */
+
+.header-edit-panel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 5px 4px 3px;
+  gap: 3px 8px;
+  margin-bottom: 3px;
+}
+
+.header-edit-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.header-edit-panel-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5a7a9a;
+}
+
+body.light-mode .header-edit-panel-label {
+  color: #6a8aaa;
+}
+
+/* ==================== Show/Hide Checkboxes ==================== */
+
+.header-edit-checks {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 3px 8px;
+}
+
+.header-edit-check {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #b8d4e8;
+  cursor: pointer;
+  user-select: none;
+}
+
+body.light-mode .header-edit-check {
+  color: #3a5a7a;
+}
+
+.header-edit-check input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ==================== Spacer Count Buttons ==================== */
+
+.header-edit-spacer-btns {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.header-edit-spacer-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(90, 122, 154, 0.3);
+  background: rgba(90, 122, 154, 0.08);
+  color: #5a7a9a;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+  font-family: inherit;
+}
+
+.header-edit-spacer-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.header-edit-spacer-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.header-edit-spacer-btn.disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
+body.light-mode .header-edit-spacer-btn {
+  border-color: rgba(90, 122, 154, 0.25);
+  background: rgba(90, 122, 154, 0.06);
+  color: #4a6a8a;
+}
+
+body.light-mode .header-edit-spacer-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+/* ==================== Reset Button ==================== */
+
+.header-edit-reset {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: 6px;
+  font-size: 10px;
+  text-align: center;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #ef4444;
+  background: #ef4444;
+  color: #fff;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+  transition: all 0.15s ease;
+}
+
+.header-edit-reset:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+/* ==================== Tab Title Location ==================== */
+
+.header-edit-title-location {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(90, 122, 154, 0.2);
+}
+
+body.light-mode .header-edit-title-location {
+  border-top-color: rgba(90, 122, 154, 0.15);
+}
+
+.header-edit-title-label {
+  font-size: 10px;
+  color: #b8d4e8;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+body.light-mode .header-edit-title-label {
+  color: #3a5a7a;
+}
+
+.header-edit-title-btns {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+}
+
+.header-edit-title-btn {
+  flex: 1;
+  padding: 3px 0;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #475569;
+  background: rgba(30, 41, 59, 0.8);
+  color: #94a3b8;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.header-edit-title-btn:hover {
+  border-color: #60a5fa;
+  color: #e2e8f0;
+}
+
+.header-edit-title-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.header-edit-title-btn.disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
+body.light-mode .header-edit-title-btn {
+  background: rgba(248, 250, 252, 0.8);
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+body.light-mode .header-edit-title-btn:hover {
+  border-color: #3b82f6;
+  color: #334155;
+}
+
+body.light-mode .header-edit-title-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+/* ==================== Done Bar (bottom) ==================== */
+
+.header-edit-done-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-top: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.06);
+}
+
+body.light-mode .header-edit-done-bar {
+  border-top-color: rgba(22, 163, 74, 0.25);
+  background: rgba(22, 163, 74, 0.05);
+}
+
+.header-edit-done {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: 6px;
+  font-size: 10px;
+  text-align: center;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #22c55e;
+  background: #22c55e;
+  color: #fff;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+  transition: background 0.15s ease;
+}
+
+.header-edit-done:hover {
+  background: #16a34a;
+}

@@ -52,7 +52,8 @@ const DOM = {
   nextTabBtn: document.getElementById('nextTabBtn'),
   tabCounter: document.getElementById('tabCounter'),
   addSiteRuleBtn: document.getElementById('addSiteRuleBtn'),
-  ruleDomainCheckbox: document.getElementById('ruleDomainCheckbox'),
+  rulePageBtn: document.getElementById('rulePageBtn'),
+  ruleDomainBtn: document.getElementById('ruleDomainBtn'),
   ruleStatus: document.getElementById('ruleStatus'),
   statusMessage: document.getElementById('statusMessage'),
   audioModeToggle: document.getElementById('audioModeToggle'),
@@ -79,7 +80,8 @@ const prevTabBtn = DOM.prevTabBtn;
 const nextTabBtn = DOM.nextTabBtn;
 const tabCounter = DOM.tabCounter;
 const addSiteRuleBtn = DOM.addSiteRuleBtn;
-const ruleDomainCheckbox = DOM.ruleDomainCheckbox;
+const rulePageBtn = DOM.rulePageBtn;
+const ruleDomainBtn = DOM.ruleDomainBtn;
 const ruleStatus = DOM.ruleStatus;
 const statusMessage = DOM.statusMessage;
 const audioModeToggle = DOM.audioModeToggle;
@@ -108,7 +110,7 @@ const CLEANUP_DAYS = 90; // Rules unused for 90+ days
 const EXTREME_VOLUME_THRESHOLD = 100; // Show warning above 100% (boosted volume)
 // Flag is loaded from chrome.storage.session in initVolumeWarningState()
 
-const MAX_SPACERS = 4;
+// MAX_SPACERS defined in shared/constants.js
 
 // ==================== Utility Functions ====================
 
@@ -310,11 +312,12 @@ function showStatus(message, type = 'info', duration = 4000) {
     statusTimeout = null;
   }
 
-  // Don't let other persistent messages overwrite Active Tab Audio reminder
-  // (but allow Active Tab Audio messages and temporary messages through)
+  // Don't let other persistent info messages overwrite Active Tab Audio reminder
+  // (but allow Active Tab Audio messages, temporary messages, and error/warning through)
   if (statusMessage.textContent.includes('Active Tab Audio') &&
       !message.includes('Active Tab Audio') &&
-      duration === 0) {
+      duration === 0 &&
+      type !== 'error' && type !== 'warning') {
     return;
   }
 
@@ -322,7 +325,8 @@ function showStatus(message, type = 'info', duration = 4000) {
   statusMessage.className = `status-message ${type}`;
 
   // Auto-scroll to show the status message if it causes overflow
-  statusMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  const scrollBehavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+  statusMessage.scrollIntoView({ behavior: scrollBehavior, block: 'end' });
 
   // Auto-hide after duration (0 = persistent)
   if (duration > 0) {
@@ -525,12 +529,20 @@ if (tabTitle && tabTitleExternal) {
 browserAPI.storage.onChanged.addListener((changes, area) => {
   if (area === 'sync') {
     if (changes.popupMode) loadPopupMode();
-    if (changes.showVisualizer) applyShowVisualizer();
-    if (changes.tabInfoLocation) applyTabInfoLocation();
-    if (changes.showSeekbar) applyShowSeekbar();
-    if (changes.showShortcutsFooter) applyShortcutsFooterVisibility();
+    // Skip appearance changes during edit mode (elements are hidden)
+    if (typeof headerEditMode === 'undefined' || !headerEditMode) {
+      if (changes.showVisualizer) applyShowVisualizer();
+      if (changes.tabInfoLocation) applyTabInfoLocation();
+      if (changes.showSeekbar) applyShowSeekbar();
+      if (changes.showShortcutsFooter) applyShortcutsFooterVisibility();
+    }
     if (changes.theme) loadTheme();
-    if (changes.headerLayout) applyHeaderLayout();
+    if (changes.headerLayout) {
+      // Re-apply header layout unless popup is in edit mode
+      if (typeof headerEditMode === 'undefined' || !headerEditMode) {
+        applyHeaderLayout();
+      }
+    }
     if (changes.popupSectionsLayout) { applyPopupSectionsLayout(); loadEqControlMode(); }
     if (changes.customPresets) loadCustomPresets();
     if (changes.volumeSteps) loadVolumeSteps();
@@ -608,7 +620,8 @@ async function applyHeaderLayout() {
     });
 
     // Required items that must always be visible and in order
-    const requiredItems = ['companyLogo', 'brandText', 'audioMode', 'modeToggle', 'settings'];
+    // Note: audioMode is now hideable (moved to HIDEABLE_HEADER_ITEMS in v5.5.0)
+    const requiredItems = ['companyLogo', 'brandText', 'modeToggle', 'settings'];
 
     // Validate order - ensure all DOM items are in the order
     const orderSet = new Set(layout.order);
@@ -756,12 +769,21 @@ applyPopupSectionsLayout();
 async function loadPopupMode() {
   const result = await browserAPI.storage.sync.get(['popupMode']);
   const mode = result.popupMode || DEFAULTS.popupMode;
+  const enhSection = document.querySelector('.enhancements-section');
   if (mode === 'basic') {
     document.body.classList.add('basic-mode');
     modeToggle.title = 'Switch to Advanced mode';
+    // Skip transition on initial load
+    if (enhSection) {
+      enhSection.style.transition = 'none';
+      enhSection.classList.add('mode-collapsed');
+      enhSection.offsetHeight; // force reflow
+      enhSection.style.transition = '';
+    }
   } else {
     document.body.classList.remove('basic-mode');
     modeToggle.title = 'Switch to Basic mode';
+    if (enhSection) enhSection.classList.remove('mode-collapsed');
   }
 }
 
@@ -770,6 +792,8 @@ async function togglePopupMode() {
   const isBasic = document.body.classList.toggle('basic-mode');
   const mode = isBasic ? 'basic' : 'advanced';
   modeToggle.title = isBasic ? 'Switch to Advanced mode' : 'Switch to Basic mode';
+  const enhSection = document.querySelector('.enhancements-section');
+  if (enhSection) enhSection.classList.toggle('mode-collapsed', isBasic);
   await browserAPI.storage.sync.set({ popupMode: mode });
 }
 

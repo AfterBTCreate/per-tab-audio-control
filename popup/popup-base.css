@@ -21,7 +21,7 @@ body {
   background: linear-gradient(135deg, #1a2744 0%, #0c1929 100%);
   background-attachment: fixed;
   color: #f0f0f0;
-  width: 320px;
+  width: 310px;
   min-height: 200px;
   border: 1px solid #5a7a9a;
   box-shadow: 0 0 20px rgba(90, 122, 154, 0.2), 0 0 40px rgba(212, 199, 138, 0.1);
@@ -114,7 +114,7 @@ body.initializing .status-message {
 .header-btn {
   background: transparent;
   border: 1px solid #5a7a9a;
-  border-radius: 5px;
+  border-radius: 6px;
   padding: 4px;
   cursor: pointer;
   color: #7a8fa5;
@@ -179,15 +179,6 @@ body.initializing .status-message {
   display: none !important;
 }
 
-.global-label {
-  font-size: 10px;
-  font-weight: 500;
-  color: #555555;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-right: 2px;
-}
-
 .logo svg {
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
 }
@@ -195,19 +186,19 @@ body.initializing .status-message {
 /* ==================== Light Mode: Base (Morning Theme) ==================== */
 
 body.light-mode {
-  background: linear-gradient(135deg, #f5e6d3 0%, #e8d9c6 100%);
+  background: linear-gradient(135deg, #dce8f4 0%, #c8d8ea 100%);
   background-attachment: fixed;
-  color: #2d2520;
-  border: 1px solid #d4c4b0;
-  box-shadow: 0 0 20px rgba(139, 115, 85, 0.15), 0 0 40px rgba(196, 168, 112, 0.1);
+  color: #1a2a3a;
+  border: 1px solid #b0c4d8;
+  box-shadow: 0 0 20px rgba(60, 100, 150, 0.15), 0 0 40px rgba(100, 140, 190, 0.1);
 }
 
 body.light-mode .logo {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .logo svg {
-  filter: drop-shadow(0 0 10px rgba(139, 115, 85, 0.3));
+  filter: drop-shadow(0 0 10px rgba(60, 100, 150, 0.3));
 }
 
 /* Swap brand logo in light mode */
@@ -220,59 +211,62 @@ body.light-mode .brand-logo .logo-light {
 }
 
 body.light-mode .brand-text {
-  color: #8b7a6a;
-}
-
-body.light-mode .global-label {
-  color: #6b5d52;
+  color: #6a8298;
 }
 
 body.light-mode .header-btn {
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .header-btn:hover {
-  background: #faf5ef;
-  color: #2d2520;
-  border-color: #c4b4a0;
+  background: #e8f0f8;
+  color: #1a2a3a;
+  border-color: #a0b8d0;
 }
 
-/* Light mode: All utility buttons - muted brown/gray */
+/* Light mode: All utility buttons - translucent with muted icons */
 body.light-mode #focusBtn,
 body.light-mode #modeToggle,
 body.light-mode #themeToggle,
 body.light-mode #settingsBtn {
-  background: #8b7355;
-  border-color: #8b7355;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.5);
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode #focusBtn:hover,
 body.light-mode #modeToggle:hover,
 body.light-mode #themeToggle:hover,
 body.light-mode #settingsBtn:hover {
-  background: #7a6245;
-  border-color: #7a6245;
+  background: rgba(255, 255, 255, 0.7);
+  border-color: #a0b8d0;
+  color: #2a4a60;
 }
 
 /* Light mode: Audio mode toggle */
 body.light-mode .audio-mode-toggle.mode-tabcapture {
-  background: #4a6a9a;
-  border-color: #4a6a9a;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.5);
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
-body.light-mode .audio-mode-toggle.mode-webaudio {
-  background: #b86e2d;
-  border-color: #b86e2d;
-  color: #ffffff;
+body.light-mode .audio-mode-toggle.mode-tabcapture:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: #a0b8d0;
+  color: #2a4a60;
 }
 
 body.light-mode .audio-mode-toggle.mode-off {
-  background: #8b4040;
-  border-color: #8b4040;
-  color: #ffffff;
+  background: rgba(180, 60, 60, 0.12);
+  border-color: rgba(180, 60, 60, 0.35);
+  color: #b83c3c;
+}
+
+body.light-mode .audio-mode-toggle.mode-off:hover {
+  background: rgba(180, 60, 60, 0.2);
+  border-color: rgba(180, 60, 60, 0.5);
+  color: #9a2a2a;
 }
 
 body.light-mode #focusBtn.active {
@@ -309,55 +303,34 @@ body.basic-mode .mode-toggle .icon-advanced {
   display: none;
 }
 
-/* Hide advanced elements in basic mode */
-body.basic-mode .full-mode-only {
-  display: none !important;
-}
-
 body.basic-mode {
   min-height: auto;
 }
 
-/* ==================== Audio Mode Toggle (Tab Capture / Web Audio / Disable) ==================== */
-
-/* Hide all mode icons by default, show active one via JS class */
-.audio-mode-toggle .mode-icon {
-  display: none;
+body.basic-mode .full-mode-only {
+  display: none !important;
 }
 
-/* Tab Capture mode (blue) */
+/* ==================== Audio Mode Toggle (Enabled / Disabled) ==================== */
+
+/* Hide button until mode is determined (prevents flash of unstyled state) */
+.audio-mode-toggle:not(.mode-tabcapture):not(.mode-off) {
+  visibility: hidden;
+}
+
+/* Enabled mode (grey) */
 .audio-mode-toggle.mode-tabcapture {
-  background: #4a6a9a;
-  border-color: #4a6a9a;
+  background: #5a5a5a;
+  border-color: #5a5a5a;
   color: #ffffff;
 }
 
 .audio-mode-toggle.mode-tabcapture:hover {
-  background: #3d5a85;
-  border-color: #3d5a85;
+  background: #4a4a4a;
+  border-color: #4a4a4a;
 }
 
-.audio-mode-toggle.mode-tabcapture .mode-tabcapture {
-  display: block;
-}
-
-/* Web Audio mode (orange) */
-.audio-mode-toggle.mode-webaudio {
-  background: #b86e2d;
-  border-color: #b86e2d;
-  color: #ffffff;
-}
-
-.audio-mode-toggle.mode-webaudio:hover {
-  background: #a05f25;
-  border-color: #a05f25;
-}
-
-.audio-mode-toggle.mode-webaudio .mode-webaudio {
-  display: block;
-}
-
-/* Disable mode (red) */
+/* Disabled mode (red) */
 .audio-mode-toggle.mode-off {
   background: #8b4040;
   border-color: #8b4040;
@@ -367,10 +340,6 @@ body.basic-mode {
 .audio-mode-toggle.mode-off:hover {
   background: #7a3636;
   border-color: #7a3636;
-}
-
-.audio-mode-toggle.mode-off .mode-off {
-  display: block;
 }
 
 /* Focus button - active state (green) */
@@ -416,6 +385,15 @@ body.audio-blocked #mediaToggleBtn {
 body.audio-blocked #statusMessage,
 body.audio-blocked #enableTabCaptureBtn,
 body.audio-blocked #enableNativeModeBtn {
+  opacity: 1;
+  pointer-events: auto;
+  filter: none;
+}
+
+/* Allow edit mode to override audio-blocked restrictions on enhancements */
+body.audio-blocked .header.edit-mode ~ .enhancements-section,
+body.audio-blocked .header.edit-mode ~ .header-edit-panel,
+body.audio-blocked .header.edit-mode ~ .header-edit-done-bar {
   opacity: 1;
   pointer-events: auto;
   filter: none;
@@ -468,6 +446,12 @@ body.audio-blocked #enableNativeModeBtn {
 @keyframes valentinePulse {
   0%, 100% { opacity: 0.7; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .valentine-overlay { animation: none; }
+  .valentine-content { animation: none; }
+  .valentine-hearts  { animation: none; }
 }
 
 .valentine-message {

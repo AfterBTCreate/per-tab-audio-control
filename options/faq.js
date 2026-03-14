@@ -1,5 +1,5 @@
 // Per-Tab Audio Control - FAQ Script
-// Cross-browser compatible (Chrome & Firefox)
+// Chrome extension
 // Note: browserAPI loaded from ../shared/browser-api.js
 
 // ==================== Theme Toggle ====================

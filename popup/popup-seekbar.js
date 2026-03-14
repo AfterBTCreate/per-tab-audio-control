@@ -14,6 +14,20 @@ let seekbarInterval = null;
 let isSeeking = false;  // True while user is dragging or seek is in flight
 let showRemaining = false;  // True = show "-M:SS" remaining, false = show total duration
 
+// Play/pause icon state (driven by seekbar poll, not by click)
+const _mediaBtn = document.getElementById('mediaToggleBtn');
+const _pauseIcon = _mediaBtn?.querySelector('.pause-icon');
+const _playIcon = _mediaBtn?.querySelector('.play-icon');
+
+function updatePlayPauseIcon(paused) {
+  if (!_pauseIcon || !_playIcon) return;
+  _pauseIcon.classList.toggle('hidden', paused);
+  _playIcon.classList.toggle('hidden', !paused);
+  if (_mediaBtn) {
+    _mediaBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause');
+  }
+}
+
 function formatTime(seconds) {
   if (!isFinite(seconds) || seconds < 0) return '0:00';
   const h = Math.floor(seconds / 3600);
@@ -31,16 +45,39 @@ async function pollMediaPosition() {
     });
     if (response?.success && response.position) {
       const { currentTime, duration } = response.position;
+
+      // Update play/pause icon from media state
+      updatePlayPauseIcon(!!response.position.paused);
+
+      // Live stream: show seekbar with "0:00" and "LIVE"
       if (!duration || !isFinite(duration) || duration <= 0) {
-        seekbarRow.classList.remove('has-media');
+        if (response.position.live) {
+          seekbarRow.classList.add('has-media');
+          seekbarCurrentTime.textContent = '0:00';
+          seekbarDuration.textContent = 'LIVE';
+          seekbarDuration.classList.remove('seekbar-duration-toggle');
+          seekbarSlider.value = 0;
+          seekbarSlider.disabled = true;
+          seekbarFill.style.width = '0%';
+        } else {
+          seekbarRow.classList.remove('has-media');
+        }
         return;
       }
+
       seekbarRow.classList.add('has-media');
+      seekbarSlider.disabled = false;
+      if (!seekbarDuration.classList.contains('seekbar-duration-toggle')) {
+        seekbarDuration.classList.add('seekbar-duration-toggle');
+        updateDurationTooltip();
+      }
+      // Floor elapsed time once, then derive remaining from it so both labels
+      // tick at the exact same moment (avoids fractional-second desync)
+      const elapsed = Math.floor(currentTime);
+      seekbarCurrentTime.textContent = formatTime(elapsed);
       if (showRemaining) {
-        seekbarCurrentTime.textContent = formatTime(duration);
-        seekbarDuration.textContent = '-' + formatTime(duration - currentTime);
+        seekbarDuration.textContent = '-' + formatTime(duration - elapsed);
       } else {
-        seekbarCurrentTime.textContent = formatTime(currentTime);
         seekbarDuration.textContent = formatTime(duration);
       }
       const pct = (currentTime / duration) * 100;
@@ -49,9 +86,11 @@ async function pollMediaPosition() {
       seekbarSlider.setAttribute('aria-valuenow', Math.round(pct));
     } else {
       seekbarRow.classList.remove('has-media');
+      updatePlayPauseIcon(false);
     }
   } catch {
     seekbarRow.classList.remove('has-media');
+    updatePlayPauseIcon(false);
   }
 }
 
@@ -75,6 +114,7 @@ function resetSeekbar() {
   seekbarFill.style.width = '0%';
   seekbarCurrentTime.textContent = '0:00';
   seekbarDuration.textContent = '0:00';
+  updatePlayPauseIcon(false);
 }
 
 // Drag handling
@@ -114,6 +154,7 @@ async function commitSeek() {
 
 seekbarSlider.addEventListener('mouseup', commitSeek);
 seekbarSlider.addEventListener('touchend', commitSeek);
+seekbarSlider.addEventListener('touchcancel', () => { isSeeking = false; });
 // Also handle change for keyboard arrow-key seeks
 seekbarSlider.addEventListener('change', () => {
   if (!isSeeking) {
@@ -138,8 +179,9 @@ browserAPI.storage.sync.get(['seekbarTimeDisplay']).then(result => {
   updateDurationTooltip();
 });
 
-// Click handler: toggle between total and remaining
+// Click handler: toggle between total and remaining (skip for live streams)
 seekbarDuration.addEventListener('click', () => {
+  if (seekbarDuration.textContent === 'LIVE') return;
   showRemaining = !showRemaining;
   browserAPI.storage.sync.set({
     seekbarTimeDisplay: showRemaining ? 'remaining' : 'total'

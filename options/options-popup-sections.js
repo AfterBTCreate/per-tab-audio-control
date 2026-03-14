@@ -68,34 +68,56 @@ function rebuildPopupSectionsPreview() {
 
     item.appendChild(info);
 
-    // S/P toggle button (only for dual-mode items)
+    // S/P toggle buttons (only for dual-mode items)
     if (EQ_DUAL_MODE_ITEMS.has(sectionId)) {
       const mode = getItemControlMode(sectionId);
-      const toggle = document.createElement('button');
-      toggle.type = 'button';
-      toggle.className = `popup-section-mode-toggle${mode === 'sliders' ? ' mode-sliders' : ' mode-presets'}`;
-      toggle.textContent = mode === 'sliders' ? 'S' : 'P';
-      toggle.title = mode === 'sliders' ? 'Sliders mode (click for Presets)' : 'Presets mode (click for Sliders)';
-      toggle.setAttribute('aria-label', `${sectionData.name} control mode: ${mode}`);
-      toggle.addEventListener('click', (e) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'popup-section-sp-wrap';
+
+      const sBtn = document.createElement('button');
+      sBtn.type = 'button';
+      sBtn.className = 'popup-section-sp-btn' + (mode === 'sliders' ? ' active' : '');
+      sBtn.textContent = 'Slider';
+      sBtn.title = 'Sliders mode';
+      sBtn.setAttribute('aria-label', `${sectionData.name}: Sliders mode`);
+      sBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        toggleItemControlMode(sectionId);
+        if (getItemControlMode(sectionId) !== 'sliders') toggleItemControlMode(sectionId);
       });
-      item.appendChild(toggle);
+
+      const pBtn = document.createElement('button');
+      pBtn.type = 'button';
+      pBtn.className = 'popup-section-sp-btn' + (mode === 'presets' ? ' active' : '');
+      pBtn.textContent = 'Preset';
+      pBtn.title = 'Presets mode';
+      pBtn.setAttribute('aria-label', `${sectionData.name}: Presets mode`);
+      pBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (getItemControlMode(sectionId) !== 'presets') toggleItemControlMode(sectionId);
+      });
+
+      wrap.appendChild(sBtn);
+      wrap.appendChild(pBtn);
+      item.appendChild(wrap);
     }
 
-    // Visibility checkbox
-    const visibility = document.createElement('div');
+    // Visibility checkbox with "Hide" label
+    const visibility = document.createElement('label');
     visibility.className = 'popup-section-visibility';
+
+    const hideLabel = document.createElement('span');
+    hideLabel.className = 'popup-section-hide-label';
+    hideLabel.textContent = 'Hide';
+    visibility.appendChild(hideLabel);
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.checked = !isHidden;
-    checkbox.title = isHidden ? 'Show control' : 'Hide control';
+    checkbox.checked = isHidden;
+    checkbox.title = isHidden ? 'Section is hidden' : 'Click to hide';
     checkbox.setAttribute('aria-label', `${sectionData.name} visibility`);
     checkbox.addEventListener('change', (e) => {
       e.stopPropagation();
-      togglePopupSectionVisibility(sectionId, e.target.checked);
+      togglePopupSectionVisibility(sectionId, !e.target.checked);
     });
     visibility.appendChild(checkbox);
 
@@ -405,7 +427,7 @@ async function resetPopupSectionsLayout() {
   popupSectionsLayout = {
     order: [...DEFAULT_POPUP_SECTIONS_LAYOUT.order],
     hidden: [...DEFAULT_POPUP_SECTIONS_LAYOUT.hidden],
-    controlMode: {}
+    controlMode: { ...DEFAULT_POPUP_SECTIONS_LAYOUT.controlMode }
   };
 
   // Also reset global EQ control mode to default
@@ -460,6 +482,21 @@ function initPopupSectionsLayout() {
   // Load layout
   loadPopupSectionsLayout();
 }
+
+// ==================== Live Sync from Popup ====================
+
+browserAPI.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'sync') return;
+  if (changes.popupSectionsLayout && popupSectionsLayout) {
+    // Reload from storage to pick up changes from popup edit mode
+    loadPopupSectionsLayout();
+  }
+  if (changes.eqControlMode) {
+    loadCachedGlobalEqMode().then(() => {
+      if (popupSectionsLayout) rebuildPopupSectionsPreview();
+    });
+  }
+});
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {

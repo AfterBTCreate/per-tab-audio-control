@@ -8,6 +8,7 @@ const clearAllRulesBtn = document.getElementById('clearAllRulesBtn');
 const quotaValueEl = document.getElementById('quotaValue');
 const quotaFillEl = document.getElementById('quotaFill');
 const cleanupOldRulesBtn = document.getElementById('cleanupOldRulesBtn');
+let ruleOperationInProgress = false; // Prevents concurrent rule mutations
 
 // Update storage quota display
 async function updateQuotaDisplay() {
@@ -46,35 +47,44 @@ async function updateQuotaDisplay() {
 
 // Clean up rules unused for 90+ days
 async function cleanupOldRules() {
-  const result = await browserAPI.storage.sync.get(['siteVolumeRules']);
-  const rules = result.siteVolumeRules || [];
+  if (ruleOperationInProgress) return;
+  ruleOperationInProgress = true;
+  try {
+    const result = await browserAPI.storage.sync.get(['siteVolumeRules']);
+    const rules = result.siteVolumeRules || [];
 
-  const now = Date.now();
-  const cutoffTime = now - (CLEANUP_DAYS * 24 * 60 * 60 * 1000); // 90 days in ms
+    const now = Date.now();
+    const cutoffTime = now - (CLEANUP_DAYS * 24 * 60 * 60 * 1000); // 90 days in ms
 
-  // Find old rules (rules without lastUsed are treated as current to give them grace period)
-  const oldRules = rules.filter(r => r.lastUsed && r.lastUsed < cutoffTime);
+    // Find old rules (rules without lastUsed are treated as current to give them grace period)
+    const oldRules = rules.filter(r => r.lastUsed && r.lastUsed < cutoffTime);
 
-  if (oldRules.length === 0) {
-    alert('No rules older than 90 days found.');
-    return;
+    if (oldRules.length === 0) {
+      alert('No rules older than 90 days found.');
+      return;
+    }
+
+    // Confirm deletion
+    const confirmMsg = `Remove ${oldRules.length} rule${oldRules.length > 1 ? 's' : ''} unused for 90+ days?`;
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
+    // Filter out old rules
+    const newRules = rules.filter(r => !r.lastUsed || r.lastUsed >= cutoffTime);
+    await browserAPI.storage.sync.set({ siteVolumeRules: newRules });
+
+    alert(`Removed ${oldRules.length} old rule${oldRules.length > 1 ? 's' : ''}.`);
+
+    // Refresh displays
+    await loadRules();
+    await updateQuotaDisplay();
+  } catch (e) {
+    console.error('[TabVolume Options] Failed to clean up rules:', e);
+    alert('Failed to clean up rules. Please try again.');
+  } finally {
+    ruleOperationInProgress = false;
   }
-
-  // Confirm deletion
-  const confirmMsg = `Remove ${oldRules.length} rule${oldRules.length > 1 ? 's' : ''} unused for 90+ days?`;
-  if (!confirm(confirmMsg)) {
-    return;
-  }
-
-  // Filter out old rules
-  const newRules = rules.filter(r => !r.lastUsed || r.lastUsed >= cutoffTime);
-  await browserAPI.storage.sync.set({ siteVolumeRules: newRules });
-
-  alert(`Removed ${oldRules.length} old rule${oldRules.length > 1 ? 's' : ''}.`);
-
-  // Refresh displays
-  await loadRules();
-  await updateQuotaDisplay();
 }
 
 // Cleanup button handler
@@ -94,7 +104,7 @@ async function loadRules() {
 
   // Show/hide clear all button based on rule count
   if (clearAllRulesBtn) {
-    clearAllRulesBtn.style.display = rules.length >= 2 ? 'block' : 'none';
+    clearAllRulesBtn.classList.toggle('hidden', rules.length < 2);
   }
 
   if (rules.length === 0) {
@@ -203,47 +213,67 @@ async function loadRules() {
 
 // Delete a rule
 async function deleteRule(index) {
-  const result = await browserAPI.storage.sync.get(['siteVolumeRules']);
-  const rules = result.siteVolumeRules || [];
-
-  if (index < 0 || index >= rules.length) {
-    console.warn('[TabVolume Options] Rule index out of bounds:', index, 'length:', rules.length);
-    return;
-  }
-
-  rules.splice(index, 1);
-  await browserAPI.storage.sync.set({ siteVolumeRules: rules });
-
-  // Clear stale ruleAppliedDomain keys so deleted rules can re-apply if re-created
+  if (ruleOperationInProgress) return;
+  ruleOperationInProgress = true;
   try {
-    const allStorage = await browserAPI.storage.local.get(null);
-    const staleKeys = Object.keys(allStorage).filter(k => k.endsWith('_ruleAppliedDomain'));
-    if (staleKeys.length > 0) {
-      await browserAPI.storage.local.remove(staleKeys);
-    }
-  } catch (e) { /* best effort */ }
+    const result = await browserAPI.storage.sync.get(['siteVolumeRules']);
+    const rules = result.siteVolumeRules || [];
 
-  loadRules();
+    if (index < 0 || index >= rules.length) {
+      console.warn('[TabVolume Options] Rule index out of bounds:', index, 'length:', rules.length);
+      return;
+    }
+
+    rules.splice(index, 1);
+    await browserAPI.storage.sync.set({ siteVolumeRules: rules });
+
+    // Clear stale ruleAppliedDomain keys so deleted rules can re-apply if re-created
+    try {
+      const allStorage = await browserAPI.storage.local.get(null);
+      const staleKeys = Object.keys(allStorage).filter(k => k.endsWith('_ruleAppliedDomain'));
+      if (staleKeys.length > 0) {
+        await browserAPI.storage.local.remove(staleKeys);
+      }
+    } catch (e) { /* best effort */ }
+
+    await loadRules();
+    await updateQuotaDisplay();
+  } catch (e) {
+    console.error('[TabVolume Options] Failed to delete rule:', e);
+    alert('Failed to delete rule. Please try again.');
+  } finally {
+    ruleOperationInProgress = false;
+  }
 }
 
 // Clear all rules
 async function clearAllRules() {
+  if (ruleOperationInProgress) return;
   if (!confirm('Are you sure you want to delete all site rules? This cannot be undone.')) {
     return;
   }
 
-  await browserAPI.storage.sync.set({ siteVolumeRules: [] });
-
-  // Clear all ruleAppliedDomain keys
+  ruleOperationInProgress = true;
   try {
-    const allStorage = await browserAPI.storage.local.get(null);
-    const staleKeys = Object.keys(allStorage).filter(k => k.endsWith('_ruleAppliedDomain'));
-    if (staleKeys.length > 0) {
-      await browserAPI.storage.local.remove(staleKeys);
-    }
-  } catch (e) { /* best effort */ }
+    await browserAPI.storage.sync.set({ siteVolumeRules: [] });
 
-  loadRules();
+    // Clear all ruleAppliedDomain keys
+    try {
+      const allStorage = await browserAPI.storage.local.get(null);
+      const staleKeys = Object.keys(allStorage).filter(k => k.endsWith('_ruleAppliedDomain'));
+      if (staleKeys.length > 0) {
+        await browserAPI.storage.local.remove(staleKeys);
+      }
+    } catch (e) { /* best effort */ }
+
+    await loadRules();
+    await updateQuotaDisplay();
+  } catch (e) {
+    console.error('[TabVolume Options] Failed to clear rules:', e);
+    alert('Failed to clear rules. Please try again.');
+  } finally {
+    ruleOperationInProgress = false;
+  }
 }
 
 // Clear all rules button handler

@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="options-popup-sections.css">
 </head>
 <body>
+  <canvas id="starField" class="star-field" aria-hidden="true"></canvas>
   <div class="container">
     <header class="header">
       <div class="logo" aria-hidden="true" title="Per-Tab Audio Control">
@@ -33,16 +34,16 @@
         </svg>
         <!-- Light mode logo - A top-left, B top-right, C bottom-left, speaker bottom-right -->
         <svg class="logo-light" width="56" height="56" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
-          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
-          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
-          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
-          <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
-          <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
-          <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
-          <path d="M61 66 L61 74 L65 74 L71 78 L71 62 L65 66 Z" fill="#faf5ef"/>
-          <path d="M74 66 Q78 70 74 74" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-          <path d="M77 63 Q83 70 77 77" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="rgba(255,255,255,0.7)"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8aacca" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8aacca" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#4a7a9a"/>
+          <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#b85a5a" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a8a48" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a6a9a" text-anchor="middle">C</text>
+          <path d="M61 66 L61 74 L65 74 L71 78 L71 62 L65 66 Z" fill="#ffffff"/>
+          <path d="M74 66 Q78 70 74 74" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M77 63 Q83 70 77 77" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
         </svg>
       </div>
       <h1>Settings</h1>
@@ -57,7 +58,7 @@
           <polyline points="18 20 12 14 6 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <button class="header-btn" id="themeToggle" title="Toggle morning/bedtime" aria-label="Toggle morning/bedtime">
+      <button class="header-btn" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
         <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -84,19 +85,19 @@
         </svg>
         <!-- Light mode logo - A top-left, B top-right, C bottom-left, moon bottom-right -->
         <svg class="logo-light" width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations logo">
-          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
-          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
-          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
-          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
-          <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
-          <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
-          <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
-          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#faf5ef"/>
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="rgba(255,255,255,0.7)"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8aacca" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8aacca" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#4a7a9a"/>
+          <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#b85a5a" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a8a48" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a6a9a" text-anchor="middle">C</text>
+          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#ffffff"/>
         </svg>
       </div>
       <div class="about-content">
-        <div class="about-brand"><span class="brand-a">A</span>fter <span class="brand-b">B</span>edtime <span class="brand-c">C</span>reations</div>
-        <div class="about-tagline">Privacy-focused software, built late.</div>
+        <div class="about-brand">After Bedtime Creations</div>
+        <div class="about-tagline">Privacy-first extensions, built late.</div>
       </div>
       <div class="about-links">
         <a href="https://afterbedtimecreations.com" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="Website" aria-label="Visit website">
@@ -130,7 +131,7 @@
         </svg>
       </h2>
       <div class="section-content">
-        <p class="section-desc">Customize how the popup looks and behaves. Open a new window and the popup to see changes in real time, including preset options below.</p>
+        <p class="section-desc">Customize how the popup looks and behaves. Open a new window and the popup to see changes in real time, including preset options below. You can also hold the ABTC logo in the popup to enter Quick Edit mode for fast layout changes.</p>
 
         <!-- Popup Mode Subsection -->
         <div class="subsection">
@@ -161,18 +162,22 @@
 
           <div class="header-layout-controls">
             <div class="visibility-section">
-              <h4>Show/Hide Icons</h4>
+              <h4>Hide</h4>
               <div class="visibility-toggles">
                 <div class="visibility-toggle">
-                  <input type="checkbox" id="vis-focus" data-item-id="focus" checked>
+                  <input type="checkbox" id="vis-audioMode" data-item-id="audioMode">
+                  <label for="vis-audioMode">Enable/Disable</label>
+                </div>
+                <div class="visibility-toggle">
+                  <input type="checkbox" id="vis-focus" data-item-id="focus">
                   <label for="vis-focus">Focus</label>
                 </div>
                 <div class="visibility-toggle">
-                  <input type="checkbox" id="vis-theme" data-item-id="theme" checked>
+                  <input type="checkbox" id="vis-theme" data-item-id="theme">
                   <label for="vis-theme">Theme</label>
                 </div>
                 <div class="visibility-toggle">
-                  <input type="checkbox" id="vis-logo" data-item-id="logo" checked>
+                  <input type="checkbox" id="vis-logo" data-item-id="logo">
                   <label for="vis-logo">Volume</label>
                 </div>
               </div>
@@ -193,7 +198,7 @@
             <button id="resetHeaderLayoutBtn" class="btn secondary" title="Reset header layout to default order" aria-label="Reset header layout to default order">Reset to Default</button>
           </div>
 
-          <p class="header-layout-hint">Tip: Drag icons to reorder. Hidden icons appear faded. Required icons (Tab Capture, Web Audio, Disabled, Basic/Advanced Toggle, Settings) cannot be hidden. ABTC Logo is locked in position.</p>
+          <p class="header-layout-hint">Tip: Drag icons to reorder. Hidden icons appear faded. All items can be repositioned. Required icons (Basic/Advanced Toggle, Settings) cannot be hidden.</p>
 
           <div id="headerLayoutStatus" class="status" role="status" aria-live="polite"></div>
         </div>
@@ -230,8 +235,8 @@
 
           <div class="setting-row">
             <label class="checkbox-option">
-              <input type="checkbox" id="showVisualizer" checked>
-              <span>Show visualizer in popup</span>
+              <input type="checkbox" id="showVisualizer">
+              <span>Hide visualizer in popup</span>
             </label>
           </div>
 
@@ -324,7 +329,7 @@
                    title="Choose visualizer color" aria-label="Choose visualizer color">
           </div>
 
-          <div class="button-row" style="margin-top: 12px; margin-bottom: 16px;">
+          <div class="button-row mt-12 mb-16">
             <button id="resetVisualizerBtn" class="btn secondary" title="Reset visualizer settings to defaults" aria-label="Reset visualizer settings to defaults">Reset to Default</button>
           </div>
 
@@ -337,8 +342,8 @@
           <p class="section-desc">Show or hide the media playback progress bar in the popup.</p>
           <div class="setting-row">
             <label class="checkbox-option">
-              <input type="checkbox" id="showSeekbar" checked>
-              <span>Show playback seekbar in popup</span>
+              <input type="checkbox" id="showSeekbar">
+              <span>Hide playback seekbar in popup</span>
             </label>
           </div>
           <div class="setting-row">
@@ -381,8 +386,8 @@
           <p class="section-desc">Show or hide the keyboard shortcut hints at the bottom of the popup.</p>
           <div class="setting-row">
             <label class="checkbox-option">
-              <input type="checkbox" id="showShortcutsFooter" checked>
-              <span>Show keyboard shortcuts footer</span>
+              <input type="checkbox" id="showShortcutsFooter">
+              <span>Hide keyboard shortcuts footer</span>
             </label>
           </div>
           <div id="showShortcutsFooterStatus" class="status" role="status" aria-live="polite"></div>
@@ -431,38 +436,11 @@
         <p class="section-desc">The extension uses different methods to control audio depending on the site. When the default method doesn't work, you can switch to an alternative mode.</p>
 
         <div class="info-box">
-          <h4>Audio Processing Methods</h4>
+          <h4>How Audio Processing Works</h4>
           <ul class="feature-list">
-            <li><strong>Tab Capture:</strong> Captures audio at the browser level. Most reliable method with full features. Requires opening popup on each tab. <em>Chrome only, recommended.</em></li>
-            <li><strong>Web Audio:</strong> Hooks into page audio directly. Same features but may not work on all sites.</li>
-            <li><strong>Disabled:</strong> Disables audio processing. 0-100% volume only. Use when other methods cause issues.</li>
+            <li><strong>Enabled:</strong> The extension captures audio at the browser level using Tab Capture. This provides volume boost up to 500%, EQ, compressor, balance, device switching, and visualizer. Requires opening popup on each tab.</li>
+            <li><strong>Disabled:</strong> Disables audio processing. 0-100% volume only. Use when audio processing causes issues on a specific site.</li>
           </ul>
-        </div>
-
-        <!-- Default Mode Selection -->
-        <div class="subsection" id="defaultModeSubsection">
-          <h3>Default Mode</h3>
-          <p class="section-desc">Choose which audio processing method the extension uses by default for all tabs.</p>
-
-          <div class="mode-buttons" role="radiogroup" aria-label="Default audio mode selection">
-            <label class="mode-button chrome-only-option">
-              <input type="radio" name="defaultAudioMode" value="tabcapture">
-              <span class="mode-button-label">Tab Capture</span>
-            </label>
-            <label class="mode-button">
-              <input type="radio" name="defaultAudioMode" value="auto">
-              <span class="mode-button-label">Web Audio</span>
-            </label>
-            <label class="mode-button">
-              <input type="radio" name="defaultAudioMode" value="native">
-              <span class="mode-button-label">Disabled</span>
-            </label>
-          </div>
-          <p class="setting-hint" id="defaultModeHint">
-            <span id="defaultModeDesc">Tab Capture provides the most reliable audio control across all websites.</span>
-          </p>
-
-          <div id="defaultModeStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Site Overrides -->
@@ -473,7 +451,7 @@
           <div id="siteOverridesList" class="rules-list">
             <div class="rules-list-header">
               <span>Sites with Mode Overrides</span>
-              <button id="clearAllOverridesBtn" class="clear-all-btn" title="Remove all overrides" aria-label="Remove all site overrides" style="display: none;">Clear All</button>
+              <button id="clearAllOverridesBtn" class="clear-all-btn hidden" title="Remove all overrides" aria-label="Remove all site overrides">Clear All</button>
             </div>
             <div id="siteOverridesContent">
               <!-- Unified site list will be populated here -->
@@ -504,7 +482,7 @@
           </div>
 
           <!-- Device selector (shown when permission granted) -->
-          <div class="default-device-selector" id="defaultDeviceSelector" style="display: none;">
+          <div class="default-device-selector hidden" id="defaultDeviceSelector">
             <div class="rule-input-row">
               <select id="defaultDeviceSelect" class="device-select" aria-label="Select default audio output device">
                 <option value="">Default (System Audio)</option>
@@ -1028,7 +1006,7 @@
         <div id="rulesList" class="rules-list">
           <div class="rules-list-header">
             <span>Active Rules</span>
-            <button id="clearAllRulesBtn" class="clear-all-btn" title="Delete all site rules" aria-label="Delete all site rules" style="display: none;">Clear All</button>
+            <button id="clearAllRulesBtn" class="clear-all-btn hidden" title="Delete all site rules" aria-label="Delete all site rules">Clear All</button>
           </div>
           <div id="rulesListContent">
             <!-- Rules will be populated here -->
@@ -1067,11 +1045,10 @@
             </div>
           </div>
 
-          <p class="section-desc" style="margin-top: 16px;">Keyboard shortcuts can only be changed through your browser's extension settings.</p>
+          <p class="section-desc mt-16">Keyboard shortcuts can only be changed through your browser's extension settings.</p>
 
           <div class="button-row">
             <a href="#" id="openShortcutsChrome" class="btn primary" title="Copy keyboard shortcuts settings URL" aria-label="Copy keyboard shortcuts URL for Chrome">Copy URL</a>
-            <a href="#" id="openShortcutsFirefox" class="btn primary" title="Copy keyboard shortcuts settings URL" aria-label="Copy keyboard shortcuts URL for Firefox">Copy URL</a>
           </div>
           <div id="shortcutsStatus" class="status" role="status" aria-live="polite"></div>
         </div>
@@ -1091,20 +1068,8 @@
             <p class="hint">The URL varies by browser (Chrome, Edge, Brave, Vivaldi, etc.) but the button will copy the correct one for your browser.</p>
           </div>
 
-          <div class="permission-steps" id="micPermissionFirefox">
-            <div class="steps-list">
-              <div class="step-item">1. Click the button below to copy the settings URL</div>
-              <div class="step-item">2. Paste it in your browser's address bar</div>
-              <div class="step-item">3. Scroll to "Permissions" section</div>
-              <div class="step-item">4. Click "Settings..." next to Microphone</div>
-              <div class="step-item">5. Find the extension and remove or change its permission</div>
-            </div>
-            <p class="hint">Or manually navigate to: <code>about:preferences#privacy</code></p>
-          </div>
-
           <div class="button-row">
             <a href="#" id="openMicSettingsChrome" class="btn primary" title="Copy microphone permissions settings URL" aria-label="Copy microphone settings URL for Chrome">Copy URL</a>
-            <a href="#" id="openMicSettingsFirefox" class="btn primary" title="Copy microphone permissions settings URL" aria-label="Copy microphone settings URL for Firefox">Copy URL</a>
           </div>
           <div id="micSettingsStatus" class="status" role="status" aria-live="polite"></div>
         </div>
@@ -1123,14 +1088,14 @@
         <div class="button-row">
           <button id="backupDataBtn" class="btn primary" title="Download all settings as CSV file" aria-label="Download all settings as CSV file">Backup All Data</button>
           <button id="restoreDataBtn" class="btn primary" title="Import settings from a backup file" aria-label="Import settings from a backup file">Restore from Backup</button>
-          <input type="file" id="restoreFileInput" accept=".csv" style="display: none;" aria-label="Select backup file to restore">
+          <input type="file" id="restoreFileInput" accept=".csv" class="hidden" aria-label="Select backup file to restore">
           <button id="resetAllBtn" class="btn danger" title="Reset all settings to factory defaults" aria-label="Reset all settings to factory defaults">Reset All Settings</button>
         </div>
         <div id="resetStatus" class="status" role="status" aria-live="polite"></div>
-        <div class="info-box" style="margin-top: 12px;">
+        <div class="info-box mt-12">
           <h4>About Backups</h4>
           <p>Backups are saved as CSV files containing your presets, site rules, theme, header layout, and default device settings. Use "Restore from Backup" to import a previously saved backup file.</p>
-          <p style="margin-top: 8px;"><strong>Tip:</strong> This is useful for users who don't use browser sync or want to transfer settings between different browsers.</p>
+          <p class="mt-8"><strong>Tip:</strong> This is useful for users who don't use browser sync or want to transfer settings between different browsers.</p>
         </div>
         <p class="reset-note">Note: Keyboard shortcuts and microphone permissions cannot be reset by extensions. See the "Browser Settings" section above to manage these.</p>
       </div>
@@ -1160,7 +1125,7 @@
           </svg>
         </div>
         <div class="faq-link-content">
-          <h2>User Guide</h2>
+          <h3>User Guide</h3>
           <p>Comprehensive documentation for all features</p>
         </div>
         <div class="faq-link-arrow" aria-hidden="true">
@@ -1178,7 +1143,7 @@
           </svg>
         </div>
         <div class="faq-link-content">
-          <h2>FAQ</h2>
+          <h3>FAQ</h3>
           <p>Answers to common questions and troubleshooting</p>
         </div>
         <div class="faq-link-arrow" aria-hidden="true">
@@ -1205,5 +1170,6 @@
   <script src="options-header-layout.js"></script>
   <script src="options-popup-sections.js"></script>
   <script src="options-ui.js"></script>
+  <script src="options-starfield.js"></script>
 </body>
 </html>

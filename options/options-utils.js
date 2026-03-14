@@ -8,6 +8,7 @@ function showStatus(statusElement, message, type = 'success') {
   statusElement.className = `status ${type}`;
 
   setTimeout(() => {
+    statusElement.textContent = '';
     statusElement.className = 'status';
   }, 3000);
 }

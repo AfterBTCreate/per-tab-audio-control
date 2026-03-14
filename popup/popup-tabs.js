@@ -129,6 +129,18 @@ async function resetTabToDefaults() {
       // Reset playback speed to 1x
       await applySpeedPreset('off');
 
+      // Reset sleep timer slider to default (1 minute)
+      if (typeof sleepSlider !== 'undefined' && sleepSlider) {
+        sleepSlider.value = DEFAULTS.sleepTimerDuration;
+        sleepSlider.title = `Sleep timer: ${DEFAULTS.sleepTimerDuration}m`;
+        if (typeof sleepSliderValue !== 'undefined' && sleepSliderValue) {
+          sleepSliderValue.textContent = `${DEFAULTS.sleepTimerDuration}m`;
+        }
+        if (typeof sleepTimerLastDuration !== 'undefined') {
+          sleepTimerLastDuration = DEFAULTS.sleepTimerDuration;
+        }
+      }
+
       // Update EQ sliders UI (in case slider mode is active)
       updateEqSlidersUI();
 
@@ -204,11 +216,6 @@ async function loadTabSettings() {
     type: 'GET_VOLUME',
     tabId: currentTabId
   });
-
-  // Show dormant indicator if tab hasn't been activated yet
-  if (response.dormant === true) {
-    showStatus('Dormant — adjust any control to activate', 'info', 5000);
-  }
 
   currentVolume = response.volume !== undefined ? response.volume : VOLUME_DEFAULT;
 
@@ -585,8 +592,7 @@ async function syncLocalStorageFlag(shouldBeDisabled) {
 }
 
 // ==================== Audio Mode UI Updates ====================
-// Single cycling toggle: Tab Capture → Web Audio → Disable (Chrome)
-//                        Web Audio → Disable (Firefox)
+// Single cycling toggle: Enabled → Disabled
 
 // Track current effective mode for cycling
 let currentEffectiveMode = 'webaudio';
@@ -595,28 +601,19 @@ let currentEffectiveMode = 'webaudio';
 async function updateAudioModeButtonsUI() {
   if (!audioModeToggle) return;
 
-  const isFirefox = typeof browser !== 'undefined';
-
   // Remove all mode classes
-  audioModeToggle.classList.remove('mode-tabcapture', 'mode-webaudio', 'mode-off');
+  audioModeToggle.classList.remove('mode-tabcapture', 'mode-off');
 
   // Determine the current mode
   if (isDomainDisabled) {
     currentEffectiveMode = 'off';
     audioModeToggle.classList.add('mode-off');
-    audioModeToggle.title = 'Disable mode (click to switch)';
+    audioModeToggle.title = 'Disabled (click to enable)';
+    audioModeToggle.setAttribute('aria-label', 'Audio processing: Disabled (click to enable)');
     return;
   }
 
-  // Firefox: always Web Audio
-  if (isFirefox) {
-    currentEffectiveMode = 'webaudio';
-    audioModeToggle.classList.add('mode-webaudio');
-    audioModeToggle.title = 'Web Audio mode (click to switch)';
-    return;
-  }
-
-  // Chrome: Get effective mode from background
+  // Get effective mode from background
   const hostname = extractDomain(currentTabUrl);
   let effectiveMode = 'webaudio';
 
@@ -637,13 +634,10 @@ async function updateAudioModeButtonsUI() {
 
   currentEffectiveMode = effectiveMode;
 
-  if (effectiveMode === 'tabcapture') {
-    audioModeToggle.classList.add('mode-tabcapture');
-    audioModeToggle.title = 'Tab Capture mode (click to switch)';
-  } else {
-    audioModeToggle.classList.add('mode-webaudio');
-    audioModeToggle.title = 'Web Audio mode (click to switch)';
-  }
+  // Everything that's not 'off' shows as enabled
+  audioModeToggle.classList.add('mode-tabcapture');
+  audioModeToggle.title = 'Enabled (click to disable)';
+  audioModeToggle.setAttribute('aria-label', 'Audio processing: Enabled (click to disable)');
 }
 
 // Alias for backward compatibility with existing code
@@ -698,7 +692,6 @@ function updateDisabledDomainUI() {
   // Elements to completely hide in native mode (require AudioContext)
   const elementsToHideInNativeMode = [
     document.querySelector('.balance-row'),
-    document.querySelector('.enhancements-section'),
     document.querySelector('.device-selector'),
     document.querySelector('.add-rule-section')
   ];
@@ -733,8 +726,8 @@ function updateDisabledDomainUI() {
 
     // Show native mode status message (full width below presets)
     if (nativeModeStatus) {
-      const domain = extractDomain(currentTabUrl);
-      nativeModeStatus.textContent = `Audio processing disabled on ${domain} (0-100% only). Click ⊘ to enable full controls.`;
+      nativeModeStatus.textContent = 'Audio processing disabled. Volume limited to 0\u2013100%.\nClick \u2298 to enable full controls.';
+      nativeModeStatus.classList.remove('hidden');
       nativeModeStatus.style.display = 'block';
     }
 
@@ -742,6 +735,21 @@ function updateDisabledDomainUI() {
     elementsToHideInNativeMode.forEach(el => {
       if (el) el.style.display = 'none';
     });
+
+    // Hide individual enhancement rows except sleep timer
+    const enhSection = document.querySelector('.enhancements-section');
+    if (enhSection) {
+      enhSection.querySelectorAll('.advanced-item').forEach(item => {
+        const id = item.getAttribute('data-item-id');
+        if (id !== 'sleepTimer') {
+          item.style.display = 'none';
+        }
+      });
+      // Hide all dividers (sleep timer is the only visible item)
+      enhSection.querySelectorAll('.effects-divider').forEach(div => {
+        div.style.display = 'none';
+      });
+    }
 
     // Cap current volume at 100% if higher, and refresh slider (mapping changes in native mode)
     if (currentVolume > VOLUME_DEFAULT) {
@@ -774,13 +782,25 @@ function updateDisabledDomainUI() {
 
     // Hide native mode status
     if (nativeModeStatus) {
-      nativeModeStatus.style.display = 'none';
+      nativeModeStatus.classList.add('hidden');
+      nativeModeStatus.style.display = '';
     }
 
     // Show all enhancement controls
     elementsToHideInNativeMode.forEach(el => {
       if (el) el.style.display = '';
     });
+
+    // Show all enhancement rows and dividers (were individually hidden in native mode)
+    const enhSection = document.querySelector('.enhancements-section');
+    if (enhSection) {
+      enhSection.querySelectorAll('.advanced-item').forEach(item => {
+        item.style.display = '';
+      });
+      enhSection.querySelectorAll('.effects-divider').forEach(div => {
+        div.style.display = '';
+      });
+    }
 
     // Refresh UI to update slider position for non-linear mapping
     updateUI(currentVolume);
@@ -880,8 +900,7 @@ async function removeFromOverrideList(domain, overrideMode) {
 }
 
 // ==================== Audio Mode Handlers ====================
-// Single toggle cycles through: Tab Capture → Web Audio → Disable (Chrome)
-//                                Web Audio → Disable (Firefox)
+// Single toggle cycles through: Enabled → Disabled
 
 // Storage key for remembering last active mode (Tab Capture or Web Audio) per domain
 const LAST_ACTIVE_MODE_KEY = 'lastActiveMode';
@@ -926,15 +945,9 @@ async function activateTabCaptureMode() {
   if (!currentTabUrl) return;
 
   const domain = extractDomain(currentTabUrl);
-  const isFirefox = typeof browser !== 'undefined';
 
   if (!domain) {
     showError('Unable to get domain');
-    return;
-  }
-
-  // Firefox: Tab Capture not available - silently return
-  if (isFirefox) {
     return;
   }
 
@@ -1192,27 +1205,13 @@ async function activateDisableMode() {
 }
 
 
-// Audio mode toggle handler - cycles through modes
+// Audio mode toggle handler - cycles through: Enabled → Disabled
 if (audioModeToggle) {
   audioModeToggle.addEventListener('click', () => {
-    const isFirefox = typeof browser !== 'undefined';
-
-    // Cycle order: Chrome: tabcapture → webaudio → off → tabcapture
-    //              Firefox: webaudio → off → webaudio
-    if (isFirefox) {
-      if (currentEffectiveMode === 'webaudio') {
-        activateDisableMode();
-      } else {
-        activateWebAudioMode();
-      }
+    if (currentEffectiveMode === 'off') {
+      activateTabCaptureMode();
     } else {
-      if (currentEffectiveMode === 'tabcapture') {
-        activateWebAudioMode();
-      } else if (currentEffectiveMode === 'webaudio') {
-        activateDisableMode();
-      } else {
-        activateTabCaptureMode();
-      }
+      activateDisableMode();
     }
   });
 }
@@ -1287,7 +1286,7 @@ async function addSiteRule() {
     return;
   }
 
-  const isDomain = ruleDomainCheckbox.checked;
+  const isDomain = document.getElementById('ruleDomainBtn').classList.contains('active');
   const volume = currentVolume;
 
   // Get selected device label (without the star prefix)
@@ -1378,6 +1377,18 @@ async function addSiteRule() {
   }
   // If failed, safeStorageSet already showed error message
 }
+
+// Site Rule scope toggle (Page vs Domain)
+document.querySelectorAll('.site-rule-scope').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.site-rule-scope').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
+  });
+});
 
 // Add Site Rule button handler
 if (addSiteRuleBtn) {

@@ -38,7 +38,7 @@ async function resetAllSettings() {
     'visualizerType',
     'tabInfoLocation',
     'disabledDomains',
-    'nativeModeRefresh',
+    'nativeModeRefresh', // deprecated but still cleared for cleanup
     'popupMode',
     'eqControlMode',
     'headerLayout',
@@ -56,6 +56,7 @@ async function resetAllSettings() {
     'badgeStyle',
     'visualizerColor',
     'sleepTimerPresets',
+    'sleepTimerDuration',
     'expandedSections'
   ]);
 
@@ -128,27 +129,21 @@ async function resetAllSettings() {
   stepKeyboard.value = DEFAULT_VOLUME_STEPS.keyboard;
   stepButtons.value = DEFAULT_VOLUME_STEPS.buttons;
 
-  // Reset Native Mode Refresh to default (current tab only)
-  const nativeModeRefreshSelect = document.getElementById('nativeModeRefresh');
-  if (nativeModeRefreshSelect) {
-    nativeModeRefreshSelect.value = 'current';
-  }
-
   // Reset Default Audio Device dropdown
   if (defaultDeviceSelect) {
     defaultDeviceSelect.value = '';
   }
 
-  // Reset Shortcuts Footer checkbox
-  if (showShortcutsFooterCheckbox) showShortcutsFooterCheckbox.checked = true;
+  // Reset Shortcuts Footer checkbox (inverted: checked = hidden)
+  if (showShortcutsFooterCheckbox) showShortcutsFooterCheckbox.checked = !DEFAULTS.showShortcutsFooter;
 
-  // Reset Show Visualizer checkbox
+  // Reset Show Visualizer checkbox (inverted: checked = hidden)
   if (showVisualizerCheckbox) {
-    showVisualizerCheckbox.checked = true;
+    showVisualizerCheckbox.checked = !DEFAULTS.showVisualizer;
   }
 
-  // Reset Show Seekbar checkbox
-  if (showSeekbarCheckbox) showSeekbarCheckbox.checked = true;
+  // Reset Show Seekbar checkbox (inverted: checked = hidden)
+  if (showSeekbarCheckbox) showSeekbarCheckbox.checked = !DEFAULTS.showSeekbar;
 
   // Reset Custom Visualizer Color
   if (useCustomVisualizerColorCheckbox) {
@@ -171,12 +166,8 @@ async function resetAllSettings() {
   const defaultPopupModeRadio = document.querySelector(`input[name="popupMode"][value="${DEFAULTS.popupMode}"]`);
   if (defaultPopupModeRadio) defaultPopupModeRadio.checked = true;
 
-  // Reset Default Audio Mode radios to default + clear localStorage cache
-  const defaultModeRadio = document.querySelector(`input[name="defaultAudioMode"][value="${DEFAULT_AUDIO_MODE}"]`);
-  if (defaultModeRadio) defaultModeRadio.checked = true;
-  updateModeDescription(DEFAULT_AUDIO_MODE);
-  updateTabCaptureSectionState(DEFAULT_AUDIO_MODE);
-  try { localStorage.removeItem('__tabVolumeControl_defaultAudioMode'); } catch (e) {}
+  // Note: Default Audio Mode radio group was removed from options.html in v5.7.12
+  // The defaultAudioMode storage key is still reset above via sync.remove
 
   // Reset Tab Title Location radios to default
   const defaultTabInfoRadio = document.querySelector(`input[name="tabInfoLocation"][value="${DEFAULTS.tabInfoLocation}"]`);
@@ -190,7 +181,7 @@ async function resetAllSettings() {
     popupSectionsLayout = {
       order: [...DEFAULT_POPUP_SECTIONS_LAYOUT.order],
       hidden: [...DEFAULT_POPUP_SECTIONS_LAYOUT.hidden],
-      controlMode: {}
+      controlMode: { ...DEFAULT_POPUP_SECTIONS_LAYOUT.controlMode }
     };
     cachedGlobalEqMode = DEFAULTS.eqControlMode;
     rebuildPopupSectionsPreview();
@@ -321,6 +312,12 @@ async function generateBackupCSV() {
   lines.push(sleepPresets.join(','));
   lines.push('');
 
+  // Sleep Timer Duration (slider position in minutes)
+  lines.push('[Sleep Timer Duration]');
+  lines.push('Minutes');
+  lines.push(syncData.sleepTimerDuration ?? DEFAULTS.sleepTimerDuration);
+  lines.push('');
+
   // Default Audio Device (from local storage - device-specific)
   lines.push('[Default Audio Device]');
   lines.push('Use Default Device,Device ID,Device Label');
@@ -413,12 +410,6 @@ async function generateBackupCSV() {
   lines.push(syncData.popupMode || DEFAULTS.popupMode);
   lines.push('');
 
-  // Native Mode Refresh Behavior
-  lines.push('[Native Mode Refresh]');
-  lines.push('Behavior');
-  lines.push(syncData.nativeModeRefresh || 'current');
-  lines.push('');
-
   // Popup Sections Layout (order and hidden)
   lines.push('[Popup Sections Layout]');
   lines.push('Order,Hidden');
@@ -436,7 +427,7 @@ async function generateBackupCSV() {
   lines.push([
     escapeCSV(headerLayout.order?.join('|') || ''),
     escapeCSV(headerLayout.hidden?.join('|') || ''),
-    headerLayout.spacerCount ?? 3
+    headerLayout.spacerCount ?? DEFAULTS.headerLayout.spacerCount
   ].join(','));
   lines.push('');
 
@@ -455,13 +446,13 @@ async function generateBackupCSV() {
         rule.isDomain ? 'true' : 'false',
         rule.volume,
         escapeCSV(rule.deviceLabel || ''),
-        rule.bassBoost || 'off',
-        rule.trebleBoost || 'off',
-        rule.voiceBoost || 'off',
-        rule.compressor || 'off',
+        escapeCSV(rule.bassBoost || 'off'),
+        escapeCSV(rule.trebleBoost || 'off'),
+        escapeCSV(rule.voiceBoost || 'off'),
+        escapeCSV(rule.compressor || 'off'),
         rule.balance ?? 0,
-        rule.channelMode || 'stereo',
-        rule.speed || 'off'
+        escapeCSV(rule.channelMode || 'stereo'),
+        escapeCSV(rule.speed || 'off')
       ].join(','));
     }
   }
@@ -530,7 +521,7 @@ async function backupAllData() {
     showResetStatus('Backup downloaded successfully!');
   } catch (e) {
     console.error('Backup failed:', e);
-    showResetStatus(`Backup failed: ${e.message}`, true);
+    showResetStatus('Backup failed. Check the console for details.', true);
   }
 }
 
@@ -728,6 +719,17 @@ async function restoreFromBackup(csvContent) {
         }
         break;
 
+      case 'Sleep Timer Duration':
+        if (!headerRow) {
+          headerRow = trimmedLine;
+        } else {
+          const minutes = parseInt(trimmedLine.trim(), 10);
+          if (!isNaN(minutes) && minutes >= 1 && minutes <= 120) {
+            restoredData.sync.sleepTimerDuration = minutes;
+          }
+        }
+        break;
+
       case 'Default Audio Device':
         if (!headerRow) {
           headerRow = trimmedLine;
@@ -906,7 +908,7 @@ async function restoreFromBackup(csvContent) {
         } else {
           const values = parseCSVLine(trimmedLine);
           if (values[0]) {
-            const validSectionIds = ['balance', 'speed', 'bass', 'treble', 'voice', 'range', 'output', 'siteRule'];
+            const validSectionIds = ['balance', 'speed', 'bass', 'treble', 'voice', 'range', 'output', 'siteRule', 'sleepTimer'];
             const layout = {
               order: values[0].split('|').filter(v => validSectionIds.includes(v)),
               hidden: values[1] ? values[1].split('|').filter(v => validSectionIds.includes(v)) : [],
@@ -953,7 +955,7 @@ async function restoreFromBackup(csvContent) {
             const layout = {
               order: values[0].split('|').filter(v => isValidHeaderId(v)),
               hidden: values[1] ? values[1].split('|').filter(v => isValidHeaderId(v)) : [],
-              spacerCount: parseInt(values[2], 10) || 3
+              spacerCount: parseInt(values[2], 10) || DEFAULTS.headerLayout.spacerCount
             };
             // Validate order has items
             if (layout.order.length > 0) {
@@ -1137,6 +1139,7 @@ restoreFileInput.addEventListener('change', async (e) => {
     if (restored.sync.speedFastPresets) counts.push('speed fast presets');
     if (restored.sync.balancePresets) counts.push('balance presets');
     if (restored.sync.sleepTimerPresets) counts.push('sleep timer presets');
+    if (restored.sync.sleepTimerDuration) counts.push('sleep timer duration');
     if (restored.sync.volumeSteps) counts.push('volume steps');
     if (restored.sync.siteVolumeRules) counts.push(`${restored.sync.siteVolumeRules.length} site rules`);
     if (restored.sync.disabledDomains) counts.push(`${restored.sync.disabledDomains.length} native mode domains`);
@@ -1170,7 +1173,7 @@ restoreFileInput.addEventListener('change', async (e) => {
     }
   } catch (err) {
     console.error('Restore failed:', err);
-    showResetStatus(`Restore failed: ${err.message}`, true);
+    showResetStatus('Restore failed. Check the console for details.', true);
   }
 });
 
