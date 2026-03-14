@@ -88,7 +88,7 @@ Your audio settings stay on your device. This extension makes zero external netw
 ### Chrome
 **[Install from Chrome Web Store](https://chromewebstore.google.com/detail/per-tab-audio-control/fhbglapkjnbiokdjlfbddcchakgpfijg)**
 
-> **Note:** The Chrome Web Store version may lag behind this repository due to Chrome's review process.
+> **Note:** The Chrome Web Store version may lag behind this repository due to submission timing and Chrome's review process.
 
 ### Manual Installation
 1. Download or clone this repository
