@@ -47,7 +47,7 @@ No subscriptions. No ads. No data collection.
 - Per-site preferences auto-saved
 
 ### Convenience
-- **Seekbar** Click-to-seek and drag-to-seek with time remaining toggle and Spotify DRM support
+- **Seekbar** Click-to-seek and drag-to-seek with time remaining toggle
 - **Live stream seekbar** Shows "LIVE" indicator for live streams
 - **Sleep timer** Auto-pause media after a set duration
 - **Keyboard shortcuts** Alt+Shift+Up/Down for volume, Alt+Shift+M for mute
