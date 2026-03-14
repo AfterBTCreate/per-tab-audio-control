@@ -1,12 +1,10 @@
 // Per-Tab Audio Control - Content Script (ISOLATED world)
 // Cross-browser compatible (Chrome & Firefox)
 // Handles browser API communication and bridges to page script
-// v4.0.3 - AudioContext autoplay fix
-
 (function() {
   'use strict';
 
-  console.log('[TabVolume] Content script v4.0.3 loaded');
+  console.log('[TabVolume] Content script loaded');
 
   if (window.__tabVolumeControlContentInjected) return;
   window.__tabVolumeControlContentInjected = true;
@@ -37,6 +35,9 @@
   // Dormant mode: tabs start dormant (no audio interference) until user explicitly
   // interacts via popup, keyboard shortcuts, or site rules activate the tab
   let isDormant = true;
+  let nativeModeObserver = null; // Declared at IIFE scope for pagehide cleanup
+  let isActivating = false; // Prevents concurrent activateFromDormant() calls
+  const pendingPlayListeners = new WeakSet(); // Prevents duplicate play listeners in processAllMedia
 
   // Helper function to toggle play/pause with multiple fallback methods
   // Works on sites like Spotify where direct media element control fails
@@ -371,6 +372,10 @@
         } else if (request.type === 'TOGGLE_PLAY_PAUSE') {
           const result = toggleMediaPlayPause();
           sendResponse({ success: result.success, isPlaying: result.isPlaying });
+        } else if (request.type === 'TOGGLE_PLAYBACK') {
+          // Sleep timer + context menu use this type — must handle on disabled domains too
+          const result = toggleMediaPlayPause();
+          sendResponse({ success: result.success, action: result.isPlaying ? 'playing' : 'paused' });
         } else if (request.type === 'GET_MEDIA_POSITION') {
           const el = findPrimaryMediaElement();
           const sitePosition = getPositionFromSiteUI();
@@ -378,6 +383,16 @@
           // Prefer site UI if it reports a longer duration (real song vs Canvas loop)
           if (sitePosition && (!position || sitePosition.duration > position.duration)) {
             position = sitePosition;
+          }
+          // Fallback: detect live streams (Infinity duration) if no finite media found
+          if (!position) {
+            const allMedia = document.querySelectorAll('audio, video');
+            for (const m of allMedia) {
+              if (!m.paused && m.duration === Infinity) {
+                position = { currentTime: 0, duration: Infinity, paused: false, live: true };
+                break;
+              }
+            }
           }
           if (position) {
             sendResponse({ success: true, position });
@@ -615,7 +630,7 @@
   window.addEventListener('__tabVolumeControl_deviceResolved', async function(e) {
     // Validate event detail structure before using
     if (!e.detail || typeof e.detail !== 'object') return;
-    if (typeof e.detail.deviceId !== 'string' || e.detail.deviceId.length === 0) return;
+    if (typeof e.detail.deviceId !== 'string' || e.detail.deviceId.length === 0 || e.detail.deviceId.length > 512) return;
 
     const deviceId = e.detail.deviceId;
     console.log('[TabVolume] Received resolved device ID from page script:', deviceId);
@@ -732,7 +747,7 @@
     try {
       const testCtx = new (window.AudioContext || window.webkitAudioContext)();
       audioContextSupportsSinkId = typeof testCtx.setSinkId === 'function';
-      testCtx.close();
+      testCtx.close().catch(() => {});
       console.log('[TabVolume] AudioContext.setSinkId supported:', audioContextSupportsSinkId);
     } catch (e) {
       audioContextSupportsSinkId = false;
@@ -1311,7 +1326,7 @@
   async function applyDeviceToContext(deviceId) {
     const ctx = getAudioContext();
     if (!ctx) {
-      console.warn('[TabVolume] No AudioContext available');
+      console.debug('[TabVolume] No AudioContext available');
       return { success: false, notFound: false };
     }
 
@@ -1495,7 +1510,13 @@
         processMediaElement(element);
       }
       // For paused/unplayed media, defer processing until play event (user gesture)
-      element.addEventListener('play', () => processMediaElement(element), { once: true });
+      if (!pendingPlayListeners.has(element)) {
+        pendingPlayListeners.add(element);
+        element.addEventListener('play', () => {
+          pendingPlayListeners.delete(element);
+          processMediaElement(element);
+        }, { once: true });
+      }
     });
   }
 
@@ -1672,7 +1693,8 @@
 
   // Activate from dormant state: initialize audio pipeline that was deferred
   async function activateFromDormant() {
-    if (!isDormant) return;
+    if (!isDormant || isActivating) return;
+    isActivating = true;
     console.log('[TabVolume] Activating from dormant mode');
     try {
       const response = await browserAPI.runtime.sendMessage({ type: 'CONTENT_READY', activating: true });
@@ -1698,6 +1720,8 @@
       // Background might not be ready, initialize with defaults
       isDormant = false;
       initPageScript(100);
+    } finally {
+      isActivating = false;
     }
   }
 
@@ -1907,6 +1931,16 @@
       if (sitePosition && (!position || sitePosition.duration > position.duration)) {
         position = sitePosition;
       }
+      // Fallback: detect live streams (Infinity duration) if no finite media found
+      if (!position) {
+        const allMedia = document.querySelectorAll('audio, video');
+        for (const m of allMedia) {
+          if (!m.paused && m.duration === Infinity) {
+            position = { currentTime: 0, duration: Infinity, paused: false, live: true };
+            break;
+          }
+        }
+      }
       // Only respond if this frame has media — let other frames respond otherwise
       // (prevents frames without media from stealing the response in multi-frame pages)
       if (position) {
@@ -1951,7 +1985,7 @@
         currentVolume: isGlobalNativeMode ? nativeModeVolume : currentVolume
       });
     }
-    return true;
+    return false;
   });
 
   // ==================== Port-Based Visualizer Streaming ====================
@@ -2130,7 +2164,7 @@
         }
 
         // Watch for new media elements and apply native volume
-        const nativeModeObserver = new MutationObserver(() => {
+        nativeModeObserver = new MutationObserver(() => {
           const normalizedVolume = nativeModeVolume / 100;
           document.querySelectorAll('audio, video').forEach(el => {
             if (el.volume !== normalizedVolume) {
@@ -2266,6 +2300,7 @@
     // Disconnect MutationObservers
     observer.disconnect();
     mediaObserver.disconnect();
+    if (nativeModeObserver) nativeModeObserver.disconnect();
 
     // Clear periodic media check interval
     clearInterval(periodicCheckInterval);

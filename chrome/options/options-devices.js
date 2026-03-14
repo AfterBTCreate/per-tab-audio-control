@@ -11,14 +11,14 @@ const micSettingsStatus = document.getElementById('micSettingsStatus');
 
 // Show only the relevant browser section and button
 if (isFirefox) {
-  openMicSettingsChrome.style.display = 'none';
-  micPermissionChrome.style.display = 'none';
+  if (openMicSettingsChrome) openMicSettingsChrome.style.display = 'none';
+  if (micPermissionChrome) micPermissionChrome.style.display = 'none';
 } else {
-  openMicSettingsFirefox.style.display = 'none';
-  micPermissionFirefox.style.display = 'none';
+  if (openMicSettingsFirefox) openMicSettingsFirefox.style.display = 'none';
+  if (micPermissionFirefox) micPermissionFirefox.style.display = 'none';
 }
 
-openMicSettingsChrome.addEventListener('click', async (e) => {
+openMicSettingsChrome?.addEventListener('click', async (e) => {
   e.preventDefault();
   const url = 'chrome://settings/content/microphone';
 
@@ -35,7 +35,7 @@ openMicSettingsChrome.addEventListener('click', async (e) => {
   }
 });
 
-openMicSettingsFirefox.addEventListener('click', async (e) => {
+openMicSettingsFirefox?.addEventListener('click', async (e) => {
   e.preventDefault();
   const url = 'about:preferences#privacy';
 
@@ -85,12 +85,12 @@ async function updateDevicePermissionUI() {
 
   if (hasPermission) {
     // Hide permission prompt, show device selector
-    devicePermissionPrompt.style.display = 'none';
-    defaultDeviceSelector.style.display = '';
+    devicePermissionPrompt.classList.add('hidden');
+    defaultDeviceSelector.classList.remove('hidden');
   } else {
     // Show permission prompt, hide device selector
-    devicePermissionPrompt.style.display = '';
-    defaultDeviceSelector.style.display = 'none';
+    devicePermissionPrompt.classList.remove('hidden');
+    defaultDeviceSelector.classList.add('hidden');
   }
 
   return hasPermission;
@@ -328,9 +328,9 @@ const shortcutsStatus = document.getElementById('shortcutsStatus');
 
 // Show only the relevant browser button
 if (isFirefox) {
-  openShortcutsChrome.style.display = 'none';
+  if (openShortcutsChrome) openShortcutsChrome.style.display = 'none';
 } else {
-  openShortcutsFirefox.style.display = 'none';
+  if (openShortcutsFirefox) openShortcutsFirefox.style.display = 'none';
 }
 
 // Suggested keys from manifest (fallback when not bound)
@@ -356,7 +356,11 @@ function applyShortcutDisplay(el, shortcut, suggestedKey) {
 // Load and display current shortcuts
 async function loadShortcuts() {
   try {
-    const commands = await browserAPI.commands.getAll();
+    // Race against timeout — some Chromium forks (e.g. Vivaldi) may stall on commands.getAll()
+    const commands = await Promise.race([
+      browserAPI.commands.getAll(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+    ]);
 
     commands.forEach(command => {
       const shortcut = command.shortcut || null;
@@ -371,9 +375,10 @@ async function loadShortcuts() {
     });
   } catch (err) {
     console.debug('Could not load shortcuts:', err);
-    shortcutVolumeUp.textContent = 'Error loading';
-    shortcutVolumeDown.textContent = 'Error loading';
-    shortcutToggleMute.textContent = 'Error loading';
+    // Show suggested defaults from manifest as fallback
+    applyShortcutDisplay(shortcutVolumeUp, null, suggestedKeys['volume-up']);
+    applyShortcutDisplay(shortcutVolumeDown, null, suggestedKeys['volume-down']);
+    applyShortcutDisplay(shortcutToggleMute, null, suggestedKeys['toggle-mute']);
   }
 }
 
@@ -381,7 +386,7 @@ async function loadShortcuts() {
 loadShortcuts();
 
 // Chrome shortcuts settings
-openShortcutsChrome.addEventListener('click', async (e) => {
+openShortcutsChrome?.addEventListener('click', async (e) => {
   e.preventDefault();
   const url = 'chrome://extensions/shortcuts';
 
@@ -399,7 +404,7 @@ openShortcutsChrome.addEventListener('click', async (e) => {
 });
 
 // Firefox shortcuts settings
-openShortcutsFirefox.addEventListener('click', async (e) => {
+openShortcutsFirefox?.addEventListener('click', async (e) => {
   e.preventDefault();
   const url = 'about:addons';
 

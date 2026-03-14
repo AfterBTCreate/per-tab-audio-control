@@ -165,20 +165,20 @@ body.basic-mode .presets {
 /* ==================== Light Mode: Presets (Morning Theme) ==================== */
 
 body.light-mode .preset-btn {
-  background: #faf5ef;
-  border-color: #d4c4b0;
-  color: #2d2520;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
+  color: #1a2a3a;
 }
 
 body.light-mode .preset-btn:hover {
-  background: #f5ede3;
-  border-color: #c4b4a0;
+  background: #dce8f2;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .preset-btn.active {
-  background: #8b7355;
+  background: #4a7a9a;
   color: #ffffff;
-  border-color: #8b7355;
+  border-color: #4a7a9a;
 }
 
 body.light-mode .preset-btn.reduced {
@@ -278,5 +278,5 @@ body.light-mode #muteBtn.muted {
 }
 
 body.light-mode .preset-btn:focus-visible {
-  box-shadow: 0 0 0 2px #8b7355;
+  box-shadow: 0 0 0 2px #4a7a9a;
 }

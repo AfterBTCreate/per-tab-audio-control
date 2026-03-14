@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="options-rules.css">
 </head>
 <body>
+  <canvas id="starField" class="star-field" aria-hidden="true"></canvas>
   <div class="container">
     <header class="header">
       <div class="logo" aria-hidden="true" title="Per-Tab Audio Control">
@@ -30,16 +31,16 @@
         </svg>
         <!-- Light mode logo - A top-left, B top-right, C bottom-left, speaker bottom-right -->
         <svg class="logo-light" width="56" height="56" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
-          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a6a" stroke-width="3"/>
-          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
-          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
-          <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
-          <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
-          <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
-          <path d="M61 66 L61 74 L65 74 L71 78 L71 62 L65 66 Z" fill="#faf5ef"/>
-          <path d="M74 66 Q78 70 74 74" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-          <path d="M77 63 Q83 70 77 77" stroke="#faf5ef" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="rgba(255,255,255,0.7)"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8aacca" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8aacca" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#4a7a9a"/>
+          <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#b85a5a" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a8a48" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a6a9a" text-anchor="middle">C</text>
+          <path d="M61 66 L61 74 L65 74 L71 78 L71 62 L65 66 Z" fill="#ffffff"/>
+          <path d="M74 66 Q78 70 74 74" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M77 63 Q83 70 77 77" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
         </svg>
       </div>
       <h1>FAQ</h1>
@@ -59,7 +60,7 @@
           <polyline points="18 20 12 14 6 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <button class="header-btn" id="themeToggle" title="Toggle morning/bedtime" aria-label="Toggle morning/bedtime">
+      <button class="header-btn" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
         <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -86,19 +87,19 @@
         </svg>
         <!-- Light mode logo - A top-left, B top-right, C bottom-left, moon bottom-right -->
         <svg class="logo-light" width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="After Bedtime Creations logo">
-          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#8a7a6a" stroke-width="5" fill="#faf5ef"/>
-          <line x1="50" y1="10" x2="50" y2="90" stroke="#8a7a9a" stroke-width="3"/>
-          <line x1="10" y1="50" x2="90" y2="50" stroke="#8a7a6a" stroke-width="3"/>
-          <rect x="53" y="53" width="34" height="34" rx="3" fill="#c4a870"/>
-          <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#a07070" text-anchor="middle">A</text>
-          <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#70a078" text-anchor="middle">B</text>
-          <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#7088a0" text-anchor="middle">C</text>
-          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#faf5ef"/>
+          <rect x="10" y="10" width="80" height="80" rx="8" stroke="#5a7a9a" stroke-width="5" fill="rgba(255,255,255,0.7)"/>
+          <line x1="50" y1="10" x2="50" y2="90" stroke="#8aacca" stroke-width="3"/>
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#8aacca" stroke-width="3"/>
+          <rect x="53" y="53" width="34" height="34" rx="3" fill="#4a7a9a"/>
+          <text x="30" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#b85a5a" text-anchor="middle">A</text>
+          <text x="70" y="38" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a8a48" text-anchor="middle">B</text>
+          <text x="30" y="78" font-family="Comfortaa, sans-serif" font-size="20" font-weight="600" fill="#3a6a9a" text-anchor="middle">C</text>
+          <path d="M80 70 A11 11 0 1 1 70 58 A8 8 0 0 0 80 70" fill="#ffffff"/>
         </svg>
       </div>
       <div class="about-content">
-        <div class="about-brand"><span class="brand-a">A</span>fter <span class="brand-b">B</span>edtime <span class="brand-c">C</span>reations</div>
-        <div class="about-tagline">Privacy-focused software, built late.</div>
+        <div class="about-brand">After Bedtime Creations</div>
+        <div class="about-tagline">Privacy-first extensions, built late.</div>
       </div>
       <div class="about-links">
         <a href="https://afterbedtimecreations.com" target="_blank" rel="noopener noreferrer" class="about-link icon-only" title="Website" aria-label="Visit website">
@@ -118,66 +119,6 @@
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
           </svg>
         </a>
-      </div>
-    </div>
-
-    <!-- Q1: Volume limited -->
-    <div class="faq-subsection">
-      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
-        <span>Why can't I boost volume above 100%?</span>
-        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </h3>
-      <div class="faq-subsection-content">
-        <p class="section-desc">If volume is capped at 100%, audio processing is <strong>disabled</strong>.</p>
-        <div class="info-box">
-          <h4>What's happening</h4>
-          <p>When audio processing is disabled, the extension uses the browser's native volume control, which limits volume to 0-100%. This happens when:</p>
-          <ul class="feature-list">
-            <li>You previously disabled audio processing on this domain</li>
-            <li>Your default audio mode is set to Disabled</li>
-          </ul>
-        </div>
-        <div class="info-box">
-          <h4>How to fix</h4>
-          <ol class="chain-list">
-            <li>Select Tab Capture (Chrome) or Web Audio mode from the popup header</li>
-            <li>The page will auto-refresh and 0-500% volume will be available</li>
-            <li>If this happens on every site, change your default mode in Settings → Audio Modes</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-
-    <!-- Q2: No sound -->
-    <div class="faq-subsection">
-      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
-        <span>Why is there no sound on this site?</span>
-        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </h3>
-      <div class="faq-subsection-content">
-        <p class="section-desc">Some websites don't work well with certain audio modes. Try switching to a different mode—you'll keep all enhancements.</p>
-        <div class="info-box">
-          <h4>Why this happens</h4>
-          <p>The extension processes audio to enable boost and effects. Some sites have audio that's incompatible with this processing, causing:</p>
-          <ul class="feature-list">
-            <li>No sound at all</li>
-            <li>Audio pops, clicks, or distortion</li>
-            <li>Audio/video sync issues</li>
-          </ul>
-        </div>
-        <div class="info-box">
-          <h4>How to fix</h4>
-          <ol class="chain-list">
-            <li>Try switching to a different audio mode (Tab Capture, Web Audio) from the popup header</li>
-            <li>The page will auto-refresh and audio should work</li>
-            <li>If neither mode works, select Disabled (limits volume to 0-100%)</li>
-          </ol>
-          <p style="margin-top: 8px;">Different sites work better with different modes. Your choice is saved per-site.</p>
-        </div>
       </div>
     </div>
 
@@ -231,101 +172,53 @@
       </div>
     </div>
 
-    <!-- Q5: Visualizer not working -->
-    <div class="faq-subsection">
-      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
-        <span>Why isn't the visualizer working?</span>
-        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </h3>
-      <div class="faq-subsection-content">
-        <p class="section-desc">With Tab Capture (Chrome default), the visualizer works on virtually all sites. Issues are rare but can occur with Web Audio mode or Disabled mode.</p>
-        <div class="info-box">
-          <h4>What you'll see</h4>
-          <ul class="feature-list">
-            <li>After ~2-3 seconds of no audio data, the visualizer auto-disables</li>
-            <li>A "Visualizer ⊘" indicator appears in the Now Playing area</li>
-          </ul>
-        </div>
-        <div class="info-box">
-          <h4>How to fix</h4>
-          <ul class="feature-list">
-            <li><strong>Chrome:</strong> Ensure Tab Capture mode is selected (default). It captures audio at browser level and works on all sites.</li>
-            <li><strong>Firefox:</strong> Web Audio mode may not work on sites with cross-origin restrictions or certain security policies. Try a different site to confirm the extension is working.</li>
-            <li>If you've switched to Web Audio or Disabled mode, select Tab Capture (Chrome) from the popup header</li>
-          </ul>
-        </div>
-        <div class="info-box">
-          <h4>Visualizer strobing or flickering?</h4>
-          <p>If the visualizer appears to strobe or flicker erratically:</p>
-          <ul class="feature-list">
-            <li><strong>Close and reopen the popup</strong> — this usually resolves the issue immediately</li>
-            <li>This can occasionally happen when switching audio modes</li>
-          </ul>
-        </div>
-        <div class="info-box">
-          <h4>Good news</h4>
-          <p>Visualizer issues are purely cosmetic. <strong>All audio controls still work normally</strong> — volume, effects, balance, and device switching are unaffected.</p>
-        </div>
-      </div>
-    </div>
-
     <!-- Q6: Volume different on device switch -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
-        <span>Why does volume change when I switch devices?</span>
+        <span>Why does perceived volume change when I switch devices?</span>
         <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </h3>
       <div class="faq-subsection-content">
-        <p class="section-desc">Each audio device has its own volume level in your operating system.</p>
+        <p class="section-desc">The extension's volume slider stays the same — what changes is how loud it sounds through different hardware.</p>
         <div class="info-box">
           <h4>Why this happens</h4>
           <ul class="feature-list">
-            <li>Your default device's volume is what you've adjusted in system settings</li>
-            <li>Other devices often sit at 100% OS volume (never adjusted)</li>
-            <li>External devices (Bluetooth, USB) may have their own hardware volume</li>
+            <li>Each device has its own OS volume level (speakers may be at 50%, headphones at 100%)</li>
+            <li>Different hardware has different amplifier power and driver sensitivity</li>
+            <li>External devices (Bluetooth, USB) may have their own hardware volume on top of the OS level</li>
           </ul>
         </div>
         <div class="info-box">
-          <h4>How to fix</h4>
+          <h4>How to adjust</h4>
           <p>Adjust the device's volume in your OS sound settings, or use the extension's volume slider to compensate.</p>
         </div>
       </div>
     </div>
 
-    <!-- Q7: Volume difference between modes -->
+    <!-- Q7: Volume difference when processing is disabled -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
-        <span>Why does volume sound different between audio modes?</span>
+        <span>Why does volume sound different when audio processing is disabled?</span>
         <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </h3>
       <div class="faq-subsection-content">
-        <p class="section-desc">This is expected behavior due to how audio is processed differently in each mode.</p>
+        <p class="section-desc">This is expected behavior due to how audio is processed differently.</p>
         <div class="info-box">
-          <h4>Tab Capture mode</h4>
+          <h4>With audio processing enabled</h4>
           <p>Audio flows through a processing pipeline:</p>
           <ul class="feature-list">
-            <li>Tab audio is captured at the browser level</li>
+            <li>Tab audio is captured at the browser level via Tab Capture</li>
             <li>Routed through Web Audio API (MediaStreamSource → GainNode → Limiter → Output)</li>
             <li>Even at 100% volume (gain = 1.0), this routing introduces slight signal attenuation</li>
           </ul>
+          <p class="mt-8">Note: This processing chain applies when Tab Capture is active. When a tab is dormant (not yet activated), audio plays natively without any processing.</p>
         </div>
         <div class="info-box">
-          <h4>Web Audio mode</h4>
-          <p>Audio is intercepted at the page level:</p>
-          <ul class="feature-list">
-            <li>Hooks into the page's audio elements and AudioContext</li>
-            <li>Similar routing to Tab Capture (GainNode → Limiter → Output)</li>
-            <li>Volume may vary depending on how the site creates audio</li>
-          </ul>
-        </div>
-        <div class="info-box">
-          <h4>Disabled mode</h4>
+          <h4>With audio processing disabled</h4>
           <p>Audio goes directly to speakers:</p>
           <ul class="feature-list">
             <li>Uses the browser's native <code>element.volume</code> property</li>
@@ -335,7 +228,7 @@
         </div>
         <div class="info-box">
           <h4>Tip</h4>
-          <p>When switching modes, you may need to adjust the volume slider slightly to match your preferred loudness level.</p>
+          <p>When toggling audio processing, you may need to adjust the volume slider slightly to match your preferred loudness level.</p>
         </div>
       </div>
     </div>
@@ -343,13 +236,13 @@
     <!-- Q8: Why click extension for each tab (Chrome only) -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
-        <span>Why do I need to click the extension for each tab? (Chrome)</span>
+        <span>Why do I need to click the extension for each tab?</span>
         <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </h3>
       <div class="faq-subsection-content">
-        <p class="section-desc">Chrome requires a "user gesture" before Tab Capture can access a tab's audio. This is a browser security feature that applies to Chrome only.</p>
+        <p class="section-desc">Chrome requires a "user gesture" before Tab Capture can access a tab's audio. This is a browser security feature.</p>
         <div class="info-box">
           <h4>Why this requirement exists</h4>
           <p>Chrome prevents extensions from silently capturing audio without your knowledge. By requiring a user gesture (clicking the extension icon or using a keyboard shortcut), Chrome ensures you've consciously granted permission.</p>
@@ -364,6 +257,7 @@
             <li>Opening the popup while a tab is active grants Tab Capture permission for that tab</li>
             <li>Once activated, Tab Capture stays active on that tab until you close it</li>
             <li>You can switch to other tabs freely — Tab Capture keeps running in the background</li>
+            <li>Using a keyboard shortcut (e.g., Alt+Shift+Up) on a dormant tab will also activate Tab Capture without opening the popup</li>
             <li>Your volume, bass, treble, and other settings persist on that tab</li>
           </ul>
         </div>
@@ -393,8 +287,12 @@
           <p>A saved site rule is waiting to be applied. On Chrome, this appears when a site rule exists for the current domain but Tab Capture hasn't been activated yet. Click the extension icon to apply the rule.</p>
         </div>
         <div class="info-box">
-          <h4>Blue ! — Tab Capture pending (Chrome only)</h4>
-          <p>Tab Capture needs a user gesture to activate on this tab. Click the extension icon or use a keyboard shortcut to enable it. Once activated, the badge changes to the normal volume display.</p>
+          <h4>Blue ! — Tab Capture pending</h4>
+          <p>Tab Capture pending: The tab's audio mode requires Tab Capture, which needs a user gesture to activate. Open the popup or use a keyboard shortcut to start. Once activated, the badge changes to the normal volume display.</p>
+        </div>
+        <div class="info-box">
+          <h4>Grey ! — Dormant (lowest priority)</h4>
+          <p>The tab is dormant — audio processing is inactive. This appears when you've opened the popup on a tab but haven't changed any settings. Change a setting (volume, effects, etc.) or use a keyboard shortcut to activate the tab.</p>
         </div>
         <div class="info-box">
           <h4>Volume percentage badge (normal state)</h4>
@@ -404,7 +302,7 @@
             <li><strong>Dark on Light</strong> — Black text on white background</li>
             <li><strong>Volume Color</strong> — Color changes with volume level (blue → green → yellow → orange → purple)</li>
           </ul>
-          <p style="margin-top: 8px;">At 0% (muted), the badge always turns red regardless of style.</p>
+          <p class="mt-8">At 0% (muted), the badge always turns red regardless of style.</p>
         </div>
       </div>
     </div>
@@ -426,15 +324,16 @@
         <div class="info-box">
           <h4>How tabs activate</h4>
           <ul class="feature-list">
-            <li><strong>Opening the popup</strong> — Clicking the extension icon activates the current tab</li>
+            <li><strong>Changing a setting</strong> — Adjusting volume, effects, or any control in the popup activates the tab</li>
             <li><strong>Keyboard shortcuts</strong> — Using volume up/down or mute activates the tab</li>
-            <li><strong>Site rules</strong> — Tabs with matching site rules activate when you click the extension (shown as a red ! badge)</li>
+            <li><strong>Site rules</strong> — Tabs with matching site rules show a red ! badge and activate when you click the extension</li>
           </ul>
+          <p class="mt-8">Simply opening the popup does not activate a tab — you need to actually change a setting.</p>
         </div>
         <div class="info-box">
           <h4>What happens when dormant</h4>
           <ul class="feature-list">
-            <li>No badge appears on the extension icon</li>
+            <li>A grey ! badge appears on the extension icon (only visible after opening the popup without changing settings — by default tabs show a blue ! indicating Tab Capture is pending)</li>
             <li>Page audio works exactly as it normally would</li>
             <li>No audio processing chain is created</li>
             <li>Zero impact on page performance or audio behavior</li>
@@ -458,7 +357,7 @@
           <ul class="feature-list">
             <li>All preset values (volume, bass, treble, voice, speed, balance, volume steps, sleep timer)</li>
             <li>Site rules and disabled domains list</li>
-            <li>Audio mode overrides (Tab Capture, Web Audio, and Disabled sites)</li>
+            <li>Audio mode overrides (Enabled and Disabled sites)</li>
             <li>Default audio mode</li>
             <li>Theme, visualizer style/color, EQ mode, Basic/Advanced mode, badge style</li>
             <li>Header layout and popup sections customization</li>
@@ -476,7 +375,7 @@
         </div>
         <div class="info-box">
           <h4>Note</h4>
-          <p>Sync only works within the same browser. Chrome syncs to Chrome, Firefox to Firefox, etc. Cross-browser sync is not possible.</p>
+          <p>Sync only works within the same browser. Chrome syncs to Chrome, etc. Cross-browser sync is not possible.</p>
         </div>
       </div>
     </div>
@@ -511,7 +410,7 @@
           <ul class="feature-list">
             <li>All preset values back to defaults</li>
             <li>All site rules and disabled domains deleted</li>
-            <li>All audio mode overrides cleared (Tab Capture, Web Audio, Disabled sites)</li>
+            <li>All audio mode overrides cleared (Enabled and Disabled sites)</li>
             <li>Default audio mode reset</li>
             <li>Theme, visualizer style/color, EQ mode, Basic/Advanced mode, badge style reset to defaults</li>
             <li>Header layout and popup sections reset to default</li>
@@ -519,12 +418,32 @@
             <li>Seekbar time display, tab info location reset to defaults</li>
             <li>Default audio device setting cleared</li>
           </ul>
-          <p style="margin-top: 8px;"><strong>Note:</strong> Keyboard shortcuts and microphone permissions are managed by your browser. See Settings → Browser Settings to manage these.</p>
+          <p class="mt-8"><strong>Note:</strong> Keyboard shortcuts and microphone permissions are managed by your browser. See Settings → Browser Settings to manage these.</p>
         </div>
       </div>
     </div>
 
-    <!-- Q13: Keyboard shortcuts -->
+    <!-- Q13: Customize popup header -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>How do I customize the popup header?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">There are two ways to customize which icons appear in the popup header and their order:</p>
+        <div class="info-box">
+          <ul class="feature-list">
+            <li><strong>Quick Edit Mode</strong> — Long-press (hold for ~1 second) the ABTC logo in the popup. Icons will wiggle, and you can drag them to reorder, show/hide icons, and adjust spacers.</li>
+            <li><strong>Settings Page</strong> — Open Settings → Header Layout for the full drag-and-drop editor with a preview.</li>
+          </ul>
+          <p class="mt-8">Both methods save changes instantly and sync with each other in real-time.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q14: Keyboard shortcuts -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
         <span>Does the extension have keyboard shortcuts?</span>
@@ -545,15 +464,14 @@
         <div class="info-box">
           <h4>Customizing shortcuts</h4>
           <ul class="feature-list">
-            <li><strong>Chrome:</strong> Go to <code>chrome://extensions/shortcuts</code></li>
-            <li><strong>Firefox:</strong> Go to <code>about:addons</code> → gear icon → Manage Extension Shortcuts</li>
+            <li>Go to <code>chrome://extensions/shortcuts</code></li>
           </ul>
-          <p style="margin-top: 8px;">You can change these to any key combination that doesn't conflict with browser or system shortcuts.</p>
+          <p class="mt-8">You can change these to any key combination that doesn't conflict with browser or system shortcuts.</p>
         </div>
       </div>
     </div>
 
-    <!-- Q14: DRM / protected sites -->
+    <!-- Q15: DRM / protected sites -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
         <span>Does the extension work on Spotify, Netflix, and other DRM sites?</span>
@@ -562,15 +480,7 @@
         </svg>
       </h3>
       <div class="faq-subsection-content">
-        <p class="section-desc">Yes, with some limitations depending on the audio mode.</p>
-        <div class="info-box">
-          <h4>Tab Capture mode (Chrome, recommended)</h4>
-          <p>Works best on DRM sites. Tab Capture captures audio at the browser level, so DRM restrictions don't affect it. Volume boost, effects, and visualizer all work.</p>
-        </div>
-        <div class="info-box">
-          <h4>Web Audio mode</h4>
-          <p>May have limited functionality on DRM-protected content. Audio elements using Encrypted Media Extensions (EME) can restrict access to the audio stream, preventing boost and effects from being applied.</p>
-        </div>
+        <p class="section-desc">Yes. Tab Capture captures audio at the browser level, so DRM restrictions don't affect it. Volume boost, effects, and visualizer all work.</p>
         <div class="info-box">
           <h4>Playback controls</h4>
           <p>Play/pause and seeking work on Spotify and similar sites by interacting with the site's own UI controls, since the underlying audio elements may not be directly accessible.</p>
@@ -578,7 +488,7 @@
       </div>
     </div>
 
-    <!-- Q15: Privacy -->
+    <!-- Q16: Privacy -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
         <span>Does the extension collect any data?</span>
@@ -599,7 +509,70 @@
         </div>
         <div class="info-box">
           <h4>Sync storage</h4>
-          <p>If you're signed into your browser, settings sync through your browser account (Chrome Sync or Firefox Sync). This is handled entirely by the browser — the extension doesn't manage or access your account.</p>
+          <p>If you're signed into your browser, settings sync through your browser account (Chrome Sync). This is handled entirely by the browser — the extension doesn't manage or access your account.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q17: Active Tab Audio (Focus Mode) -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>What is Active Tab Audio (Focus Mode)?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Focus Mode automatically mutes all tabs except the one you're viewing.</p>
+        <div class="info-box">
+          <h4>How it works</h4>
+          <p>When enabled via the header toggle, audio follows your active tab — switching tabs instantly mutes the previous tab and unmutes the new one. This is useful when you have multiple tabs playing audio and want to quickly switch between them without manually muting each one.</p>
+        </div>
+        <div class="info-box">
+          <h4>How to use</h4>
+          <p>Toggle it on/off using the focus icon in the popup header.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q18: Sleep timer -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>What is the sleep timer?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">The sleep timer lets you schedule audio to automatically pause after a set duration.</p>
+        <div class="info-box">
+          <h4>How it works</h4>
+          <p>Available in Advanced mode, you can set a timer from 1 to 120 minutes using presets or a slider. Enable "All Tabs" to pause audio across every tab, or leave it off to only pause the current tab. The timer continues counting even if you close the popup.</p>
+        </div>
+        <div class="info-box">
+          <h4>Customizing presets</h4>
+          <p>Customize the preset durations in Settings → Presets → Sleep Timer.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q19: High volume warning -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why did I get a high volume warning?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">When you boost volume above 100%, the extension shows a one-time warning: "High volume may damage hearing. Use carefully."</p>
+        <div class="info-box">
+          <h4>Why this appears</h4>
+          <p>This appears because the extension can amplify audio up to 500% using audio processing (Tab Capture). The warning only shows once per session and won't appear again until you restart your browser.</p>
+        </div>
+        <div class="info-box">
+          <h4>Safety note</h4>
+          <p>Prolonged listening at volumes above 100% can damage hearing — use the boost feature carefully.</p>
         </div>
       </div>
     </div>
@@ -609,5 +582,6 @@
   <!-- Shared utilities - must load first -->
   <script src="../shared/browser-api.js"></script>
   <script src="faq.js"></script>
+  <script src="options-starfield.js"></script>
 </body>
 </html>

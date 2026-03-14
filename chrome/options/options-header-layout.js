@@ -16,8 +16,8 @@ const HEADER_ITEM_DATA = {
     type: 'brandText'
   },
   audioMode: {
-    name: 'Audio Mode',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>',
+    name: 'Enable/Disable',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5" stroke-linecap="round"/></svg>',
     type: 'button'
   },
   focus: {
@@ -181,12 +181,10 @@ function rebuildPreview() {
     if (isSpacer(id)) {
       const spacer = document.createElement('div');
       spacer.className = 'header-spacer-item';
-      const isLockedSpacer = typeof LOCKED_HEADER_ITEMS !== 'undefined' && LOCKED_HEADER_ITEMS.includes(id);
-      spacer.draggable = !isLockedSpacer;
-      if (isLockedSpacer) spacer.classList.add('locked-item');
+      spacer.draggable = true;
       spacer.dataset.id = id;
-      // Note: innerHTML is safe here - SPACER_ICON is a hardcoded constant, not user input
-      spacer.innerHTML = `<span class="tooltip">Spacer${isLockedSpacer ? ' (locked)' : ' (flex)'}</span>${SPACER_ICON}`;
+      // Note: innerHTML is safe here - SPACER_ICON and tooltip are hardcoded constants, not user input
+      spacer.innerHTML = `<span class="tooltip">Spacer (flex)</span>${SPACER_ICON}`;
       wrapper.appendChild(spacer);
     } else {
       const data = HEADER_ITEM_DATA[id];
@@ -197,13 +195,10 @@ function rebuildPreview() {
       if (data.type === 'logo') item.classList.add('logo');
       if (data.type === 'companyLogo') item.classList.add('companyLogo');
       if (currentLayout.hidden.includes(id)) item.classList.add('hidden-item');
-
-      // Locked items (companyLogo) cannot be dragged
-      const isLocked = typeof LOCKED_HEADER_ITEMS !== 'undefined' && LOCKED_HEADER_ITEMS.includes(id);
-      item.draggable = !isLocked;
-      if (isLocked) item.classList.add('locked-item');
+      item.draggable = true;
       item.dataset.id = id;
-      item.innerHTML = `<span class="tooltip">${data.name}${isLocked ? ' (locked)' : ''}</span>${data.icon}`;
+      // Note: innerHTML is safe here - data.name and data.icon are hardcoded constants from HEADER_ITEM_DATA
+      item.innerHTML = `<span class="tooltip">${data.name}</span>${data.icon}`;
       wrapper.appendChild(item);
     }
 
@@ -249,14 +244,6 @@ function setupDragListeners() {
       const rect = wrapper.getBoundingClientRect();
       const midpoint = rect.left + rect.width / 2;
       let position = e.clientX < midpoint ? 'before' : 'after';
-
-      // Cannot drop before or after locked items (companyLogo stays in place)
-      const isLockedTarget = typeof LOCKED_HEADER_ITEMS !== 'undefined' && LOCKED_HEADER_ITEMS.includes(wrapper.dataset.id);
-      if (isLockedTarget) {
-        // Don't allow dropping before or after locked items
-        clearIndicators();
-        return;
-      }
 
       clearIndicators();
       dropTargetId = wrapper.dataset.id;
@@ -308,14 +295,6 @@ function setupDragListeners() {
           newIndex++;
         }
 
-        // Ensure locked items stay at position 0
-        if (typeof LOCKED_HEADER_ITEMS !== 'undefined') {
-          const lockedCount = LOCKED_HEADER_ITEMS.length;
-          if (newIndex < lockedCount) {
-            newIndex = lockedCount;
-          }
-        }
-
         // Insert at new position
         currentLayout.order.splice(newIndex, 0, draggedId);
 
@@ -364,9 +343,8 @@ function setSpacerCount(count) {
       if (prevSpacerIndex !== -1) {
         currentLayout.order.splice(prevSpacerIndex + 1, 0, spacerId);
       } else {
-        // Insert after locked items if no previous spacer found
-        const lockedCount = typeof LOCKED_HEADER_ITEMS !== 'undefined' ? LOCKED_HEADER_ITEMS.length : 0;
-        currentLayout.order.splice(lockedCount, 0, spacerId);
+        // Insert at the beginning if no previous spacer found
+        currentLayout.order.splice(0, 0, spacerId);
       }
     }
   }
@@ -393,7 +371,7 @@ function setupVisibilityToggles() {
   toggles.forEach(toggle => {
     toggle.addEventListener('change', () => {
       const itemId = toggle.dataset.itemId;
-      toggleItemVisibility(itemId, toggle.checked);
+      toggleItemVisibility(itemId, !toggle.checked);
     });
   });
 }
@@ -422,7 +400,7 @@ function updateVisibilityToggles() {
     const itemId = checkbox.dataset.itemId;
     const isHidden = currentLayout.hidden.includes(itemId);
 
-    checkbox.checked = !isHidden;
+    checkbox.checked = isHidden;
     toggle.classList.toggle('unchecked', isHidden);
   });
 }
@@ -458,6 +436,20 @@ function showLayoutStatus(message, isError = false) {
     statusElement.className = 'status';
   }, 3000);
 }
+
+// ==================== Live Sync with Popup Edit Mode ====================
+// When popup edits headerLayout, update the options preview in real-time
+
+browserAPI.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.headerLayout && changes.headerLayout.newValue) {
+    // Skip live sync if a drag is in progress on the options page
+    if (draggedId !== null) return;
+    currentLayout = JSON.parse(JSON.stringify(changes.headerLayout.newValue));
+    rebuildPreview();
+    updateSpacerButtons();
+    updateVisibilityToggles();
+  }
+});
 
 // ==================== Initialize on DOM Ready ====================
 

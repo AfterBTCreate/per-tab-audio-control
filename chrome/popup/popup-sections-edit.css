@@ -1,0 +1,415 @@
+/* Per-Tab Audio Control - Popup Sections Edit Mode Styles */
+/* Shown when edit mode is active: replaces sections with reorder/toggle/hide editor */
+
+/* ==================== Hide Real Sections ==================== */
+
+.enhancements-section.sections-edit-mode .advanced-item,
+.enhancements-section.sections-edit-mode .effects-divider {
+  display: none !important;
+}
+
+/* ==================== Sections Editor Container ==================== */
+
+.sections-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px 0;
+}
+
+/* ==================== Section Row ==================== */
+
+.section-edit-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid #334155;
+  border-radius: 6px;
+  cursor: grab;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+}
+
+.section-edit-item:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: #475569;
+}
+
+.section-edit-item.section-hidden {
+  opacity: 0.4;
+}
+
+.section-edit-item.section-hidden .section-edit-name {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+.section-edit-item.section-dragging {
+  opacity: 0.25;
+  cursor: grabbing;
+}
+
+/* ==================== Drag Handle ==================== */
+
+.section-edit-drag-handle {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+  padding: 2px 0;
+  flex-shrink: 0;
+}
+
+.section-edit-drag-handle span {
+  display: block;
+  width: 10px;
+  height: 1.5px;
+  background: #64748b;
+  border-radius: 1px;
+}
+
+/* ==================== Section Name ==================== */
+
+.section-edit-name {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 500;
+  color: #e2e8f0;
+  min-width: 0;
+  white-space: nowrap;
+  text-align: left;
+}
+
+/* ==================== S/P Toggle Buttons ==================== */
+
+.section-edit-sp-wrap {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.section-edit-sp-btn {
+  flex: 1;
+  padding: 3px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.8);
+  color: #94a3b8;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.section-edit-sp-btn:hover {
+  border-color: #60a5fa;
+  color: #e2e8f0;
+}
+
+.section-edit-sp-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+/* ==================== Visibility Checkbox ==================== */
+
+.section-edit-visibility {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.section-edit-hide-label {
+  font-size: 9px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.section-edit-visibility input[type="checkbox"] {
+  width: 13px;
+  height: 13px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ==================== Bulk Action Buttons ==================== */
+
+.sections-edit-bulk {
+  display: flex;
+  gap: 4px;
+  padding-top: 3px;
+}
+
+.sections-edit-bulk-btn {
+  flex: 1;
+  padding: 4px 0;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(90, 122, 154, 0.3);
+  background: rgba(90, 122, 154, 0.08);
+  color: #5a7a9a;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  transition: all 0.15s ease;
+}
+
+.sections-edit-bulk-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+}
+
+.sections-edit-bulk-btn.bulk-reset {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+}
+
+.sections-edit-bulk-btn.bulk-reset:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* ==================== Drop Indicator ==================== */
+
+.section-edit-drop-indicator {
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 1px;
+  margin: -2px 0;
+}
+
+/* ==================== Drag Ghost Clone ==================== */
+
+.section-edit-drag-clone {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0.9;
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  transition: none;
+}
+
+/* ==================== Warning ==================== */
+
+.sections-edit-warning {
+  font-size: 8px;
+  color: #fbbf24;
+  text-align: center;
+  padding: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sections-edit-warning.visible {
+  opacity: 1;
+}
+
+/* ==================== Badge Style ==================== */
+
+.sections-edit-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(90, 122, 154, 0.2);
+  border-bottom: 1px solid rgba(90, 122, 154, 0.2);
+  margin: 2px 0 4px;
+}
+
+.sections-edit-badge-label {
+  font-size: 10px;
+  color: #b8d4e8;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sections-edit-badge-btns {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+}
+
+.sections-edit-badge-btn {
+  flex: 1;
+  padding: 3px 0;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #475569;
+  background: rgba(30, 41, 59, 0.8);
+  color: #94a3b8;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.sections-edit-badge-btn:hover {
+  border-color: #60a5fa;
+  color: #e2e8f0;
+}
+
+.sections-edit-badge-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+/* ==================== Appearance Hide Checkboxes ==================== */
+
+.sections-edit-appearance {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.sections-edit-appearance-checks {
+  display: flex;
+  justify-content: space-between;
+}
+
+.sections-edit-appearance-check {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #b8d4e8;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sections-edit-appearance-hide-text {
+  font-size: 9px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.sections-edit-appearance-check input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ==================== Light Mode ==================== */
+
+body.light-mode .section-edit-item {
+  background: rgba(241, 245, 249, 0.8);
+  border-color: #e2e8f0;
+}
+
+body.light-mode .section-edit-item:hover {
+  background: rgba(248, 250, 252, 0.9);
+  border-color: #cbd5e1;
+}
+
+body.light-mode .section-edit-name {
+  color: #334155;
+}
+
+body.light-mode .section-edit-item.section-hidden .section-edit-name {
+  color: #94a3b8;
+}
+
+body.light-mode .section-edit-drag-handle span {
+  background: #94a3b8;
+}
+
+body.light-mode .section-edit-sp-btn {
+  background: rgba(248, 250, 252, 0.8);
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+body.light-mode .section-edit-sp-btn:hover {
+  border-color: #3b82f6;
+  color: #334155;
+}
+
+body.light-mode .section-edit-sp-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+body.light-mode .section-edit-hide-label {
+  color: #94a3b8;
+}
+
+body.light-mode .sections-edit-bulk-btn {
+  border-color: rgba(90, 122, 154, 0.25);
+  background: rgba(90, 122, 154, 0.06);
+  color: #4a6a8a;
+}
+
+body.light-mode .sections-edit-bulk-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #2563eb;
+}
+
+body.light-mode .sections-edit-bulk-btn.bulk-reset {
+  border-color: rgba(220, 38, 38, 0.25);
+  background: rgba(220, 38, 38, 0.06);
+  color: #dc2626;
+}
+
+body.light-mode .sections-edit-bulk-btn.bulk-reset:hover {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+body.light-mode .sections-edit-badge {
+  border-top-color: rgba(90, 122, 154, 0.15);
+  border-bottom-color: rgba(90, 122, 154, 0.15);
+}
+
+body.light-mode .sections-edit-badge-label {
+  color: #3a5a7a;
+}
+
+body.light-mode .sections-edit-badge-btn {
+  background: rgba(248, 250, 252, 0.8);
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+body.light-mode .sections-edit-badge-btn:hover {
+  border-color: #3b82f6;
+  color: #334155;
+}
+
+body.light-mode .sections-edit-badge-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+body.light-mode .sections-edit-appearance-check {
+  color: #3a5a7a;
+}
+
+body.light-mode .sections-edit-warning {
+  color: #b45309;
+}
+
+body.light-mode .sections-edit-appearance-hide-text {
+  color: #94a3b8;
+}

@@ -58,6 +58,10 @@ let lastWaveformData = null;
 let visualizerType = DEFAULTS.visualizerType; // 'bars', 'waveform', 'mirrored', 'curve', 'dots', 'off'
 let customVisualizerColor = null;
 
+// Visualizer style label (transient toast)
+const visualizerStyleLabel = document.getElementById('visualizerStyleLabel');
+let vizLabelTimer = null;
+
 // Port-based streaming (more efficient than polling)
 let visualizerPort = null;
 let portReconnectTimer = null; // Timer for auto-reconnect after disconnect
@@ -183,6 +187,16 @@ function cycleVisualizerType() {
   // Update indicators (shows "off" when user turns it off)
   updateVisualizerUnavailableMessage();
   saveVisualizerType();
+
+  // Show transient style label
+  if (visualizerStyleLabel) {
+    visualizerStyleLabel.textContent = visualizerType === 'off'
+      ? 'Visualizer Off'
+      : visualizerType.charAt(0).toUpperCase() + visualizerType.slice(1);
+    visualizerStyleLabel.classList.add('is-visible');
+    if (vizLabelTimer) clearTimeout(vizLabelTimer);
+    vizLabelTimer = setTimeout(() => visualizerStyleLabel.classList.remove('is-visible'), 1500);
+  }
 }
 
 // ==================== Canvas Event Handlers ====================
@@ -235,6 +249,9 @@ function resizeVisualizer() {
 
   const container = visualizerCanvas.parentElement;
   const rect = container.getBoundingClientRect();
+
+  // Skip resize when container has no dimensions (e.g., section collapsed or hidden)
+  if (rect.width === 0 || rect.height === 0) return;
 
   // Set canvas size (use device pixel ratio for crisp rendering)
   const dpr = window.devicePixelRatio || 1;
@@ -787,6 +804,10 @@ async function startTabCapture() {
     return false;
   }
 
+  // Snapshot the tab ID at the start so we can detect if user switched tabs
+  // during async warmup (prevents applying capture state to wrong tab)
+  const captureTabId = currentTabId;
+
   try {
     // IMPORTANT: Stop render loop during mode switch to prevent drawing with mixed data
     // This matches the fresh popup open behavior where render starts AFTER capture is ready
@@ -799,10 +820,10 @@ async function startTabCapture() {
     stopAudibleDetection();
 
     // Request persistent capture via background -> offscreen
-    console.log('[Visualizer] Requesting persistent capture for tab', currentTabId);
+    console.log('[Visualizer] Requesting persistent capture for tab', captureTabId);
     const response = await browserAPI.runtime.sendMessage({
       type: 'START_PERSISTENT_VISUALIZER_CAPTURE',
-      tabId: currentTabId
+      tabId: captureTabId
     });
 
     if (!response || !response.success) {
@@ -832,10 +853,16 @@ async function startTabCapture() {
     let validFrameCount = 0;
 
     while (performance.now() - warmupStart < MAX_WARMUP_TIME) {
+      // Bail out if user switched tabs during warmup
+      if (currentTabId !== captureTabId) {
+        console.log('[Visualizer] Tab switched during warmup, aborting capture');
+        startVisualizerLoop();
+        return false;
+      }
       try {
         const dataResponse = await browserAPI.runtime.sendMessage({
           type: 'GET_PERSISTENT_VISUALIZER_DATA',
-          tabId: currentTabId
+          tabId: captureTabId
         });
 
         if (dataResponse && dataResponse.success && dataResponse.frequencyData) {
@@ -866,6 +893,13 @@ async function startTabCapture() {
 
     console.log('[Visualizer] Warmup finished after', Math.round(performance.now() - warmupStart), 'ms');
 
+    // Final stale check after warmup completes
+    if (currentTabId !== captureTabId) {
+      console.log('[Visualizer] Tab switched after warmup, aborting capture');
+      startVisualizerLoop();
+      return false;
+    }
+
     // Start continuous polling BEFORE setting flags
     startPersistentDataPolling();
 
@@ -879,7 +913,7 @@ async function startTabCapture() {
     // Re-enable visualizer state
     visualizerAutoDisabled = false;
     showEnablePrompt = false;
-    blockedTabsCache.set(currentTabId, false); // Tab is no longer blocked
+    blockedTabsCache.set(captureTabId, false); // Tab is no longer blocked
     clearStatus(); // Clear "Extension cannot access audio" message
 
     // Update UI to reflect new state
@@ -1263,6 +1297,11 @@ function updateVisualizer() {
     return;
   }
 
+  // Deferred resize: canvas may have been 0x0 at init (e.g., basic mode collapsed)
+  if (!visualizerCanvas.logicalWidth || !visualizerCanvas.logicalHeight) {
+    resizeVisualizer();
+  }
+
   // If persistent Tab Capture is active, data comes from polling interval
   // (lastFrequencyData/lastWaveformData updated by startPersistentDataPolling)
   if (persistentCaptureActive) {
@@ -1310,6 +1349,8 @@ const VISUALIZER_FRAME_INTERVAL = 33; // ~30fps
 
 function startVisualizerLoop() {
   if (visualizerAnimationId) return; // Already running
+  // Respect prefers-reduced-motion: skip animation loop entirely
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   visualizerAnimationId = setInterval(updateVisualizer, VISUALIZER_FRAME_INTERVAL);
 }
 

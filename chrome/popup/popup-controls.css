@@ -2,30 +2,11 @@
 /* Device selector, balance slider, rules, shortcuts, logo states */
 
 /* Hidden sections (via popup sections layout customization) */
-.section-hidden {
+.advanced-item.section-hidden {
   display: none !important;
 }
 
 /* Device Selector (inside enhancements container) */
-.device-selector {
-}
-
-.device-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #7a8fa5;
-  margin-bottom: 4px;
-}
-
-.device-label svg {
-  opacity: 0.7;
-}
-
-.device-label span {
-  flex: 1;
-}
 
 .refresh-btn {
   background: transparent;
@@ -55,6 +36,10 @@
   to { transform: rotate(360deg); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .refresh-btn.spinning svg { animation: none; }
+}
+
 .device-select {
   width: 100%;
   padding: 8px 10px;
@@ -82,6 +67,11 @@
   border-color: #7a9ab8;
 }
 
+.device-select:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.5);
+  outline-offset: 2px;
+}
+
 .device-select option {
   background: #0f1621;
   color: #f0f0f0;
@@ -92,7 +82,7 @@
 .balance-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   padding: 0;
   min-height: 22px;
 }
@@ -112,6 +102,14 @@
   flex-shrink: 0;
   width: 8px;
   text-align: center;
+}
+
+#balanceLabelLeft {
+  color: #60a5fa;
+}
+
+#balanceLabelRight {
+  color: #fb923c;
 }
 
 .balance-controls {
@@ -334,12 +332,12 @@ body.light-mode .balance-presets .effect-btn[data-level="left"].active {
 }
 
 body.light-mode .balance-presets .effect-btn[data-level="center"] {
-  color: #6b5d52;
-  border-color: #d4c4b0;
+  color: #4a6278;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .balance-presets .effect-btn[data-level="center"]:hover {
-  background: #efe7dd;
+  background: #d0e0ee;
 }
 
 body.light-mode .balance-presets .effect-btn[data-level="center"].active {
@@ -365,12 +363,6 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
 
 /* Add Site Rule Section (inside enhancements container) */
 .add-rule-section {
-}
-
-.add-rule-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .domain-checkbox {
@@ -399,33 +391,6 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
   color: #b8d4e8;
 }
 
-.add-rule-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: #0f1621;
-  border: 1px solid #5a7a9a;
-  border-radius: 8px;
-  color: #7a8fa5;
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.add-rule-btn:hover {
-  background: #1a2744;
-  border-color: #7a9ab8;
-  color: #f0f0f0;
-}
-
-.add-rule-btn:active {
-  transform: scale(0.98);
-}
-
 .rule-status {
   margin-top: 8px;
   padding: 6px 10px;
@@ -452,9 +417,9 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
 /* Global Status Message */
 .status-message {
   margin-top: 6px;
-  padding: 5px 10px;
+  padding: 5px 8px;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 12px;
   text-align: center;
   display: none;
   animation: statusFadeIn 0.2s ease;
@@ -469,6 +434,12 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes statusFadeIn {
+    from, to { opacity: 1; transform: none; }
   }
 }
 
@@ -773,98 +744,106 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
 /* ==================== Light Mode: Controls (Morning Theme) ==================== */
 
 body.light-mode .device-select {
-  background-color: #f5ede3;
-  border-color: #d4c4b0;
-  color: #2d2520;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9L12 15L18 9' stroke='%236b5d52' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-color: #dce8f2;
+  border-color: #b0c4d8;
+  color: #1a2a3a;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9L12 15L18 9' stroke='%234a6278' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 body.light-mode .device-select:hover {
-  background-color: #f5ede3;
-  border-color: #c4b4a0;
+  background-color: #dce8f2;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .device-select:focus {
-  border-color: #c4b4a0;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .device-select option {
-  background: #faf5ef;
-  color: #2d2520;
+  background: #e8f0f8;
+  color: #1a2a3a;
 }
 
 body.light-mode .refresh-btn {
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .refresh-btn:hover {
-  background: #f5ede3;
-  color: #2d2520;
-  border-color: #c4b4a0;
+  background: #dce8f2;
+  color: #1a2a3a;
+  border-color: #a0b8d0;
 }
 
 /* Light mode Balance Slider */
 body.light-mode .balance-title {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .balance-label {
-  color: #6b5d52;
+  color: #4a6278;
+}
+
+body.light-mode #balanceLabelLeft {
+  color: #3b82f6;
+}
+
+body.light-mode #balanceLabelRight {
+  color: #ea580c;
 }
 
 body.light-mode .balance-slider {
-  background: linear-gradient(to right, #3b82f6 0%, #d4c4b0 45%, #d4c4b0 55%, #ea580c 100%);
+  background: linear-gradient(to right, #3b82f6 0%, #b0c4d8 45%, #b0c4d8 55%, #ea580c 100%);
 }
 
 body.light-mode .balance-slider::-webkit-slider-thumb {
   background: #ffffff;
-  border-color: #d4c4b0;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .balance-slider::-webkit-slider-thumb:hover {
-  border-color: #8b7355;
+  border-color: #4a7a9a;
 }
 
 body.light-mode .balance-slider::-moz-range-thumb {
   background: #ffffff;
-  border-color: #d4c4b0;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .balance-slider::-moz-range-thumb:hover {
-  border-color: #8b7355;
+  border-color: #4a7a9a;
 }
 
 body.light-mode .balance-slider:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3), 0 0 0 3px rgba(139, 115, 85, 0.4);
+  box-shadow: 0 2px 8px rgba(60, 100, 150, 0.3), 0 0 0 3px rgba(60, 100, 150, 0.4);
 }
 
 body.light-mode .balance-slider:focus-visible::-moz-range-thumb {
-  box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3), 0 0 0 3px rgba(139, 115, 85, 0.4);
+  box-shadow: 0 2px 8px rgba(60, 100, 150, 0.3), 0 0 0 3px rgba(60, 100, 150, 0.4);
 }
 
 body.light-mode .balance-reset-btn {
-  background: #f5ede3;
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  background: #dce8f2;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .balance-reset-btn:hover {
-  background: #efe7dd;
-  border-color: #c4b4a0;
-  color: #2d2520;
+  background: #d0e0ee;
+  border-color: #a0b8d0;
+  color: #1a2a3a;
 }
 
 body.light-mode .balance-mode-btn {
-  background: #f5ede3;
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  background: #dce8f2;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .balance-mode-btn:hover {
-  background: #efe7dd;
-  border-color: #c4b4a0;
-  color: #2d2520;
+  background: #d0e0ee;
+  border-color: #a0b8d0;
+  color: #1a2a3a;
 }
 
 body.light-mode .balance-mode-btn.active {
@@ -879,24 +858,17 @@ body.light-mode .balance-mode-btn.swap {
   color: #ffffff;
 }
 
-body.light-mode .add-rule-btn {
-  background: #f5ede3;
-  border-color: #d4c4b0;
-  color: #6b5d52;
+/* Light mode site rule buttons */
+body.light-mode .site-rule-scope.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
 }
 
-body.light-mode .add-rule-btn:hover {
-  background: #efe7dd;
-  border-color: #c4b4a0;
-  color: #2d2520;
-}
-
-body.light-mode .domain-checkbox {
-  color: #6b5d52;
-}
-
-body.light-mode .domain-checkbox:hover {
-  color: #2d2520;
+body.light-mode .site-rule-add:hover {
+  background: rgba(22, 163, 74, 0.15);
+  color: #16a34a;
+  border-color: #16a34a;
 }
 
 body.light-mode .rule-status.success {
@@ -912,17 +884,17 @@ body.light-mode .rule-status.error {
 }
 
 body.light-mode .shortcuts-footer {
-  border-top-color: rgba(212, 196, 176, 0.5);
+  border-top-color: rgba(176, 196, 216, 0.5);
 }
 
 body.light-mode .shortcut-action {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .shortcut-key {
-  color: #6b5d52;
-  background: rgba(245, 237, 227, 0.7);
-  border-color: rgba(212, 196, 176, 0.5);
+  color: #4a6278;
+  background: rgba(220, 232, 242, 0.7);
+  border-color: rgba(176, 196, 216, 0.5);
 }
 
 /* Light mode Volume Icon states */
@@ -1033,7 +1005,7 @@ body.light-mode .logo.ultra .wave-5 {
 }
 
 .section-header-row:focus-visible {
-  outline: 2px solid #4A90D9;
+  outline: 2px solid rgba(96, 165, 250, 0.5);
   outline-offset: 2px;
 }
 
@@ -1150,20 +1122,40 @@ body.light-mode .section-title {
   padding: 3px 28px 3px 8px;
 }
 
-/* Site Rule row adjustments */
-.add-rule-section.compact-row .domain-checkbox {
-  gap: 4px;
-  margin-left: auto;
+/* Site Rule button group */
+.site-rule-buttons {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
 }
 
-.add-rule-section.compact-row .domain-checkbox span {
-  font-size: 10px;
+.site-rule-buttons .effect-btn {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
-.add-rule-btn.compact {
-  flex: 0 0 auto;
+/* Active scope button — blue like .effect-btn.low.active */
+.site-rule-scope.active {
+  background: #60a5fa;
+  color: #0d0d0d;
+  border-color: #60a5fa;
+}
+
+/* Add button — green accent to distinguish action from toggle */
+.site-rule-add {
+  flex: 0 0 auto !important;
   padding: 3px 10px;
-  gap: 4px;
+  min-width: 0;
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+.site-rule-add:hover {
+  background: rgba(74, 222, 128, 0.25);
+  color: #4ade80;
+  border-color: #4ade80;
 }
 
 /* Rule status - spans full width below, only when visible */
@@ -1326,5 +1318,5 @@ body.light-mode .sleep-status.compact:hover {
 
 /* Light mode compact rows */
 body.light-mode .compact-label {
-  color: #6b5d52;
+  color: #4a6278;
 }

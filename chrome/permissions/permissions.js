@@ -13,18 +13,24 @@ const autoCloseHint = document.getElementById('autoCloseHint');
 const countdownSpan = document.getElementById('countdown');
 const blockedSection = document.getElementById('blockedSection');
 
-// Start auto-close countdown
+// Start auto-close countdown (clears any existing countdown first)
+let autoCloseIntervalId = null;
 function startAutoClose(seconds) {
+  if (autoCloseIntervalId !== null) {
+    clearInterval(autoCloseIntervalId);
+  }
+
   let countdown = seconds;
   autoCloseHint.style.display = 'block';
   countdownSpan.textContent = countdown;
 
-  const countdownInterval = setInterval(() => {
+  autoCloseIntervalId = setInterval(() => {
     countdown--;
     if (countdown > 0) {
       countdownSpan.textContent = countdown;
     } else {
-      clearInterval(countdownInterval);
+      clearInterval(autoCloseIntervalId);
+      autoCloseIntervalId = null;
       window.close();
     }
   }, 1000);

@@ -318,15 +318,15 @@
 /* ==================== Light Mode: Form Controls (Morning Theme) ==================== */
 
 body.light-mode .preset-row label {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .toggle-slider {
-  background-color: #d4c4b0;
+  background-color: #b0c4d8;
 }
 
 body.light-mode .toggle-slider:before {
-  background-color: #8b7a6a;
+  background-color: #6a8298;
 }
 
 body.light-mode .toggle-switch-input input:checked + .toggle-slider {
@@ -334,23 +334,23 @@ body.light-mode .toggle-switch-input input:checked + .toggle-slider {
 }
 
 body.light-mode .input-group input {
-  background: #f5ede3;
-  border-color: #d4c4b0;
-  color: #2d2520;
+  background: #dce8f2;
+  border-color: #b0c4d8;
+  color: #1a2a3a;
 }
 
 body.light-mode .input-group input:hover {
-  border-color: #c4b4a0;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .input-group input:focus {
-  border-color: #8b7355;
-  background: #faf5ef;
+  border-color: #4a7a9a;
+  background: #e8f0f8;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 body.light-mode .input-group .suffix {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .input-group.muted input,
@@ -435,15 +435,15 @@ body.light-mode .btn.primary:hover {
 }
 
 body.light-mode .btn.secondary {
-  background: #f5ede3;
-  border: 1px solid #d4c4b0;
-  color: #2d2520;
+  background: #dce8f2;
+  border: 1px solid #b0c4d8;
+  color: #1a2a3a;
 }
 
 body.light-mode .btn.secondary:hover {
-  background: #ebe2d6;
-  border-color: #c4b4a0;
-  color: #2d2520;
+  background: #ccdcea;
+  border-color: #a0b8d0;
+  color: #1a2a3a;
 }
 
 body.light-mode .btn.danger {
@@ -469,11 +469,11 @@ body.light-mode .status.error {
 }
 
 body.light-mode .checkbox-label {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .setting-hint {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 /* ==================== Mode Buttons (Toggle Group) ==================== */
@@ -524,15 +524,15 @@ body.light-mode .setting-hint {
 
 /* Light mode */
 body.light-mode .mode-button-label {
-  background: #f5ede3;
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  background: #dce8f2;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .mode-button-label:hover {
-  background: #ebe2d6;
-  border-color: #c4b4a0;
-  color: #2d2520;
+  background: #ccdcea;
+  border-color: #a0b8d0;
+  color: #1a2a3a;
 }
 
 body.light-mode .mode-button input[type="radio"]:checked + .mode-button-label {

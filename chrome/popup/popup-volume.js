@@ -203,6 +203,7 @@ function updateUI(volume) {
 
   // Update mute button
   muteBtn.classList.toggle('muted', volume === 0);
+  muteBtn.setAttribute('aria-pressed', volume === 0 ? 'true' : 'false');
 
   // Easter egg: 404% volume ("Volume not found") - only triggers if audio is playing
   if (volume === 404) {
@@ -225,15 +226,15 @@ function updateUI(volume) {
               if (window.isTabCaptureActive && window.isTabCaptureActive()) {
                 browserAPI.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_VOLUME', tabId, volume: 404 }).catch(() => {});
               }
-              showStatus('Just kidding', 'info', 3000);
+              showStatus('Just kidding 🤣🤣', 'info', 3000);
               easterEgg404Active = false;
             }, 3000);
+            easterEgg404Fired = true;
           }
         } catch (e) {
           // isTabAudible may fail if tab is closed or restricted - ignore silently
         }
         easterEgg404Timer = null;
-        easterEgg404Fired = true;
       }, 4000);
     }
   } else {
@@ -292,12 +293,14 @@ async function setVolume(volume, isMuteToggle = false) {
   updateUI(volume);
 
   // Show one-time warning for boosted volume levels (persists across popup opens via chrome.storage.session)
+  // Fire-and-forget to avoid suspending the volume-send path (prevents message ordering issues)
   if (volume > EXTREME_VOLUME_THRESHOLD) {
-    const result = await browserAPI.storage.session.get('extremeVolumeWarningShown');
-    if (!result.extremeVolumeWarningShown) {
-      await browserAPI.storage.session.set({ extremeVolumeWarningShown: true });
-      showStatus('High volume may damage hearing. Use carefully.', 'warning', 5000);
-    }
+    browserAPI.storage.session.get('extremeVolumeWarningShown').then(result => {
+      if (!result.extremeVolumeWarningShown) {
+        browserAPI.storage.session.set({ extremeVolumeWarningShown: true }).catch(() => {});
+        showStatus('High volume may damage hearing. Use carefully.', 'warning', 5000);
+      }
+    }).catch(() => {});
   }
 
   // Add visual feedback

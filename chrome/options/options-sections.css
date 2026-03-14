@@ -3,7 +3,7 @@
 
 /* Sections */
 .section {
-  background: #0f1621;
+  background: rgba(15, 22, 33, 0.85);
   border: 1px solid #5a7a9a;
   border-radius: 12px;
   padding: 28px;
@@ -172,7 +172,7 @@
 }
 
 .faq-expand-all:hover {
-  background: #1a2744;
+  background: rgba(26, 39, 68, 0.9);
   color: #f0f0f0;
   border-color: #7a9ab8;
 }
@@ -189,7 +189,7 @@
 
 .section.collapsible:hover,
 .section.collapsible.expanded {
-  background: #1a2744;
+  background: rgba(26, 39, 68, 0.9);
 }
 
 .section.collapsible .section-header {
@@ -260,62 +260,62 @@
 /* ==================== Light Mode: Sections (Morning Theme) ==================== */
 
 body.light-mode .section {
-  background: #faf5ef;
-  border-color: #d4c4b0;
+  background: rgba(232, 240, 248, 0.85);
+  border-color: #b0c4d8;
 }
 
 body.light-mode .section h2 {
-  color: #8b7355;
+  color: #4a7a9a;
 }
 
 body.light-mode .section-desc {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .subsection {
-  border-color: #d4c4b0;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .subsection h3 {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .subsection-title {
-  color: #2d2520;
-  border-color: #d4c4b0;
+  color: #1a2a3a;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .section.collapsible:hover,
 body.light-mode .section.collapsible.expanded {
-  background: #f5ede3;
+  background: rgba(220, 232, 242, 0.9);
 }
 
 body.light-mode .section.collapsible .collapse-icon {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .section.collapsible:hover .collapse-icon {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 /* Light mode FAQ */
 body.light-mode .faq-expand-all {
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .faq-expand-all:hover {
-  background: #f5ede3;
-  color: #2d2520;
-  border-color: #c4b4a0;
+  background: #dce8f2;
+  color: #1a2a3a;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .faq-subsection {
-  border-top-color: #d4c4b0;
+  border-top-color: #b0c4d8;
 }
 
 body.light-mode .faq-subsection-header {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .faq-subsection-header:hover {
@@ -335,9 +335,9 @@ body.light-mode .section.collapsible .section-header:focus-visible {
 }
 
 body.light-mode .faq-subsection-header .collapse-icon {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .faq-subsection-header:hover .collapse-icon {
-  color: #2d2520;
+  color: #1a2a3a;
 }

@@ -28,104 +28,9 @@ loadTheme();
 // Theme toggle handler
 themeToggle.addEventListener('click', toggleTheme);
 
-// ==================== Default Audio Mode ====================
-
-const defaultAudioModeRadios = document.querySelectorAll('input[name="defaultAudioMode"]');
-const defaultModeStatus = document.getElementById('defaultModeStatus');
-const defaultModeDesc = document.getElementById('defaultModeDesc');
-const tabCaptureSubsection = document.getElementById('tabCaptureSubsection');
-
-// Mode descriptions (using new naming)
-const modeDescriptions = {
-  tabcapture: 'Tab Capture provides the most reliable audio control across all websites.',
-  auto: 'Web Audio intercepts page audio for full features. Works on most sites.',
-  native: 'Audio processing is off. Limited to 0-100% volume with no enhancements.'
-};
-
-// Load default audio mode
-async function loadDefaultAudioMode() {
-  const result = await browserAPI.storage.sync.get(['defaultAudioMode']);
-  const validModes = ['tabcapture', 'auto', 'native'];
-  const mode = validModes.includes(result.defaultAudioMode) ? result.defaultAudioMode : DEFAULT_AUDIO_MODE;
-
-  // Cache in localStorage for synchronous access from popup
-  // This enables auto-start Tab Capture on popup open (requires sync read in gesture context)
-  try {
-    localStorage.setItem('__tabVolumeControl_defaultAudioMode', mode);
-  } catch (e) {
-    // localStorage might be blocked
-  }
-
-  // Select the correct radio button
-  const radio = document.querySelector(`input[name="defaultAudioMode"][value="${mode}"]`);
-  if (radio) {
-    radio.checked = true;
-  }
-  updateModeDescription(mode);
-  updateTabCaptureSectionState(mode);
-
-  // Hide Tab Capture option on Firefox
-  if (isFirefox) {
-    const tabCaptureLabel = document.querySelector('.mode-button.chrome-only-option');
-    if (tabCaptureLabel) {
-      tabCaptureLabel.style.display = 'none';
-    }
-  }
-}
-
-// Update the description text based on selected mode
-function updateModeDescription(mode) {
-  if (defaultModeDesc) {
-    defaultModeDesc.textContent = modeDescriptions[mode] || '';
-  }
-}
-
-// Grey out Tab Capture Sites section when Tab Capture is the default mode
-function updateTabCaptureSectionState(mode) {
-  if (tabCaptureSubsection) {
-    if (mode === 'tabcapture') {
-      tabCaptureSubsection.classList.add('disabled-section');
-      tabCaptureSubsection.setAttribute('title', 'Tab Capture is the default mode - per-site list is not used');
-    } else {
-      tabCaptureSubsection.classList.remove('disabled-section');
-      tabCaptureSubsection.removeAttribute('title');
-    }
-  }
-}
-
-// Save default audio mode
-async function saveDefaultAudioMode(mode) {
-  await browserAPI.storage.sync.set({ defaultAudioMode: mode });
-
-  // Cache in localStorage for synchronous access from popup
-  try {
-    localStorage.setItem('__tabVolumeControl_defaultAudioMode', mode);
-  } catch (e) {
-    // localStorage might be blocked
-  }
-
-  updateModeDescription(mode);
-  updateTabCaptureSectionState(mode);
-
-  // Reload site overrides list (shows different overrides per default mode)
-  if (typeof loadSiteOverrides === 'function') {
-    loadSiteOverrides();
-  }
-
-  showStatus(defaultModeStatus, 'Default mode saved!', 'success');
-}
-
-// Add listeners to radio buttons
-defaultAudioModeRadios.forEach(radio => {
-  radio.addEventListener('change', (e) => {
-    if (e.target.checked) {
-      saveDefaultAudioMode(e.target.value);
-    }
-  });
-});
-
-// Load default audio mode on init
-loadDefaultAudioMode();
+// Note: Default Audio Mode radio group was removed from options.html
+// The extension uses Tab Capture as the sole processing mode.
+// defaultAudioMode storage key is still used by background.js for site overrides.
 
 // ==================== Visualizer Settings ====================
 
@@ -174,11 +79,11 @@ browserAPI.storage.onChanged.addListener((changes, area) => {
       }
     }
     if (changes.showVisualizer) {
-      showVisualizerCheckbox.checked = changes.showVisualizer.newValue;
+      showVisualizerCheckbox.checked = !changes.showVisualizer.newValue;
       updateTabInfoInsideState();
     }
     if (changes.showSeekbar && showSeekbarCheckbox) {
-      showSeekbarCheckbox.checked = changes.showSeekbar.newValue;
+      showSeekbarCheckbox.checked = !changes.showSeekbar.newValue;
     }
     if (changes.seekbarTimeDisplay && seekbarShowRemainingCheckbox) {
       seekbarShowRemainingCheckbox.checked = changes.seekbarTimeDisplay.newValue === 'remaining';
@@ -193,6 +98,20 @@ browserAPI.storage.onChanged.addListener((changes, area) => {
         visualizerColorPicker.disabled = true;
       }
     }
+    if (changes.tabInfoLocation) {
+      const loc = changes.tabInfoLocation.newValue;
+      const radio = document.querySelector(`input[name="tabInfoLocation"][value="${loc}"]`);
+      if (radio) radio.checked = true;
+      updateTabInfoInsideState();
+    }
+    if (changes.badgeStyle) {
+      const style = changes.badgeStyle.newValue;
+      const radio = document.querySelector(`input[name="badgeStyle"][value="${style}"]`);
+      if (radio) radio.checked = true;
+    }
+    if (changes.showShortcutsFooter && showShortcutsFooterCheckbox) {
+      showShortcutsFooterCheckbox.checked = !changes.showShortcutsFooter.newValue;
+    }
   }
 });
 
@@ -203,12 +122,12 @@ const showVisualizerCheckbox = document.getElementById('showVisualizer');
 async function loadShowVisualizer() {
   const result = await browserAPI.storage.sync.get(['showVisualizer']);
   const show = result.showVisualizer ?? DEFAULTS.showVisualizer;
-  showVisualizerCheckbox.checked = show;
+  showVisualizerCheckbox.checked = !show;
   updateTabInfoInsideState();
 }
 
 showVisualizerCheckbox.addEventListener('change', async (e) => {
-  await browserAPI.storage.sync.set({ showVisualizer: e.target.checked });
+  await browserAPI.storage.sync.set({ showVisualizer: !e.target.checked });
   updateTabInfoInsideState();
   showStatus(visualizerStatus, 'Visualizer setting saved!', 'success');
 });
@@ -219,7 +138,7 @@ function updateTabInfoInsideState() {
   const belowRadio = document.querySelector('input[name="tabInfoLocation"][value="below"]');
   if (!insideRadio) return;
 
-  const isHidden = !showVisualizerCheckbox.checked;
+  const isHidden = showVisualizerCheckbox.checked;
 
   // Disable "Inside visualizer" when visualizer is hidden
   insideRadio.disabled = isHidden;
@@ -250,14 +169,14 @@ const showSeekbarCheckbox = document.getElementById('showSeekbar');
 async function loadShowSeekbar() {
   const result = await browserAPI.storage.sync.get(['showSeekbar']);
   const show = result.showSeekbar ?? DEFAULTS.showSeekbar;
-  if (showSeekbarCheckbox) showSeekbarCheckbox.checked = show;
+  if (showSeekbarCheckbox) showSeekbarCheckbox.checked = !show;
 }
 
 const seekbarStatus = document.getElementById('seekbarStatus');
 
 if (showSeekbarCheckbox) {
   showSeekbarCheckbox.addEventListener('change', async (e) => {
-    await browserAPI.storage.sync.set({ showSeekbar: e.target.checked });
+    await browserAPI.storage.sync.set({ showSeekbar: !e.target.checked });
     showStatus(seekbarStatus, 'Seekbar setting saved!', 'success');
   });
 }
@@ -372,10 +291,12 @@ loadTabInfoLocation();
 const resetVisualizerBtn = document.getElementById('resetVisualizerBtn');
 if (resetVisualizerBtn) {
   resetVisualizerBtn.addEventListener('click', async () => {
-    // Reset visualizer-only settings to defaults
+    // Reset visualizer and seekbar settings to defaults
     await browserAPI.storage.sync.set({
       visualizerType: DEFAULTS.visualizerType,
-      showVisualizer: DEFAULTS.showVisualizer
+      showVisualizer: DEFAULTS.showVisualizer,
+      showSeekbar: DEFAULTS.showSeekbar,
+      seekbarTimeDisplay: DEFAULTS.seekbarTimeDisplay
     });
     // Also update local storage for popup
     await browserAPI.storage.local.set({ visualizerType: DEFAULTS.visualizerType });
@@ -388,7 +309,12 @@ if (resetVisualizerBtn) {
     const defaultRadio = document.querySelector(`input[name="visualizerType"][value="${DEFAULTS.visualizerType}"]`);
     if (defaultRadio) defaultRadio.checked = true;
 
-    showVisualizerCheckbox.checked = DEFAULTS.showVisualizer;
+    // Checkbox is inverted: checked = hidden, so negate the default
+    showVisualizerCheckbox.checked = !DEFAULTS.showVisualizer;
+
+    // Reset seekbar UI
+    if (showSeekbarCheckbox) showSeekbarCheckbox.checked = !DEFAULTS.showSeekbar;
+    if (seekbarShowRemainingCheckbox) seekbarShowRemainingCheckbox.checked = (DEFAULTS.seekbarTimeDisplay === 'remaining');
 
     // Reset custom color UI
     useCustomVisualizerColorCheckbox.checked = false;
@@ -441,11 +367,11 @@ const showShortcutsFooterStatus = document.getElementById('showShortcutsFooterSt
 async function loadShowShortcutsFooter() {
   const result = await browserAPI.storage.sync.get(['showShortcutsFooter']);
   const show = result.showShortcutsFooter ?? DEFAULTS.showShortcutsFooter;
-  showShortcutsFooterCheckbox.checked = show;
+  showShortcutsFooterCheckbox.checked = !show;
 }
 
 showShortcutsFooterCheckbox.addEventListener('change', async (e) => {
-  await browserAPI.storage.sync.set({ showShortcutsFooter: e.target.checked });
+  await browserAPI.storage.sync.set({ showShortcutsFooter: !e.target.checked });
   showStatus(showShortcutsFooterStatus, 'Shortcuts footer setting saved!', 'success');
 });
 

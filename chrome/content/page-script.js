@@ -10,6 +10,10 @@
   // Set a marker so we can verify the script ran (survives console.clear)
   window.__tabVolumePageScriptRan = true;
 
+  // Debug logging (set to true for development, false for production)
+  const DEBUG = false;
+  function log(...args) { if (DEBUG) console.log('[TabVolume]', ...args); }
+
   // Security: Validate hostname before using in storage keys
   // KEEP IN SYNC with background.js sanitizeHostname() and content.js isValidHostname()
   function isValidHostname(hostname) {
@@ -301,10 +305,18 @@
     window.webkitAudioContext = patchAudioContextConstructor(OriginalWebkitAudioContext);
   }
 
+  // Prune closed AudioContexts from the Set to prevent unbounded growth
+  function pruneClosedContexts() {
+    audioContexts.forEach(ctx => {
+      if (ctx.state === 'closed') audioContexts.delete(ctx);
+    });
+  }
+
   // Apply volume to all contexts
   function applyVolume(volume) {
     currentVolume = volume;
     const gain = Math.max(volume / 100, 0.0001);
+    pruneClosedContexts();
 
     audioContexts.forEach(ctx => {
       try {
@@ -456,7 +468,7 @@
             d.label && d.label.toLowerCase().trim() === normalizedLabel
           );
           if (match) {
-            console.log('[TabVolume] Resolved device by label on attempt', attempt + 1, ':', match.deviceId);
+            log('Resolved device by label on attempt', attempt + 1, ':', match.deviceId);
             return match.deviceId;
           }
         }
@@ -470,7 +482,7 @@
       }
     }
 
-    console.log('[TabVolume] Could not resolve device by label after retries');
+    log('Could not resolve device by label after retries');
     return null;
   }
 
@@ -484,21 +496,21 @@
         try {
           await element.setSinkId(deviceId || '');
           successCount++;
-          console.log('[TabVolume] setSinkId on', element.tagName, 'succeeded');
+          log('setSinkId on', element.tagName, 'succeeded');
         } catch (e) {
-          console.log('[TabVolume] setSinkId on', element.tagName, 'failed:', e.name, e.message);
+          log('setSinkId on', element.tagName, 'failed:', e.name, e.message);
         }
       }
     }
 
-    console.log('[TabVolume] Media elements found:', elements.length, 'successful:', successCount);
+    log('Media elements found:', elements.length, 'successful:', successCount);
     return successCount;
   }
 
   // Apply audio output device to all contexts AND media elements
   // Strategy: Try the device ID first. If that fails, try label resolution.
   async function applyDevice(deviceId, deviceLabel) {
-    console.log('[TabVolume] applyDevice called', { deviceId, deviceLabel });
+    log('applyDevice called', { deviceId, deviceLabel });
 
     let successCount = 0;
     let failCount = 0;
@@ -511,10 +523,10 @@
           if (ctx.state !== 'closed' && typeof ctx.setSinkId === 'function') {
             await ctx.setSinkId(deviceId);
             successCount++;
-            console.log('[TabVolume] AudioContext setSinkId succeeded');
+            log('AudioContext setSinkId succeeded');
           }
         } catch (e) {
-          console.log('[TabVolume] AudioContext setSinkId failed:', e.name);
+          log('AudioContext setSinkId failed:', e.name);
           failCount++;
         }
       }
@@ -527,23 +539,23 @@
     // Second attempt: if first attempt failed, try resolving by label
     // This is needed because device IDs are context-specific in Firefox
     if (successCount === 0 && deviceLabel) {
-      console.log('[TabVolume] Direct ID failed, trying label resolution...');
+      log('Direct ID failed, trying label resolution...');
 
       // First request getUserMedia to unlock device enumeration
       try {
-        console.log('[TabVolume] Requesting microphone permission in page context...');
+        log('Requesting microphone permission in page context...');
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach(track => track.stop());
-        console.log('[TabVolume] Got microphone permission in page context');
+        log('Got microphone permission in page context');
       } catch (e) {
-        console.log('[TabVolume] Could not get microphone permission:', e.name, e.message);
+        log('Could not get microphone permission:', e.name, e.message);
       }
 
-      console.log('[TabVolume] Resolving device by label:', deviceLabel);
+      log('Resolving device by label:', deviceLabel);
       const localId = await resolveDeviceByLabel(deviceLabel);
-      console.log('[TabVolume] Label resolution result:', localId);
+      log('Label resolution result:', localId);
       if (localId) {
-        console.log('[TabVolume] Resolved by label:', localId);
+        log('Resolved by label:', localId);
 
         // Notify content script of the resolved device ID
         // This is critical for Firefox where content script can't enumerate devices
@@ -551,7 +563,7 @@
         window.dispatchEvent(new CustomEvent('__tabVolumeControl_deviceResolved', {
           detail: { deviceId: localId, deviceLabel: deviceLabel }
         }));
-        console.log('[TabVolume] Dispatched resolved device ID to content script');
+        log('Dispatched resolved device ID to content script');
 
         // Apply to AudioContexts
         for (const ctx of audioContexts) {
@@ -559,7 +571,7 @@
             if (ctx.state !== 'closed' && typeof ctx.setSinkId === 'function') {
               await ctx.setSinkId(localId);
               successCount++;
-              console.log('[TabVolume] setSinkId succeeded with resolved ID');
+              log('setSinkId succeeded with resolved ID');
             }
           } catch (e) {
             failCount++;
@@ -571,7 +583,7 @@
         successCount += mediaSuccess;
       } else {
         // Label resolution failed - site likely blocks device enumeration
-        console.log('[TabVolume] Cannot resolve device - site may restrict audio device access');
+        log('Cannot resolve device - site may restrict audio device access');
       }
     }
 
@@ -591,7 +603,7 @@
       await applyDeviceToMediaElements('');
     }
 
-    console.log('[TabVolume] Applied device - success:', successCount, 'failed:', failCount);
+    log('Applied device - success:', successCount, 'failed:', failCount);
     return successCount > 0;
   }
 
@@ -635,17 +647,17 @@
     }
   });
 
-  // Listen for device changes
+  // Listen for device changes (only when active — prevents page scripts from routing audio)
   window.addEventListener('__tabVolumeControl_setDevice', function(e) {
-    console.log('[TabVolume] Received setDevice event', e.detail);
-    console.log('[TabVolume] AudioContexts count:', audioContexts.size);
+    if (!isActive) return;
     if (e.detail && typeof e.detail.deviceId === 'string') {
       applyDevice(e.detail.deviceId, e.detail.deviceLabel || '');
     }
   });
 
-  // Listen for bass boost changes
+  // Listen for bass boost changes (only when active — prevents page scripts from pre-seeding effects)
   window.addEventListener('__tabVolumeControl_setBass', function(e) {
+    if (!isActive) return;
     if (e.detail && isFiniteInRange(e.detail.gain, EFFECT_RANGES.bass.min, EFFECT_RANGES.bass.max)) {
       applyBassBoost(e.detail.gain);
     }
@@ -653,6 +665,7 @@
 
   // Listen for treble boost changes
   window.addEventListener('__tabVolumeControl_setTreble', function(e) {
+    if (!isActive) return;
     if (e.detail && isFiniteInRange(e.detail.gain, EFFECT_RANGES.treble.min, EFFECT_RANGES.treble.max)) {
       applyTrebleBoost(e.detail.gain);
     }
@@ -660,6 +673,7 @@
 
   // Listen for voice boost changes
   window.addEventListener('__tabVolumeControl_setVoice', function(e) {
+    if (!isActive) return;
     if (e.detail && isFiniteInRange(e.detail.gain, EFFECT_RANGES.voice.min, EFFECT_RANGES.voice.max)) {
       applyVoiceBoost(e.detail.gain);
     }
@@ -667,6 +681,7 @@
 
   // Listen for balance changes
   window.addEventListener('__tabVolumeControl_setBalance', function(e) {
+    if (!isActive) return;
     if (e.detail && isFiniteInRange(e.detail.pan, -1, 1)) {
       applyBalance(e.detail.pan);
     }
@@ -674,6 +689,7 @@
 
   // Listen for channel mode changes (stereo/mono/swap)
   window.addEventListener('__tabVolumeControl_setChannelMode', function(e) {
+    if (!isActive) return;
     if (e.detail && typeof e.detail.mode === 'string' && VALID_CHANNEL_MODES.includes(e.detail.mode)) {
       applyChannelMode(e.detail.mode);
     }
@@ -693,6 +709,7 @@
   }
 
   window.addEventListener('__tabVolumeControl_setSpeed', function(e) {
+    if (!isActive) return;
     if (e.detail && isFiniteInRange(e.detail.rate, EFFECT_RANGES.speed.min, EFFECT_RANGES.speed.max)) {
       applyPlaybackRateToAll(e.detail.rate);
     }

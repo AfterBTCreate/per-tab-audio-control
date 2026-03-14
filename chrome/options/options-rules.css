@@ -385,12 +385,6 @@
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
-.mode-label.mode-webaudio {
-  background: rgba(107, 114, 128, 0.2);
-  color: #9ca3af;
-  border: 1px solid rgba(107, 114, 128, 0.3);
-}
-
 .mode-label.mode-off {
   background: rgba(249, 115, 22, 0.2);
   color: #fb923c;
@@ -464,67 +458,67 @@
 /* ==================== Light Mode: Site Rules (Morning Theme) ==================== */
 
 body.light-mode .rule-input-row input[type="text"] {
-  background: #faf5ef;
-  border-color: #d4c4b0;
-  color: #2d2520;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
+  color: #1a2a3a;
 }
 
 body.light-mode .rule-input-row input[type="text"]:hover {
-  border-color: #c4b4a0;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .rule-input-row input[type="text"]:focus {
-  border-color: #8b7355;
-  background: #faf5ef;
+  border-color: #4a7a9a;
+  background: #e8f0f8;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 body.light-mode .rule-input-row input[type="text"]::placeholder {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .current-default-device {
-  background: #faf5ef;
-  border-color: #d4c4b0;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .default-device-label {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .default-device-name {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .default-device-name.system-default {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .device-select {
-  background-color: #faf5ef;
-  border-color: #d4c4b0;
-  color: #2d2520;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9L12 15L18 9' stroke='%236b5d52' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-color: #e8f0f8;
+  border-color: #b0c4d8;
+  color: #1a2a3a;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9L12 15L18 9' stroke='%234a6278' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 body.light-mode .device-select:hover {
-  border-color: #c4b4a0;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .device-select:focus {
-  border-color: #8b7355;
+  border-color: #4a7a9a;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 body.light-mode .refresh-btn {
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .refresh-btn:hover {
-  background: #f5ede3;
-  color: #2d2520;
-  border-color: #c4b4a0;
+  background: #dce8f2;
+  color: #1a2a3a;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .refresh-btn:focus-visible {
@@ -532,35 +526,35 @@ body.light-mode .refresh-btn:focus-visible {
 }
 
 body.light-mode .device-note {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .rule-instructions {
-  background: #faf5ef;
-  border-color: #d4c4b0;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .instruction-title {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .instruction-steps {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .rules-empty-placeholder {
-  background: #faf5ef;
-  border-color: #d4c4b0;
-  color: #8b7a6a;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
+  color: #6a8298;
 }
 
 body.light-mode .storage-quota-display {
-  background: #faf5ef;
-  border-color: #d4c4b0;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .quota-label {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .quota-value {
@@ -576,7 +570,7 @@ body.light-mode .quota-value.critical {
 }
 
 body.light-mode .quota-bar {
-  background: #d4c4b0;
+  background: #b0c4d8;
 }
 
 body.light-mode .quota-fill {
@@ -592,19 +586,19 @@ body.light-mode .quota-fill.critical {
 }
 
 body.light-mode .cleanup-old-rules-btn {
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .cleanup-old-rules-btn:hover {
-  background: #f5ede3;
-  border-color: #c4b4a0;
+  background: #dce8f2;
+  border-color: #a0b8d0;
   color: #ea580c;
 }
 
 body.light-mode .rules-list-header {
-  color: #8b7a6a;
-  border-bottom-color: #d4c4b0;
+  color: #6a8298;
+  border-bottom-color: #b0c4d8;
 }
 
 body.light-mode .clear-all-btn {
@@ -618,20 +612,20 @@ body.light-mode .clear-all-btn:hover {
 }
 
 body.light-mode .rule-item {
-  background: #faf5ef;
-  border-color: #d4c4b0;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .rule-pattern {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .rule-type {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .rule-last-used {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .rule-volume.muted {
@@ -655,8 +649,8 @@ body.light-mode .rule-volume.extreme {
 }
 
 body.light-mode .rule-delete {
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .rule-delete:hover {
@@ -666,9 +660,9 @@ body.light-mode .rule-delete:hover {
 }
 
 body.light-mode .no-rules {
-  background: #faf5ef;
-  border-color: #d4c4b0;
-  color: #8b7a6a;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
+  color: #6a8298;
 }
 
 /* Light mode: Mode labels */
@@ -676,12 +670,6 @@ body.light-mode .mode-label.mode-tabcapture {
   background: rgba(59, 130, 246, 0.15);
   color: #2563eb;
   border-color: rgba(59, 130, 246, 0.4);
-}
-
-body.light-mode .mode-label.mode-webaudio {
-  background: rgba(107, 114, 128, 0.15);
-  color: #4b5563;
-  border-color: rgba(107, 114, 128, 0.4);
 }
 
 body.light-mode .mode-label.mode-off {

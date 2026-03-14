@@ -91,17 +91,17 @@ function updateEffectButtonLabels() {
   const speedSlowLow = document.getElementById('speedSlowLow');
   const speedSlowMed = document.getElementById('speedSlowMed');
   const speedSlowHigh = document.getElementById('speedSlowHigh');
-  if (speedSlowLow) speedSlowLow.textContent = `${speedSlowPresets[0]}x`;
-  if (speedSlowMed) speedSlowMed.textContent = `${speedSlowPresets[1]}x`;
-  if (speedSlowHigh) speedSlowHigh.textContent = `${speedSlowPresets[2]}x`;
+  if (speedSlowLow) speedSlowLow.textContent = `${speedSlowPresets[0].toFixed(2)}x`;
+  if (speedSlowMed) speedSlowMed.textContent = `${speedSlowPresets[1].toFixed(2)}x`;
+  if (speedSlowHigh) speedSlowHigh.textContent = `${speedSlowPresets[2].toFixed(2)}x`;
 
   // Speed fast buttons
   const speedFastLow = document.getElementById('speedFastLow');
   const speedFastMed = document.getElementById('speedFastMed');
   const speedFastHigh = document.getElementById('speedFastHigh');
-  if (speedFastLow) speedFastLow.textContent = `${speedFastPresets[0]}x`;
-  if (speedFastMed) speedFastMed.textContent = `${speedFastPresets[1]}x`;
-  if (speedFastHigh) speedFastHigh.textContent = `${speedFastPresets[2]}x`;
+  if (speedFastLow) speedFastLow.textContent = `${speedFastPresets[0].toFixed(2)}x`;
+  if (speedFastMed) speedFastMed.textContent = `${speedFastPresets[1].toFixed(2)}x`;
+  if (speedFastHigh) speedFastHigh.textContent = `${speedFastPresets[2].toFixed(2)}x`;
 
   // Sleep timer preset buttons
   const sleepTimerButtons = document.querySelectorAll('.sleep-timer-buttons .sleep-btn');
@@ -125,8 +125,7 @@ const trebleSliderValue = document.getElementById('trebleSliderValue');
 const voiceSlider = document.getElementById('voiceSlider');
 const voiceSliderValue = document.getElementById('voiceSliderValue');
 
-// Per-item EQ control mode
-const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance', 'sleepTimer']);
+// Per-item EQ control mode (EQ_DUAL_MODE_ITEMS defined in shared/constants.js)
 let eqControlMode = 'sliders'; // global default
 let eqItemControlModes = {}; // per-item overrides from popupSectionsLayout.controlMode
 
@@ -134,7 +133,8 @@ let eqItemControlModes = {}; // per-item overrides from popupSectionsLayout.cont
 async function loadEqControlMode() {
   const result = await browserAPI.storage.sync.get(['eqControlMode', 'popupSectionsLayout']);
   eqControlMode = result.eqControlMode || DEFAULTS.eqControlMode;
-  eqItemControlModes = (result.popupSectionsLayout && result.popupSectionsLayout.controlMode) || {};
+  const layout = result.popupSectionsLayout || DEFAULTS.popupSectionsLayout;
+  eqItemControlModes = (layout && layout.controlMode) || {};
   applyEqControlMode();
 }
 
@@ -468,13 +468,19 @@ function updateEffectsDisabledState() {
   }
 
   // Update effect row labels to show disabled state
+  const labelOriginalTitles = {
+    'Bass': 'Boost or cut low frequencies',
+    'Treble': 'Boost or cut high frequencies',
+    'Voice': 'Enhances vocal frequencies for clearer speech'
+  };
   effectLabels.forEach(label => {
-    if (label.textContent.includes('Bass') || label.textContent.includes('Treble') || label.textContent.includes('Voice')) {
+    const text = label.textContent.trim();
+    if (text === 'Bass' || text === 'Treble' || text === 'Voice') {
       label.classList.toggle('disabled', compressorActive);
       if (compressorActive) {
         label.title = 'Disabled while compressor is active';
       } else {
-        label.title = '';
+        label.title = labelOriginalTitles[text] || '';
       }
     }
   });
@@ -482,7 +488,7 @@ function updateEffectsDisabledState() {
 
 // Get gain value for effect level
 function getEffectGain(effect, level) {
-  if (level === 'off') return 0;
+  if (!level || level === 'off') return 0;
 
   // Handle slider mode values (slider:VALUE format)
   if (level.startsWith('slider:')) {
@@ -709,6 +715,7 @@ effectButtons.forEach(btn => {
   btn.addEventListener('click', () => {
     const effect = btn.dataset.effect;
     const level = btn.dataset.level;
+    if (!effect || !level) return;
 
     if (effect === 'compressor') {
       applyCompressor(level);
@@ -820,6 +827,9 @@ function updateChannelModeUI() {
   stereoToggle.classList.remove('active');
   swapToggle.classList.remove('active', 'swap');
   monoToggle.classList.remove('active');
+  stereoToggle.setAttribute('aria-pressed', 'false');
+  swapToggle.setAttribute('aria-pressed', 'false');
+  monoToggle.setAttribute('aria-pressed', 'false');
 
   // Get balance labels
   const leftLabel = document.getElementById('balanceLabelLeft');
@@ -827,17 +837,20 @@ function updateChannelModeUI() {
 
   if (currentChannelMode === 'swap') {
     swapToggle.classList.add('active', 'swap'); // 'swap' class gives orange color
+    swapToggle.setAttribute('aria-pressed', 'true');
     // Swap the labels to reflect swapped channels
     if (leftLabel) leftLabel.textContent = 'R';
     if (rightLabel) rightLabel.textContent = 'L';
   } else if (currentChannelMode === 'mono') {
     monoToggle.classList.add('active');
+    monoToggle.setAttribute('aria-pressed', 'true');
     // Reset labels to normal
     if (leftLabel) leftLabel.textContent = 'L';
     if (rightLabel) rightLabel.textContent = 'R';
   } else {
     // Stereo mode (default)
     stereoToggle.classList.add('active');
+    stereoToggle.setAttribute('aria-pressed', 'true');
     // Reset labels to normal
     if (leftLabel) leftLabel.textContent = 'L';
     if (rightLabel) rightLabel.textContent = 'R';
@@ -891,7 +904,10 @@ swapToggle.addEventListener('click', () => {
   // Toggle swap: if already swap, go back to stereo
   applyChannelMode(currentChannelMode === 'swap' ? 'stereo' : 'swap');
 });
-monoToggle.addEventListener('click', () => applyChannelMode('mono'));
+monoToggle.addEventListener('click', () => {
+  // Toggle mono: if already mono, go back to stereo
+  applyChannelMode(currentChannelMode === 'mono' ? 'stereo' : 'mono');
+});
 
 // ==================== Playback Speed ====================
 
@@ -1154,15 +1170,18 @@ function syncChannelModeButtons() {
   if (stereoTogglePresets) {
     stereoTogglePresets.classList.toggle('active', currentChannelMode === 'stereo');
     stereoTogglePresets.classList.remove('swap');
+    stereoTogglePresets.setAttribute('aria-pressed', String(currentChannelMode === 'stereo'));
   }
   if (monoTogglePresets) {
     monoTogglePresets.classList.toggle('active', currentChannelMode === 'mono');
+    monoTogglePresets.setAttribute('aria-pressed', String(currentChannelMode === 'mono'));
   }
   if (swapTogglePresets) {
     swapTogglePresets.classList.remove('active', 'swap');
     if (currentChannelMode === 'swap') {
       swapTogglePresets.classList.add('active', 'swap');
     }
+    swapTogglePresets.setAttribute('aria-pressed', String(currentChannelMode === 'swap'));
   }
 }
 
@@ -1181,7 +1200,7 @@ if (swapTogglePresets) {
 }
 if (monoTogglePresets) {
   monoTogglePresets.addEventListener('click', () => {
-    applyChannelMode('mono');
+    applyChannelMode(currentChannelMode === 'mono' ? 'stereo' : 'mono');
     syncChannelModeButtons();
   });
 }

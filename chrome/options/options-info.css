@@ -338,7 +338,8 @@
   flex: 1;
 }
 
-.faq-link-content h2 {
+.faq-link-content h2,
+.faq-link-content h3 {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 4px;
@@ -364,12 +365,12 @@
 /* ==================== Light Mode: Info Components (Morning Theme) ==================== */
 
 body.light-mode .compressor-preset {
-  background: #faf5ef;
-  border-left-color: #d4c4b0;
+  background: #e8f0f8;
+  border-left-color: #b0c4d8;
 }
 
 body.light-mode .compressor-preset .preset-name {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .compressor-preset .preset-name.low {
@@ -385,80 +386,80 @@ body.light-mode .compressor-preset .preset-name.high {
 }
 
 body.light-mode .compressor-preset .preset-desc {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .info-box {
-  background: #faf5ef;
+  background: #e8f0f8;
 }
 
 body.light-mode .info-box h4 {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .info-box p {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .info-box em {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .chain-list li {
-  color: #6b5d52;
-  border-left-color: #d4c4b0;
+  color: #4a6278;
+  border-left-color: #b0c4d8;
 }
 
 body.light-mode .chain-list li::before {
-  background: #d4c4b0;
+  background: #b0c4d8;
 }
 
 body.light-mode .chain-list li strong {
-  color: #8b7355;
+  color: #4a7a9a;
 }
 
 body.light-mode .feature-list li {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .feature-list li::before {
-  color: #8b7355;
+  color: #4a7a9a;
 }
 
 body.light-mode .info-section h2 {
-  border-bottom-color: #d4c4b0;
+  border-bottom-color: #b0c4d8;
 }
 
 body.light-mode .info-block {
-  border-bottom-color: #d4c4b0;
+  border-bottom-color: #b0c4d8;
 }
 
 body.light-mode .info-block h3 {
-  color: #2d2520;
+  color: #1a2a3a;
 }
 
 body.light-mode .info-block p {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .info-block code {
-  background: #f5ede3;
-  color: #8b7355;
+  background: #dce8f2;
+  color: #4a7a9a;
 }
 
 body.light-mode .info-block ol {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .settings-link {
-  background: #f5ede3;
-  border-color: #d4c4b0;
-  color: #8b7355;
+  background: #dce8f2;
+  border-color: #b0c4d8;
+  color: #4a7a9a;
 }
 
 body.light-mode .settings-link:hover {
-  background: #ebe2d6;
-  border-color: #c4b4a0;
+  background: #ccdcea;
+  border-color: #a0b8d0;
 }
 
 body.light-mode .settings-link:focus-visible {
@@ -466,51 +467,51 @@ body.light-mode .settings-link:focus-visible {
 }
 
 body.light-mode .hint {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 /* Light mode: Keyboard Shortcuts */
 body.light-mode .shortcut-row {
-  background: #faf5ef;
-  border-color: #d4c4b0;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
 }
 
 body.light-mode .shortcut-label {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .shortcut-key {
-  color: #2d2520;
-  background: #f5ede3;
+  color: #1a2a3a;
+  background: #dce8f2;
 }
 
 body.light-mode .shortcut-key.not-set {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 /* Light mode: Permission Steps */
 body.light-mode .step-item {
-  background: #faf5ef;
-  border-color: #d4c4b0;
-  color: #2d2520;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
+  color: #1a2a3a;
 }
 
 /* Light mode: Reset Note */
 body.light-mode .reset-note {
-  color: #6b5d52;
-  background: #faf5ef;
-  border-color: #d4c4b0;
+  color: #4a6278;
+  background: #e8f0f8;
+  border-color: #b0c4d8;
 }
 
 /* Light mode: FAQ Link Card */
 body.light-mode .faq-link-card {
-  background: linear-gradient(135deg, #faf5ef 0%, #f5ede3 100%);
-  border-color: #d4c4b0;
+  background: linear-gradient(135deg, #e8f0f8 0%, #dce8f2 100%);
+  border-color: #b0c4d8;
 }
 
 body.light-mode .faq-link-card:hover {
-  background: linear-gradient(135deg, #f5ede3 0%, #ebe2d6 100%);
-  border-color: #c4b4a0;
+  background: linear-gradient(135deg, #dce8f2 0%, #ccdcea 100%);
+  border-color: #a0b8d0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -519,24 +520,25 @@ body.light-mode .faq-link-card:focus-visible {
 }
 
 body.light-mode .faq-link-icon {
-  background: rgba(139, 115, 85, 0.1);
-  color: #8b7355;
+  background: rgba(60, 100, 150, 0.1);
+  color: #4a7a9a;
 }
 
-body.light-mode .faq-link-content h2 {
-  color: #2d2520;
+body.light-mode .faq-link-content h2,
+body.light-mode .faq-link-content h3 {
+  color: #1a2a3a;
 }
 
 body.light-mode .faq-link-content p {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .faq-link-arrow {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .faq-link-card:hover .faq-link-arrow {
-  color: #8b7355;
+  color: #4a7a9a;
 }
 
 /* ==================== About Section (Header/Footer) ==================== */
@@ -547,7 +549,7 @@ body.light-mode .faq-link-card:hover .faq-link-arrow {
   align-items: center;
   gap: 16px;
   padding: 20px 24px;
-  background: #0f1621;
+  background: rgba(15, 22, 33, 0.85);
   border: 1px solid #5a7a9a;
   border-radius: 12px;
 }
@@ -587,19 +589,6 @@ body.light-mode .faq-link-card:hover .faq-link-arrow {
   font-weight: 600;
   color: #ffffff;
   margin-bottom: 2px;
-}
-
-/* Brand letter colors (Night Sky muted pastels) */
-.about-brand .brand-a {
-  color: #c9a0a0;
-}
-
-.about-brand .brand-b {
-  color: #a0c9a8;
-}
-
-.about-brand .brand-c {
-  color: #a0b8c9;
 }
 
 .about-tagline {
@@ -661,8 +650,8 @@ body.light-mode .faq-link-card:hover .faq-link-arrow {
 /* Light mode: About Section */
 body.light-mode .about-footer,
 body.light-mode .about-header {
-  background: #faf5ef;
-  border-color: #d4c4b0;
+  background: rgba(232, 240, 248, 0.85);
+  border-color: #b0c4d8;
 }
 
 /* Swap about logo in light mode */
@@ -675,36 +664,23 @@ body.light-mode .about-logo .logo-light {
 }
 
 body.light-mode .about-brand {
-  color: #2d2520;
-}
-
-/* Light mode: Brand letter colors (Morning muted tones) */
-body.light-mode .about-brand .brand-a {
-  color: #a07070;
-}
-
-body.light-mode .about-brand .brand-b {
-  color: #70a078;
-}
-
-body.light-mode .about-brand .brand-c {
-  color: #7088a0;
+  color: #1a2a3a;
 }
 
 body.light-mode .about-tagline {
-  color: #8b7a6a;
+  color: #6a8298;
 }
 
 body.light-mode .about-link {
-  background: #f5ede3;
-  border-color: #d4c4b0;
-  color: #6b5d52;
+  background: #dce8f2;
+  border-color: #b0c4d8;
+  color: #4a6278;
 }
 
 body.light-mode .about-link:hover {
-  background: #ebe2d6;
-  border-color: #c4b4a0;
-  color: #2d2520;
+  background: #ccdcea;
+  border-color: #a0b8d0;
+  color: #1a2a3a;
 }
 
 body.light-mode .about-link:focus-visible {
@@ -789,9 +765,38 @@ body.light-mode .disclaimer-icon {
 }
 
 body.light-mode .disclaimer-text {
-  color: #6b5d52;
+  color: #4a6278;
 }
 
 body.light-mode .disclaimer-text strong {
   color: #d97706;
 }
+
+/* ==================== Utility Classes (CSP-safe inline style replacements) ==================== */
+
+/* Spacing */
+.mt-8 { margin-top: 8px; }
+
+/* Badge demo colors (guide.html) */
+.badge-demo { padding: 1px 4px; border-radius: 2px; }
+.badge-demo-dark { background: #000; color: #fff; }
+.badge-demo-blue { background: #4A90D9; color: #fff; }
+.badge-demo-red { background: #D94A4A; color: #fff; }
+.badge-demo-yellow { background: #fbbf24; color: #000; }
+.badge-demo-grey { background: #888888; color: #fff; }
+
+/* Volume color legend (guide.html) */
+.color-muted { color: #ef4444; }
+.color-blue { color: #60a5fa; }
+.color-green { color: #4ade80; }
+.color-yellow { color: #facc15; }
+.color-orange { color: #fb923c; }
+.color-purple { color: #a855f7; }
+
+/* Light mode overrides for color legend */
+body.light-mode .color-muted { color: #dc2626; }
+body.light-mode .color-blue { color: #2563eb; }
+body.light-mode .color-green { color: #22c55e; }
+body.light-mode .color-yellow { color: #ca8a04; }
+body.light-mode .color-orange { color: #ea580c; }
+body.light-mode .color-purple { color: #9333ea; }

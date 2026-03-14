@@ -56,7 +56,7 @@ const EFFECT_RANGES = {
 };
 
 // Default presets — KEEP IN SYNC with shared/constants.js DEFAULTS object
-const DEFAULT_VOLUME_PRESETS = [50, 100, 200, 300, 500];
+const DEFAULT_VOLUME_PRESETS = [25, 100, 200, 300, 500];
 const DEFAULT_BASS_PRESETS = [6, 12, 24];
 const DEFAULT_BASS_CUT_PRESETS = [-6, -12, -24];
 const DEFAULT_TREBLE_PRESETS = [6, 12, 24];
@@ -64,6 +64,7 @@ const DEFAULT_TREBLE_CUT_PRESETS = [-6, -12, -24];
 const DEFAULT_VOICE_PRESETS = [4, 10, 18];
 const DEFAULT_SPEED_SLOW_PRESETS = [0.75, 0.50, 0.25];
 const DEFAULT_SPEED_FAST_PRESETS = [1.25, 1.50, 2.00];
+const DEFAULT_SLEEP_TIMER_PRESETS = [5, 15, 30, 60];
 const DEFAULT_VOLUME_STEPS = { scrollWheel: 5, keyboard: 1, buttons: 1 };
 const DEFAULT_AUDIO_MODE_CHROME = 'tabcapture';
 
@@ -188,8 +189,113 @@ function isRestrictedUrl(url) {
 // Track tabs that have reported having media (for tab navigation including paused media)
 const tabsWithMedia = new Set();
 
+// Restore tabsWithMedia from session storage on service worker startup
+browserAPI.storage.session.get(['tabsWithMediaIds']).then(result => {
+  const ids = result.tabsWithMediaIds;
+  if (ids && Array.isArray(ids)) {
+    ids.forEach(id => tabsWithMedia.add(id));
+  }
+}).catch(() => {});
+
+function persistTabsWithMedia() {
+  browserAPI.storage.session.set({ tabsWithMediaIds: [...tabsWithMedia] }).catch(() => {});
+}
+
 // Track previous window state per tab for fullscreen workaround (Tab Capture mode)
+// Stores { windowId, previousState } objects
 const fullscreenStateByTab = new Map();
+
+// Serialize fullscreen operations per tab to prevent enter/exit race conditions
+const fullscreenOpQueue = new Map();
+
+// Session storage key for fullscreen state (survives service worker restarts)
+const FULLSCREEN_SESSION_KEY = 'fullscreenStates';
+
+// CSS rule injected during fullscreen to force container to fill viewport
+const FULLSCREEN_CSS = ':fullscreen { width: 100vw !important; height: 100vh !important; }';
+
+// Restore fullscreen state from session storage on service worker startup
+browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]).then(result => {
+  const states = result[FULLSCREEN_SESSION_KEY];
+  if (states) {
+    for (const [tabId, state] of Object.entries(states)) {
+      fullscreenStateByTab.set(parseInt(tabId, 10), state);
+    }
+  }
+}).catch(() => {});
+
+// Queue fullscreen operations per tab so enter/exit don't race
+function runFullscreenOp(tabId, operation) {
+  const previous = fullscreenOpQueue.get(tabId) || Promise.resolve();
+  const next = previous.then(operation).catch(() => {}).finally(() => {
+    if (fullscreenOpQueue.get(tabId) === next) {
+      fullscreenOpQueue.delete(tabId);
+    }
+  });
+  fullscreenOpQueue.set(tabId, next);
+}
+
+// Save fullscreen state to both Map (fast) and session storage (persistent)
+function saveFullscreenState(tabId, windowId, previousState) {
+  fullscreenStateByTab.set(tabId, { windowId, previousState });
+  const states = Object.fromEntries(fullscreenStateByTab);
+  browserAPI.storage.session.set({ [FULLSCREEN_SESSION_KEY]: states }).catch(() => {});
+}
+
+// Clear fullscreen state from both Map and session storage
+function clearFullscreenState(tabId) {
+  fullscreenStateByTab.delete(tabId);
+  const states = Object.fromEntries(fullscreenStateByTab);
+  browserAPI.storage.session.set({ [FULLSCREEN_SESSION_KEY]: states }).catch(() => {});
+}
+
+// Get fullscreen state with session storage fallback (for service worker restart)
+async function getFullscreenState(tabId) {
+  const cached = fullscreenStateByTab.get(tabId);
+  if (cached) return cached;
+  try {
+    const stored = await browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]);
+    const states = stored[FULLSCREEN_SESSION_KEY];
+    if (states && states[tabId]) {
+      fullscreenStateByTab.set(tabId, states[tabId]);
+      return states[tabId];
+    }
+  } catch (e) {
+    // Session storage unavailable
+  }
+  return null;
+}
+
+// Restore window state with verification and retry (up to 3 attempts)
+function restoreWindowState(windowId, targetState) {
+  return new Promise((resolve) => {
+    const attempt = (n) => {
+      browserAPI.windows.update(windowId, { state: targetState })
+        .then(() => {
+          // Verify the window actually left fullscreen after a brief delay
+          setTimeout(() => {
+            browserAPI.windows.get(windowId)
+              .then(win => {
+                if (win.state === 'fullscreen' && n < 3) {
+                  attempt(n + 1);
+                } else {
+                  resolve();
+                }
+              })
+              .catch(() => resolve());
+          }, 250 * n);
+        })
+        .catch(() => {
+          if (n < 3) {
+            setTimeout(() => attempt(n + 1), 250 * n);
+          } else {
+            resolve();
+          }
+        });
+    };
+    attempt(1);
+  });
+}
 
 // Log version on startup (DEBUG only - verify refresh is working)
 log('Service worker starting - version', browserAPI.runtime.getManifest().version, isFirefox ? '(Firefox)' : '(Chrome)');
@@ -624,12 +730,16 @@ async function updateBadge(tabId, volume, tabUrl = null) {
       return;
     }
 
-    // Dormant tabs: show priority badges above but not the volume number.
-    // Volume badge only appears after the user explicitly changes a control.
+    // Dormant tabs: show grey ! badge to indicate inactive/dormant state.
+    // Volume badge only appears after the user explicitly activates the tab.
     const active = await isTabActive(tabId);
     if (!active) {
-      await browserAPI.action.setBadgeText({ text: '', tabId });
-      await browserAPI.action.setTitle({ title: 'Per-Tab Audio Control', tabId });
+      await browserAPI.action.setBadgeText({ text: '!', tabId });
+      await browserAPI.action.setBadgeBackgroundColor({ color: '#888888', tabId });
+      if (browserAPI.action.setBadgeTextColor) {
+        await browserAPI.action.setBadgeTextColor({ color: '#ffffff', tabId });
+      }
+      await browserAPI.action.setTitle({ title: 'Dormant — change a setting to activate', tabId });
       return;
     }
 
@@ -815,7 +925,7 @@ async function setTabVolume(tabId, volume) {
 }
 
 // Clean up storage when tab is closed
-browserAPI.tabs.onRemoved.addListener(async (tabId) => {
+browserAPI.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   // Remove all tab-specific storage keys
   const keysToRemove = [
     getTabStorageKey(tabId),                          // volume
@@ -839,9 +949,15 @@ browserAPI.tabs.onRemoved.addListener(async (tabId) => {
 
   // Remove from tabs with media tracking
   tabsWithMedia.delete(tabId);
+  persistTabsWithMedia();
 
-  // Clean up fullscreen state tracking (don't restore window state — tab is already gone)
-  fullscreenStateByTab.delete(tabId);
+  // Clean up fullscreen state and restore window if we triggered fullscreen
+  const fsState = fullscreenStateByTab.get(tabId);
+  clearFullscreenState(tabId);
+  fullscreenOpQueue.delete(tabId);
+  if (fsState && removeInfo && !removeInfo.isWindowClosing) {
+    restoreWindowState(fsState.windowId, fsState.previousState);
+  }
 
   // Cancel any sleep timer for this tab
   cancelSleepTimer(tabId, false).catch(() => {});
@@ -1069,15 +1185,22 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     }
 
     // Also restore Tab Capture volume to saved value (Chrome only)
-    if (!isFirefox) {
+    if (!isFirefox && chrome.offscreen) {
       try {
-        const savedVolume = await getTabVolume(tabId);
-        await chrome.runtime.sendMessage({
-          type: 'SET_TAB_CAPTURE_VOLUME',
-          tabId: tabId,
-          volume: savedVolume
+        const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
+        const existingContexts = await chrome.runtime.getContexts({
+          contextTypes: ['OFFSCREEN_DOCUMENT'],
+          documentUrls: [offscreenUrl]
         });
-        console.debug('[TabVolume] Tab unmuted, restored Tab Capture volume to:', savedVolume);
+        if (existingContexts.length > 0) {
+          const savedVolume = await getTabVolume(tabId);
+          await chrome.runtime.sendMessage({
+            type: 'SET_TAB_CAPTURE_VOLUME',
+            tabId: tabId,
+            volume: savedVolume
+          });
+          console.debug('[TabVolume] Tab unmuted, restored Tab Capture volume to:', savedVolume);
+        }
       } catch (tcErr) {
         // Tab might not have Tab Capture active - that's fine
       }
@@ -1099,34 +1222,32 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         const currentDomain = getValidatedHostname(tab.url);
         log('Current domain:', currentDomain);
         if (!currentDomain) {
-          // Invalid URL, skip rule application
           log('Invalid domain, skipping rule application');
-          return;
-        }
-
-        const ruleAppliedKey = getTabStorageKey(tabId, TAB_STORAGE.RULE_APPLIED);
-        const ruleResult = await browserAPI.storage.local.get([ruleAppliedKey]);
-        const lastAppliedDomain = ruleResult[ruleAppliedKey];
-        log('Last applied domain:', lastAppliedDomain, '| Current domain:', currentDomain, '| Same?', lastAppliedDomain === currentDomain);
-
-        // Only apply rule if this is a new domain (not navigation within same site)
-        if (lastAppliedDomain !== currentDomain) {
-          log('Domain changed, checking for matching rule...');
-          // If Tab Capture is pending, defer rule application — keep tab dormant
-          // Red badge will show via hasPendingSiteRule(); user clicks popup to activate
-          const tcPending = await isTabCapturePending(tabId);
-          if (tcPending) {
-            log('Tab Capture pending — deferring site rule (tab stays dormant)');
-          } else {
-            const matchedRule = await applyMatchingSiteRule(tabId, tab.url);
-            if (matchedRule) {
-              volume = matchedRule.rule.volume;
-              ruleDeviceLabel = matchedRule.deviceLabel;
-            }
-          }
-          // If no rule matched, don't store domain - allows rules added later to apply
         } else {
-          log('Domain unchanged, skipping rule check (already applied for this domain)');
+          const ruleAppliedKey = getTabStorageKey(tabId, TAB_STORAGE.RULE_APPLIED);
+          const ruleResult = await browserAPI.storage.local.get([ruleAppliedKey]);
+          const lastAppliedDomain = ruleResult[ruleAppliedKey];
+          log('Last applied domain:', lastAppliedDomain, '| Current domain:', currentDomain, '| Same?', lastAppliedDomain === currentDomain);
+
+          // Only apply rule if this is a new domain (not navigation within same site)
+          if (lastAppliedDomain !== currentDomain) {
+            log('Domain changed, checking for matching rule...');
+            // If Tab Capture is pending, defer rule application — keep tab dormant
+            // Red badge will show via hasPendingSiteRule(); user clicks popup to activate
+            const tcPending = await isTabCapturePending(tabId);
+            if (tcPending) {
+              log('Tab Capture pending — deferring site rule (tab stays dormant)');
+            } else {
+              const matchedRule = await applyMatchingSiteRule(tabId, tab.url);
+              if (matchedRule) {
+                volume = matchedRule.rule.volume;
+                ruleDeviceLabel = matchedRule.deviceLabel;
+              }
+            }
+            // If no rule matched, don't store domain - allows rules added later to apply
+          } else {
+            log('Domain unchanged, skipping rule check (already applied for this domain)');
+          }
         }
       } catch (e) {
         log('Error during rule application:', e.message);
@@ -1899,6 +2020,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
             } catch (e) {
               // Tab no longer exists, remove from tracking
               tabsWithMedia.delete(tabId);
+              persistTabsWithMedia();
             }
           }
         }
@@ -2049,6 +2171,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const tabId = sender.tab?.id;
     if (tabId) {
       tabsWithMedia.add(tabId);
+      persistTabsWithMedia();
     }
     sendResponse({ success: true });
     return true;
@@ -2344,9 +2467,13 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ success: false, error: 'Invalid volume value' });
           return;
         }
-      } else if (request.type === 'SET_TAB_CAPTURE_BASS' ||
-                 request.type === 'SET_TAB_CAPTURE_TREBLE') {
+      } else if (request.type === 'SET_TAB_CAPTURE_BASS') {
         if (!Number.isFinite(request.gain) || request.gain < EFFECT_RANGES.bass.min || request.gain > EFFECT_RANGES.bass.max) {
+          sendResponse({ success: false, error: 'Invalid gain value' });
+          return;
+        }
+      } else if (request.type === 'SET_TAB_CAPTURE_TREBLE') {
+        if (!Number.isFinite(request.gain) || request.gain < EFFECT_RANGES.treble.min || request.gain > EFFECT_RANGES.treble.max) {
           sendResponse({ success: false, error: 'Invalid gain value' });
           return;
         }
@@ -2647,61 +2774,86 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const tabId = sender.tab.id;
     const windowId = sender.tab.windowId;
 
-    if (request.isFullscreen) {
-      // Entering fullscreen — check if window is already fullscreen (e.g. user pressed F11)
-      browserAPI.windows.get(windowId).then(win => {
+    // Serialize enter/exit operations per tab to prevent race conditions
+    runFullscreenOp(tabId, async () => {
+      if (request.isFullscreen) {
+        // Entering fullscreen — check if window is already fullscreen (e.g. user pressed F11)
+        let win;
+        try {
+          win = await browserAPI.windows.get(windowId);
+        } catch (e) {
+          return;
+        }
         if (win.state === 'fullscreen') {
           // Already fullscreen, don't track — we didn't cause it
           return;
         }
-        // Save previous state so we can restore on exit
-        fullscreenStateByTab.set(tabId, win.state); // 'maximized' or 'normal'
+        // Save previous state so we can restore on exit (persisted to session storage
+        // in case service worker restarts while tab is fullscreen)
+        saveFullscreenState(tabId, windowId, win.state);
         // Inject CSS to force the fullscreen container to fill the actual viewport.
-        // This is more reliable than resize events because CSS rules are declarative —
-        // they apply continuously as the viewport changes, without timing issues.
         // Only targets :fullscreen (the container), NOT :fullscreen video — overriding
         // video element sizing breaks players like YouTube that use transforms/positioning.
-        const fullscreenCSS = ':fullscreen { width: 100vw !important; height: 100vh !important; }';
         browserAPI.scripting.insertCSS({
           target: { tabId },
-          css: fullscreenCSS
+          css: FULLSCREEN_CSS
         }).catch(() => {});
 
-        browserAPI.windows.update(windowId, { state: 'fullscreen' }).then(() => {
-          // Also dispatch resize events so video players that listen for resize
-          // can recalculate their internal layout (controls positioning, etc.)
-          const dispatchResize = () => {
-            browserAPI.scripting.executeScript({
-              target: { tabId, allFrames: true },
-              func: () => {
-                window.dispatchEvent(new Event('resize'));
-              },
-              world: 'MAIN'
-            }).catch(() => {});
-          };
-          setTimeout(dispatchResize, 100);
-          setTimeout(dispatchResize, 500);
-          setTimeout(dispatchResize, 1000);
-        });
-      }).catch(() => {});
-    } else {
-      // Exiting fullscreen — restore previous window state if we triggered the fullscreen
-      const previousState = fullscreenStateByTab.get(tabId);
-      fullscreenStateByTab.delete(tabId);
-      if (previousState) {
-        // Remove the injected fullscreen CSS override
-        const fullscreenCSS = ':fullscreen { width: 100vw !important; height: 100vh !important; }';
-        browserAPI.scripting.removeCSS({
-          target: { tabId },
-          css: fullscreenCSS
-        }).catch(() => {});
-        browserAPI.windows.update(windowId, { state: previousState }).catch(() => {});
+        try {
+          await browserAPI.windows.update(windowId, { state: 'fullscreen' });
+        } catch (e) {
+          // Failed to enter fullscreen — clean up saved state
+          clearFullscreenState(tabId);
+          browserAPI.scripting.removeCSS({ target: { tabId }, css: FULLSCREEN_CSS }).catch(() => {});
+          return;
+        }
+
+        // Dispatch resize events so video players recalculate their layout
+        const dispatchResize = () => {
+          browserAPI.scripting.executeScript({
+            target: { tabId, allFrames: true },
+            func: () => { window.dispatchEvent(new Event('resize')); },
+            world: 'MAIN'
+          }).catch(() => {});
+        };
+        setTimeout(dispatchResize, 100);
+        setTimeout(dispatchResize, 500);
+        setTimeout(dispatchResize, 1000);
+      } else {
+        // Exiting fullscreen — restore previous window state if we triggered it
+        // Check Map first, fall back to session storage (service worker may have restarted)
+        const fsState = fullscreenStateByTab.get(tabId) || await getFullscreenState(tabId);
+        clearFullscreenState(tabId);
+        if (fsState) {
+          browserAPI.scripting.removeCSS({
+            target: { tabId },
+            css: FULLSCREEN_CSS
+          }).catch(() => {});
+          // Restore with verification and retry (up to 3 attempts)
+          await restoreWindowState(fsState.windowId, fsState.previousState);
+        }
       }
-    }
+    });
     return false;
   }
 
   return false;
+});
+
+// Restore window state when tab navigates while in extension-triggered fullscreen.
+// Navigation can destroy the content script before it sends the fullscreen exit message.
+browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+  if (changeInfo.status !== 'loading' || isFirefox) return;
+  // Fast path: check Map synchronously (populated from session storage on startup)
+  if (!fullscreenStateByTab.has(tabId)) return;
+  const fsState = fullscreenStateByTab.get(tabId);
+  clearFullscreenState(tabId);
+  fullscreenOpQueue.delete(tabId);
+  browserAPI.scripting.removeCSS({
+    target: { tabId },
+    css: FULLSCREEN_CSS
+  }).catch(() => {});
+  restoreWindowState(fsState.windowId, fsState.previousState);
 });
 
 // Handle keyboard shortcuts
@@ -3055,7 +3207,8 @@ async function createContextMenus() {
     'trebleCutPresets',
     'voiceBoostPresets',
     'speedSlowPresets',
-    'speedFastPresets'
+    'speedFastPresets',
+    'sleepTimerPresets'
   ]);
 
   const volumePresets = storage.customPresets || DEFAULT_VOLUME_PRESETS;
@@ -3066,6 +3219,7 @@ async function createContextMenus() {
   const voicePresets = storage.voiceBoostPresets || DEFAULT_VOICE_PRESETS;
   const speedSlowPresets = storage.speedSlowPresets || DEFAULT_SPEED_SLOW_PRESETS;
   const speedFastPresets = storage.speedFastPresets || DEFAULT_SPEED_FAST_PRESETS;
+  const sleepTimerPresets = storage.sleepTimerPresets || DEFAULT_SLEEP_TIMER_PRESETS;
 
   // Remove existing menus first
   contextMenusAPI.removeAll(() => {
@@ -3103,6 +3257,90 @@ async function createContextMenus() {
         title: `${validVol}%`,
         contexts: MENU_CONTEXTS
       });
+    });
+
+    // ========== Speed Submenu ==========
+    contextMenusAPI.create({
+      id: 'speedSubmenu',
+      parentId: 'tabVolumeParent',
+      title: 'Speed',
+      contexts: MENU_CONTEXTS
+    });
+
+    contextMenusAPI.create({
+      id: 'speed_1',
+      parentId: 'speedSubmenu',
+      title: 'Normal (1x)',
+      contexts: MENU_CONTEXTS
+    });
+
+    // Separator between normal and slow
+    contextMenusAPI.create({
+      id: 'speedSep1',
+      parentId: 'speedSubmenu',
+      type: 'separator',
+      contexts: MENU_CONTEXTS
+    });
+
+    speedSlowPresets.forEach((rate, i) => {
+      const labels = ['Low', 'Medium', 'High'];
+      contextMenusAPI.create({
+        id: `speed_slow_${rate}`,
+        parentId: 'speedSubmenu',
+        title: `Slow ${labels[i] || ''} (${rate}x)`,
+        contexts: MENU_CONTEXTS
+      });
+    });
+
+    // Separator between slow and fast
+    contextMenusAPI.create({
+      id: 'speedSep2',
+      parentId: 'speedSubmenu',
+      type: 'separator',
+      contexts: MENU_CONTEXTS
+    });
+
+    speedFastPresets.forEach((rate, i) => {
+      const labels = ['Low', 'Medium', 'High'];
+      contextMenusAPI.create({
+        id: `speed_fast_${rate}`,
+        parentId: 'speedSubmenu',
+        title: `Fast ${labels[i] || ''} (${rate}x)`,
+        contexts: MENU_CONTEXTS
+      });
+    });
+
+    // ========== Sleep Timer Submenu ==========
+    contextMenusAPI.create({
+      id: 'sleepTimerSubmenu',
+      parentId: 'tabVolumeParent',
+      title: 'Sleep Timer',
+      contexts: MENU_CONTEXTS
+    });
+
+    sleepTimerPresets.forEach((minutes) => {
+      const validMin = Math.max(1, Math.min(120, Math.round(minutes)));
+      if (typeof minutes !== 'number' || isNaN(minutes)) return;
+      contextMenusAPI.create({
+        id: `sleepTimer_${validMin}`,
+        parentId: 'sleepTimerSubmenu',
+        title: `${validMin} minutes`,
+        contexts: MENU_CONTEXTS
+      });
+    });
+
+    contextMenusAPI.create({
+      id: 'sleepTimerSep',
+      parentId: 'sleepTimerSubmenu',
+      type: 'separator',
+      contexts: MENU_CONTEXTS
+    });
+
+    contextMenusAPI.create({
+      id: 'sleepTimer_cancel',
+      parentId: 'sleepTimerSubmenu',
+      title: 'Cancel Timer',
+      contexts: MENU_CONTEXTS
     });
 
     // Separator
@@ -3332,57 +3570,6 @@ async function createContextMenus() {
       contexts: MENU_CONTEXTS
     });
 
-    // ========== Speed Submenu ==========
-    contextMenusAPI.create({
-      id: 'speedSubmenu',
-      parentId: 'tabVolumeParent',
-      title: 'Speed',
-      contexts: MENU_CONTEXTS
-    });
-
-    contextMenusAPI.create({
-      id: 'speed_1',
-      parentId: 'speedSubmenu',
-      title: 'Normal (1x)',
-      contexts: MENU_CONTEXTS
-    });
-
-    // Separator between normal and slow
-    contextMenusAPI.create({
-      id: 'speedSep1',
-      parentId: 'speedSubmenu',
-      type: 'separator',
-      contexts: MENU_CONTEXTS
-    });
-
-    speedSlowPresets.forEach((rate, i) => {
-      const labels = ['Low', 'Medium', 'High'];
-      contextMenusAPI.create({
-        id: `speed_slow_${rate}`,
-        parentId: 'speedSubmenu',
-        title: `Slow ${labels[i] || ''} (${rate}x)`,
-        contexts: MENU_CONTEXTS
-      });
-    });
-
-    // Separator between slow and fast
-    contextMenusAPI.create({
-      id: 'speedSep2',
-      parentId: 'speedSubmenu',
-      type: 'separator',
-      contexts: MENU_CONTEXTS
-    });
-
-    speedFastPresets.forEach((rate, i) => {
-      const labels = ['Low', 'Medium', 'High'];
-      contextMenusAPI.create({
-        id: `speed_fast_${rate}`,
-        parentId: 'speedSubmenu',
-        title: `Fast ${labels[i] || ''} (${rate}x)`,
-        contexts: MENU_CONTEXTS
-      });
-    });
-
     // ========== Range Submenu ==========
     contextMenusAPI.create({
       id: 'rangeSubmenu',
@@ -3472,13 +3659,6 @@ async function createContextMenus() {
       });
     }
 
-    contextMenusAPI.create({
-      id: 'enableWebAudio',
-      parentId: 'tabVolumeParent',
-      title: 'Enable Web Audio Mode',
-      contexts: MENU_CONTEXTS
-    });
-
     // Separator
     contextMenusAPI.create({
       id: 'sep5',
@@ -3524,7 +3704,7 @@ async function createContextMenus() {
 // Listen for storage changes to update menus when presets change
 browserAPI.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'sync') {
-    const presetKeys = ['customPresets', 'bassBoostPresets', 'bassCutPresets', 'trebleBoostPresets', 'trebleCutPresets', 'voiceBoostPresets', 'speedSlowPresets', 'speedFastPresets'];
+    const presetKeys = ['customPresets', 'bassBoostPresets', 'bassCutPresets', 'trebleBoostPresets', 'trebleCutPresets', 'voiceBoostPresets', 'speedSlowPresets', 'speedFastPresets', 'sleepTimerPresets'];
     if (presetKeys.some(key => changes[key])) {
       console.log('[TabVolume] Presets changed, rebuilding context menus');
       createContextMenus();
@@ -3773,6 +3953,19 @@ if (contextMenusAPI) {
       return;
     }
 
+    // ========== Sleep Timer ==========
+    if (menuItemId === 'sleepTimer_cancel') {
+      await cancelSleepTimer(tab.id);
+      return;
+    }
+    if (menuItemId.startsWith('sleepTimer_')) {
+      const minutes = parseInt(menuItemId.replace('sleepTimer_', ''), 10);
+      if (Number.isFinite(minutes) && minutes >= 1 && minutes <= 120) {
+        await startSleepTimer(minutes, tab.id, false);
+      }
+      return;
+    }
+
     // ========== Actions ==========
     switch (menuItemId) {
       case 'togglePlayback':
@@ -3985,14 +4178,13 @@ if (contextMenusAPI) {
         break;
 
       case 'enableTabCapture':
-      case 'enableWebAudio':
         // Set audio mode for current domain
         if (tab.url) {
           const hostname = getValidatedHostname(tab.url);
           if (hostname) {
             try {
-              const targetMode = menuItemId === 'enableTabCapture' ? 'tabcapture' : 'webaudio';
-              const otherMode = menuItemId === 'enableTabCapture' ? 'webaudio' : 'tabcapture';
+              const targetMode = 'tabcapture';
+              const otherMode = 'webaudio';
 
               // Get default audio mode
               const modeResult = await browserAPI.storage.sync.get(['defaultAudioMode']);
@@ -4049,10 +4241,19 @@ if (contextMenusAPI) {
                 } catch (e) {}
               }
 
-              // Save last active mode
+              // Save last active mode (capped to prevent unbounded storage growth)
               const lastModeResult = await browserAPI.storage.local.get(['lastActiveMode']);
               const lastActiveModes = lastModeResult.lastActiveMode || {};
               lastActiveModes[hostname] = targetMode;
+              const MAX_MODE_ENTRIES = 500;
+              const keys = Object.keys(lastActiveModes);
+              if (keys.length > MAX_MODE_ENTRIES) {
+                // Evict oldest entries (first keys in insertion order)
+                const excess = keys.length - MAX_MODE_ENTRIES;
+                for (let i = 0; i < excess; i++) {
+                  delete lastActiveModes[keys[i]];
+                }
+              }
               await browserAPI.storage.local.set({ lastActiveMode: lastActiveModes });
 
               // Reload the tab
