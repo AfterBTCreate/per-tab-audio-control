@@ -15,11 +15,11 @@ No subscriptions. No ads. No data collection.
 - **Five customizable presets** for quick volume switching
 - **Built-in limiter** to prevent distortion when boosting
 - **Volume badge** on the extension icon showing current percentage
-- **Badge style toggle** light-on-dark or dark-on-light, with color matching volume level
+- **Badge style toggle** light-on-dark, dark-on-light, or color matching volume level
 
 ### Audio Processing
 - **Balance slider** with stereo, mono, and swap modes
-- **Playback speed** 0.05x to 5x with 7 customizable presets and non-linear slider
+- **Playback speed** 0.05x to 5x with 6 customizable presets and non-linear slider
 - **Bass and treble** boost/cut controls
 - **Voice boost** for dialogue clarity
 - **Range compressor** with Podcast, Movie, and Maximum presets
@@ -59,7 +59,7 @@ No subscriptions. No ads. No data collection.
 - **One-click reset** for any control
 
 ### Customization
-- **Light and dark themes** Sky blue (light) and Bedtime (dark)
+- **Light and dark themes** Sky Blue (light) and Starry Night (dark)
 - **Header edit mode** Long-press logo to drag-and-drop reorder, show/hide items, adjust spacers
 - **Sections edit mode** Drag-to-reorder popup sections, toggle between slider and preset modes per control
 - **Per-item visibility** Hide individual controls including visualizer, seekbar, and shortcuts

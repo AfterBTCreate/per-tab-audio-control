@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh api:*)",
+      "Read(//tmp/**)",
+      "Bash(rm -rf per-tab-audio-control)",
+      "Bash(gh repo:*)",
+      "Bash(rsync -av --exclude='.claude/' /home/bytebearer/Claude/browser_extensions/tab-volume-control/chrome/ /tmp/per-tab-audio-control/ --delete 2>&1 | tail -20)",
+      "Bash(cd /tmp && rm -rf per-tab-audio-control && gh repo clone AfterBTCreate/per-tab-audio-control 2>&1 && ls -la /tmp/per-tab-audio-control/.git/HEAD)",
+      "Bash(rsync -av --exclude='.claude/' --exclude='.git/' /home/bytebearer/Claude/browser_extensions/tab-volume-control/chrome/ /tmp/per-tab-audio-control/ 2>&1 | tail -5)"
+    ]
+  }
+}
