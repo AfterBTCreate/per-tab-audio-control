@@ -10,12 +10,12 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.0.6] - Alpha - 2026-03-24 — Header recording indicator
+## [6.0.7] - Alpha - 2026-03-24 — Header recording indicator
 
 ### Changed
 - Recording timer now replaces "After Bedtime Creations" brand text in the header with a red pill badge showing blinking dot + "REC" + elapsed time
+- Recording indicator sits inside the brand-text container so the ABTC logo stays anchored at the far left
 - Record button stays at fixed 30px with pulsing red state when recording; no layout changes to the volume row
-- Removed floating timer badge and icon-swap approaches in favor of header indicator
 
 ---
 

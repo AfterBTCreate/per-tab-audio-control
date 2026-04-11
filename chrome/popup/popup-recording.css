@@ -54,6 +54,13 @@
 /* ==================== Header Recording Indicator ==================== */
 /* Replaces the brand text ("After Bedtime Creations") while recording */
 
+.brand-text-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+
 .recording-indicator {
   display: none;
   align-items: center;
@@ -74,7 +81,7 @@ body.recording .recording-indicator {
   display: flex;
 }
 
-body.recording .brand-text {
+body.recording .brand-text-label {
   display: none;
 }
 
