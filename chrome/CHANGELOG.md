@@ -10,6 +10,11 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.24] - Alpha - 2026-03-30 — Status message back in flow, smaller
+
+### Changed
+- **Status message**: Reverted from `position: fixed` overlay back to normal in-flow position. Reduced size to reclaim space: `margin-top` 6px → 4px, `padding` 5px → 3px, `font-size` 12px → 11px. Colors restored to original light-on-dark transparent style.
+
 ## [6.2.23] - Alpha - 2026-03-30 — Status message opacity
 
 ### Changed

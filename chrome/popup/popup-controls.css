@@ -415,19 +415,15 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
 }
 
 /* Global Status Message */
-/* Fixed overlay — takes it out of document flow so it never triggers a scrollbar */
 .status-message {
-  position: fixed;
-  bottom: 6px;
-  left: 8px;
-  right: 8px;
-  padding: 5px 8px;
+  margin-top: 4px;
+  padding: 3px 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 11px;
   text-align: center;
   display: none;
   animation: statusFadeIn 0.2s ease;
-  z-index: 1000;
+  order: 999;
 }
 
 @keyframes statusFadeIn {
@@ -449,30 +445,30 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
 
 .status-message.info {
   display: block;
-  background: rgba(96, 165, 250, 0.92);
-  color: #0a1628;
-  border: 1px solid rgba(96, 165, 250, 0.8);
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 .status-message.success {
   display: block;
-  background: rgba(74, 222, 128, 0.92);
-  color: #0a1e12;
-  border: 1px solid rgba(74, 222, 128, 0.8);
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.3);
 }
 
 .status-message.warning {
   display: block;
-  background: rgba(251, 191, 36, 0.92);
-  color: #1a1000;
-  border: 1px solid rgba(251, 191, 36, 0.8);
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
 .status-message.error {
   display: block;
-  background: rgba(239, 68, 68, 0.92);
-  color: #1a0000;
-  border: 1px solid rgba(239, 68, 68, 0.8);
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 /* Cleanup Rules Button (shown when storage quota warning) */
