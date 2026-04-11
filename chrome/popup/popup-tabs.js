@@ -185,6 +185,8 @@ function updateTabNavigation() {
   const hasMultiple = audibleTabs.length > 1;
   prevTabBtn.disabled = !hasMultiple;
   nextTabBtn.disabled = !hasMultiple;
+  const tabListBtn = document.getElementById('tabListBtn');
+  if (tabListBtn) tabListBtn.disabled = !hasMultiple;
 
   // Update tab counter
   if (hasMultiple) {

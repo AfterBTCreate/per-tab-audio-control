@@ -1,0 +1,139 @@
+/* ==================== Tab List Overlay ==================== */
+/* Dropdown overlay for switching between audio tabs */
+
+.tab-list-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.tab-list-overlay.visible {
+  display: flex;
+}
+
+.tab-list-dropdown {
+  background: #0f1621;
+  border: 1px solid #5a7a9a;
+  border-radius: 8px;
+  width: 280px;
+  max-height: 200px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tab-list-header {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #7a8fa5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(90, 122, 154, 0.3);
+  flex-shrink: 0;
+}
+
+.tab-list-items {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.tab-list-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tab-list-item:hover {
+  background: #1a2744;
+}
+
+.tab-list-item:active {
+  background: #243350;
+}
+
+.tab-list-item.active {
+  background: rgba(96, 165, 250, 0.1);
+  border-left: 3px solid #60a5fa;
+  padding-left: 9px;
+}
+
+.tab-list-item img {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tab-list-item .tab-title {
+  flex: 1;
+  font-size: 12px;
+  color: #f0f0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tab-list-item.active .tab-title {
+  color: #60a5fa;
+}
+
+.tab-list-item .tab-speaker-icon {
+  flex-shrink: 0;
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+}
+
+/* ==================== Light Mode: Tab List ==================== */
+
+body.light-mode .tab-list-overlay {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+body.light-mode .tab-list-dropdown {
+  background: #e8f0f8;
+  border-color: #b0c4d8;
+}
+
+body.light-mode .tab-list-header {
+  color: #4a6278;
+  border-bottom-color: rgba(176, 196, 216, 0.5);
+}
+
+body.light-mode .tab-list-item:hover {
+  background: #dce8f2;
+}
+
+body.light-mode .tab-list-item:active {
+  background: #d0dfe9;
+}
+
+body.light-mode .tab-list-item.active {
+  background: rgba(37, 99, 235, 0.08);
+  border-left-color: #2563eb;
+}
+
+body.light-mode .tab-list-item .tab-title {
+  color: #1a2a3a;
+}
+
+body.light-mode .tab-list-item.active .tab-title {
+  color: #2563eb;
+}
+
+body.light-mode .tab-list-item .tab-speaker-icon {
+  color: #2563eb;
+}

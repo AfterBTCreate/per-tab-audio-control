@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="popup-header-edit.css">
   <link rel="stylesheet" href="popup-sections-edit.css">
   <link rel="stylesheet" href="popup-recording.css">
+  <link rel="stylesheet" href="popup-tab-list.css">
 </head>
 <body class="initializing">
   <div class="container">
@@ -188,15 +189,15 @@
           </svg>
         </button>
         <button class="tab-nav-btn" id="mediaToggleBtn" title="Toggle play/pause" aria-label="Toggle play/pause">
-          <svg class="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg class="pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
           </svg>
-          <svg class="play-icon hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg class="play-icon hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polygon points="6 3 20 12 6 21 6 3"></polygon>
           </svg>
         </button>
         <button class="tab-nav-btn" id="prevTabBtn" title="Previous audio tab (Left arrow)" aria-label="Previous audio tab" disabled>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
@@ -206,18 +207,35 @@
       <div class="volume-right">
         <button class="volume-adjust-btn" id="volumeUp" title="Increase 1%" aria-label="Increase volume by 1%">+</button>
         <button class="tab-nav-btn" id="nextTabBtn" title="Next audio tab (Right arrow)" aria-label="Next audio tab" disabled>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
         </button>
         <button class="tab-nav-btn" id="resetTabBtn" title="Reset tab to defaults" aria-label="Reset current tab to default settings">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M1 4v6h6"/>
             <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
           </svg>
         </button>
+        <button class="tab-nav-btn" id="tabListBtn" title="All audio tabs" aria-label="Show all audio tabs" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+        </button>
       </div>
       <div class="disabled-status" id="disabledStatus" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="tab-list-overlay" id="tabListOverlay">
+      <div class="tab-list-dropdown" id="tabListDropdown">
+        <div class="tab-list-header">Audio Tabs</div>
+        <div class="tab-list-items" id="tabListItems"></div>
+      </div>
     </div>
 
     <div class="slider-container">
@@ -610,6 +628,7 @@
   <script src="popup-visualizer.js"></script>
   <script src="popup-seekbar.js"></script>
   <script src="popup-tabs.js"></script>
+  <script src="popup-tab-list.js"></script>
   <script src="popup-recording.js"></script>
   <script src="popup-sections-edit.js"></script>
   <script src="popup-header-edit.js"></script>

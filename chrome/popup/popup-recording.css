@@ -2,8 +2,8 @@
 
 /* Record button - placed in the volume-left control group */
 .record-btn {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   display: flex;
   align-items: center;

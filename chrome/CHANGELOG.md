@@ -10,6 +10,20 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.1.0] - Alpha - 2026-03-24 — Tab list dropdown
+
+### Added
+- **Tab list button** in the volume row — opens a dropdown overlay showing all tabs currently playing audio
+- Click any tab in the list to switch to it; click backdrop or press Escape to dismiss
+- Shows favicons, truncated titles, and a speaker icon on the active tab
+- Button auto-disables when only one audio tab is present
+
+### Changed
+- All volume row buttons shrunk to 24px (was 28-30px) with 4px gaps (was 6px) to fit the new tab list button
+- SVG icons in volume row buttons reduced to 14px (was 16px)
+
+---
+
 ## [6.0.8] - Alpha - 2026-03-24 — Header recording indicator
 
 ### Changed

@@ -10,7 +10,7 @@
 }
 
 .volume-row .tab-nav-btn {
-  padding: 6px;
+  padding: 4px;
 }
 
 .volume-left,
@@ -18,7 +18,7 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .volume-left {
@@ -57,13 +57,13 @@
 }
 
 .volume-adjust-btn {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: #0f1621;
   border: 1px solid #5a7a9a;
   border-radius: 6px;
   color: #7a8fa5;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 400;
   cursor: pointer;
   display: flex;
