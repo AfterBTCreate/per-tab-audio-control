@@ -10,10 +10,14 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.2.35] - Alpha - 2026-04-03 — Revert ultrawide fullscreen attempts
+## [6.3.0] - Alpha - 2026-04-03 — Playlist fullscreen fix
 
-### Reverted
-- **Ultrawide fullscreen fix attempts (v6.2.26–v6.2.34)**: Reverted all ultrawide fullscreen CSS/JS changes back to the v6.2.25 state. Multiple approaches were attempted (CSS unit changes, overflow:hidden, max-height constraints, MutationObserver with inline styles, media queries, specificity boosting, transform:none) but none resolved YouTube's ultrawide rendering without regressions. The playlist fix from v6.2.25 is preserved. Ultrawide fullscreen on YouTube remains a known issue.
+### Fixed
+- **Fullscreen workaround**: Browser fullscreen (F11 equivalent) now correctly exits after YouTube playlist auto-advances to a new video. Root cause: the navigation safety net fired during SPA navigations (which don't destroy the content script or exit fullscreen), prematurely clearing the saved window state. Safety net now verifies fullscreen has actually exited via `scripting.executeScript` before clearing state.
+- **Fullscreen state sync on content script load**: Content script now checks if fullscreen is already active when it initializes, re-syncing state with the background. Handles edge cases where the script is re-injected during a navigation that preserved fullscreen.
+
+### Known Issues
+- **Ultrawide fullscreen (YouTube)**: Video is not properly pillarboxed on ultrawide (21:9) monitors in Tab Capture mode — bottom of video and controls are clipped. Standard widescreen (16:9) monitors work correctly.
 
 ## [6.2.25] - Alpha - 2026-04-03 — Fix fullscreen not exiting after YouTube playlist advance
 
