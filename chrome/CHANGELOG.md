@@ -10,6 +10,14 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.5] - Alpha - 2026-03-27 — Tab list scroll fix
+
+### Fixed
+- Tab list dropdown now scrolls when tabs exceed available space (added `min-height: 0` to fix flex scrollbar activation)
+- Tab list dropdown no longer clips in basic mode — `max-height` adapts to popup viewport instead of using a fixed 200px
+
+---
+
 ## [6.2.4] - Alpha - 2026-03-24 — 50% preset color
 
 ### Changed

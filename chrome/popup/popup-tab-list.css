@@ -24,7 +24,7 @@
   border: 1px solid #5a7a9a;
   border-radius: 8px;
   width: 280px;
-  max-height: 200px;
+  max-height: calc(100vh - 24px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -44,6 +44,7 @@
 .tab-list-items {
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .tab-list-item {
