@@ -190,7 +190,8 @@ function isRestrictedUrl(url) {
 const tabsWithMedia = new Set();
 
 // Restore tabsWithMedia from session storage on service worker startup
-browserAPI.storage.session.get(['tabsWithMediaIds']).then(result => {
+// Store promise so GET_AUDIBLE_TABS can await it before reading the set
+const tabsWithMediaReady = browserAPI.storage.session.get(['tabsWithMediaIds']).then(result => {
   const ids = result.tabsWithMediaIds;
   if (ids && Array.isArray(ids)) {
     ids.forEach(id => tabsWithMedia.add(id));
@@ -2008,11 +2009,14 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'GET_AUDIBLE_TABS') {
     (async () => {
       try {
-        // Get audible tabs
+        // Ensure tabsWithMedia is restored from session storage before reading
+        await tabsWithMediaReady;
+
+        // Get audible tabs (actively playing audio)
         const audibleTabs = await browserAPI.tabs.query({ audible: true });
         const includedTabIds = new Set(audibleTabs.map(t => t.id));
 
-        // Get tabs with media (may include paused media)
+        // Get tracked tabs with media (may include paused media)
         const mediaTabs = [];
         for (const tabId of tabsWithMedia) {
           if (!includedTabIds.has(tabId)) {
@@ -2023,14 +2027,36 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
             } catch (e) {
               // Tab no longer exists, remove from tracking
               tabsWithMedia.delete(tabId);
-              persistTabsWithMedia();
             }
           }
         }
 
-        // Combine and return
-        const allTabs = [...audibleTabs, ...mediaTabs];
-        sendResponse({ tabs: allTabs });
+        // Probe remaining tabs for paused/untracked media
+        const allTabs = await browserAPI.tabs.query({});
+        const probeResults = await Promise.all(
+          allTabs
+            .filter(tab => !includedTabIds.has(tab.id))
+            .map(async tab => {
+              try {
+                const response = await Promise.race([
+                  browserAPI.tabs.sendMessage(tab.id, { type: 'GET_MEDIA_POSITION' }),
+                  new Promise(resolve => setTimeout(() => resolve(null), 300))
+                ]);
+                if (response?.success && response.position) {
+                  tabsWithMedia.add(tab.id);
+                  return tab;
+                }
+              } catch {}
+              return null;
+            })
+        );
+
+        for (const tab of probeResults) {
+          if (tab) mediaTabs.push(tab);
+        }
+
+        persistTabsWithMedia();
+        sendResponse({ tabs: [...audibleTabs, ...mediaTabs] });
       } catch (e) {
         sendResponse({ tabs: [] });
       }

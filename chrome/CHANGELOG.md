@@ -10,6 +10,15 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.9] - Alpha - 2026-03-27 — Paused media in tab switcher
+
+### Fixed
+- Tab switcher now includes tabs with paused media, not just actively playing tabs
+- Fixed race condition where `tabsWithMedia` session storage restoration could complete after `GET_AUDIBLE_TABS` already returned an empty set
+- `GET_AUDIBLE_TABS` now actively probes remaining tabs for media (300ms timeout, all parallel) as fallback when tracking missed them
+
+---
+
 ## [6.2.8] - Alpha - 2026-03-27 — Seekbar updates on tab switch
 
 ### Fixed
