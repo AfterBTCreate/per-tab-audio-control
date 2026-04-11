@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="popup-seekbar.css">
   <link rel="stylesheet" href="popup-header-edit.css">
   <link rel="stylesheet" href="popup-sections-edit.css">
+  <link rel="stylesheet" href="popup-recording.css">
 </head>
 <body class="initializing">
   <div class="container">
@@ -174,6 +175,15 @@
 
     <div class="volume-row" role="group" aria-label="Volume controls">
       <div class="volume-left">
+        <button class="record-btn" id="recordBtn" title="Record tab audio" aria-label="Record tab audio">
+          <svg class="record-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="12" cy="12" r="7"/>
+          </svg>
+          <svg class="stop-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+          </svg>
+          <span class="record-btn-timer" id="recordingTimerText"></span>
+        </button>
         <button class="tab-nav-btn" id="mediaToggleBtn" title="Toggle play/pause" aria-label="Toggle play/pause">
           <svg class="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
@@ -548,6 +558,25 @@
       </div>
     </div>
 
+    <!-- Recording Disclaimer Dialog -->
+    <div class="recording-disclaimer-overlay" id="recordingDisclaimerOverlay" role="dialog" aria-label="Recording disclaimer">
+      <div class="recording-disclaimer-dialog">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Recording Disclaimer
+        </h3>
+        <p>This feature is intended for recording your own content, lectures, meetings (with consent), and other lawful purposes. You are responsible for compliance with applicable laws and third-party terms of service.</p>
+        <div class="recording-disclaimer-buttons">
+          <button class="disclaimer-cancel-btn" id="disclaimerCancelBtn">Cancel</button>
+          <button class="disclaimer-accept-btn" id="disclaimerAcceptBtn">I Understand</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Keyboard Shortcuts Footer -->
     <div class="shortcuts-footer" id="shortcutsFooter" aria-label="Keyboard shortcuts">
       <div class="shortcuts-footer-row">
@@ -578,6 +607,7 @@
   <script src="popup-visualizer.js"></script>
   <script src="popup-seekbar.js"></script>
   <script src="popup-tabs.js"></script>
+  <script src="popup-recording.js"></script>
   <script src="popup-sections-edit.js"></script>
   <script src="popup-header-edit.js"></script>
 </body>

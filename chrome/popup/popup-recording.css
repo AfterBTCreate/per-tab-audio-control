@@ -1,0 +1,212 @@
+/* ==================== Recording Controls ==================== */
+
+/* Record button - placed in the volume-left control group */
+.record-btn {
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #5a7a9a;
+  border-radius: 4px;
+  color: #7a8fa5;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.record-btn:hover {
+  background: #0f1621;
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.record-btn:active {
+  transform: scale(0.95);
+}
+
+/* Hide stop icon and timer text by default */
+.record-btn .stop-icon,
+.record-btn .record-btn-timer {
+  display: none;
+}
+
+/* Recording active state - wider button with stop icon + timer */
+.record-btn.recording {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #ef4444;
+  padding: 0 6px;
+  gap: 4px;
+  animation: recordPulse 1.5s ease-in-out infinite;
+}
+
+.record-btn.recording:hover {
+  background: rgba(239, 68, 68, 0.35);
+}
+
+/* Swap icons: hide record circle, show stop square */
+.record-btn.recording .record-icon {
+  display: none;
+}
+
+.record-btn.recording .stop-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Show timer text inline */
+.record-btn.recording .record-btn-timer {
+  display: inline;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+@keyframes recordPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record-btn.recording {
+    animation: none;
+    box-shadow: 0 0 6px 1px rgba(239, 68, 68, 0.3);
+  }
+}
+
+/* Recording disclaimer dialog overlay */
+.recording-disclaimer-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.recording-disclaimer-overlay.visible {
+  display: flex;
+}
+
+.recording-disclaimer-dialog {
+  background: #0f1621;
+  border: 1px solid #5a7a9a;
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 320px;
+  width: 100%;
+}
+
+.recording-disclaimer-dialog h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.recording-disclaimer-dialog h3 svg {
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+.recording-disclaimer-dialog p {
+  margin: 0 0 12px;
+  font-size: 11px;
+  color: #7a8fa5;
+  line-height: 1.5;
+}
+
+.recording-disclaimer-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.recording-disclaimer-buttons button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.15s ease;
+}
+
+.disclaimer-cancel-btn {
+  background: transparent;
+  border-color: #5a7a9a;
+  color: #7a8fa5;
+}
+
+.disclaimer-cancel-btn:hover {
+  background: #1a2744;
+  color: #f0f0f0;
+}
+
+.disclaimer-accept-btn {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.disclaimer-accept-btn:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+/* ==================== Light Mode Recording ==================== */
+
+body.light-mode .record-btn {
+  border-color: #b0c4d8;
+  color: #4a6278;
+}
+
+body.light-mode .record-btn:hover {
+  background: #dce8f2;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+body.light-mode .record-btn.recording {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+body.light-mode .record-btn.recording .record-btn-timer {
+  color: #dc2626;
+}
+
+body.light-mode .recording-disclaimer-dialog {
+  background: #e8f0f8;
+  border-color: #b0c4d8;
+}
+
+body.light-mode .recording-disclaimer-dialog h3 {
+  color: #1a2a3a;
+}
+
+body.light-mode .recording-disclaimer-dialog p {
+  color: #4a6278;
+}
+
+body.light-mode .disclaimer-cancel-btn {
+  border-color: #b0c4d8;
+  color: #4a6278;
+}
+
+body.light-mode .disclaimer-cancel-btn:hover {
+  background: #dce8f2;
+  color: #1a2a3a;
+}

@@ -69,7 +69,12 @@ const DEFAULTS = {
     order: ['balance', 'speed', 'bass', 'treble', 'voice', 'range', 'output', 'siteRule', 'sleepTimer'],
     hidden: [],
     controlMode: { speed: 'presets', range: 'presets', sleepTimer: 'presets' }
-  }
+  },
+
+  // Recording defaults
+  recordingFormat: 'mp3',
+  recordingBitrate: 192,
+  recordingSampleRate: 44100
 };
 
 // Header layout shared constants (used by popup edit mode and options page)
@@ -118,6 +123,23 @@ const COMPRESSOR_PRESETS = {
   maximum: { threshold: -40, knee: 40, ratio: 20, attack: 0.001, release: 1.0 }
 };
 
+// Recording format constants
+// Note: OGG is not supported — Chrome's MediaRecorder does not support audio/ogg;codecs=opus,
+// so it would silently produce WebM bytes with a wrong .ogg extension.
+const RECORDING_FORMATS = {
+  mp3: { mimeType: 'audio/mpeg', extension: 'mp3', label: 'MP3' },
+  wav: { mimeType: 'audio/wav', extension: 'wav', label: 'WAV' },
+  webm: { mimeType: 'audio/webm;codecs=opus', extension: 'webm', label: 'WebM (Opus)' }
+};
+
+const RECORDING_BITRATES = {
+  mp3: [64, 128, 192, 256, 320],
+  webm: [32, 64, 96, 128, 256]
+  // WAV has no bitrate option (uncompressed)
+};
+
+const RECORDING_SAMPLE_RATES = [44100, 48000];
+
 // Storage keys
 const STORAGE_KEYS = {
   // Sync storage
@@ -132,6 +154,10 @@ const STORAGE_KEYS = {
   // NATIVE_MODE_REFRESH removed in v4.1.17 - mode switches work without refresh
   HEADER_LAYOUT: 'headerLayout',
   DISABLED_DOMAINS: 'disabledDomains',
+  RECORDING_FORMAT: 'recordingFormat',
+  RECORDING_BITRATE: 'recordingBitrate',
+  RECORDING_SAMPLE_RATE: 'recordingSampleRate',
+  RECORDING_DISCLAIMER_ACCEPTED: 'recordingDisclaimerAccepted',
 
   // Local storage (per-tab)
   TAB_PREFIX: 'tab_'

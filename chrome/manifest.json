@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Per-Tab Audio Control",
-  "version": "5.7.14",
+  "version": "6.0.1",
   "description": "The audio controls browsers forgot to include",
   "permissions": [
     "storage",
@@ -11,7 +11,8 @@
     "offscreen",
     "contextMenus",
     "tabCapture",
-    "alarms"
+    "alarms",
+    "downloads"
   ],
   "host_permissions": [
     "<all_urls>"

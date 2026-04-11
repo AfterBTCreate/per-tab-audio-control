@@ -37,6 +37,401 @@ const COMPRESSOR_COMPENSATION = {
   maximum: 0.50   // -6dB - heavy compression
 };
 
+// ==================== Recording State ====================
+const activeRecordings = new Map(); // tabId -> { recorder/scriptNode, chunks, startTime, format, ... }
+
+// Maximum recording size (2GB - safety margin for ArrayBuffer limits)
+const MAX_RECORDING_BYTES = 2 * 1024 * 1024 * 1024 - 1024;
+
+// ==================== Recording Functions ====================
+
+function isValidRecordingFormat(format) {
+  return ['mp3', 'wav', 'webm'].includes(format);
+}
+
+function isValidBitrate(bitrate) {
+  return Number.isInteger(bitrate) && bitrate >= 32 && bitrate <= 320;
+}
+
+function isValidSampleRate(rate) {
+  return [44100, 48000].includes(rate);
+}
+
+async function handleStartRecording(tabId, format, bitrate, sampleRate) {
+  if (!isValidTabId(tabId)) {
+    return { success: false, error: 'Invalid tab ID' };
+  }
+  if (!isValidRecordingFormat(format)) {
+    return { success: false, error: 'Invalid format' };
+  }
+  // Validate bitrate and sample rate (defense-in-depth, background.js also validates)
+  if (format !== 'wav' && !isValidBitrate(bitrate)) {
+    return { success: false, error: 'Invalid bitrate' };
+  }
+  if (sampleRate !== undefined && !isValidSampleRate(sampleRate)) {
+    return { success: false, error: 'Invalid sample rate' };
+  }
+
+  // Check if already recording this tab
+  if (activeRecordings.has(tabId)) {
+    return { success: false, error: 'Already recording this tab' };
+  }
+
+  const capture = visualizerCaptures.get(tabId);
+  if (!capture || !capture.audioContext || !capture.limiter) {
+    return { success: false, error: 'No active audio capture for this tab. Open the popup on the tab first.' };
+  }
+
+  try {
+    const ctx = capture.audioContext;
+    const startTime = Date.now();
+    let recordingState;
+
+    if (format === 'webm') {
+      // Native MediaRecorder path
+      const destNode = ctx.createMediaStreamDestination();
+      capture.limiter.connect(destNode);
+
+      const recorder = new MediaRecorder(destNode.stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: (bitrate || 128) * 1000
+      });
+
+      const chunks = [];
+      let estimatedBytes = 0;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          estimatedBytes += e.data.size;
+          if (estimatedBytes > MAX_RECORDING_BYTES) {
+            log('Recording size limit reached, stopping');
+            handleStopRecording(tabId);
+            return;
+          }
+          chunks.push(e.data);
+        }
+      };
+
+      recorder.start(1000); // Collect data every second
+
+      recordingState = {
+        type: 'mediarecorder',
+        recorder,
+        destNode,
+        chunks,
+        startTime,
+        format,
+        estimatedBytes: 0,
+        get currentBytes() { return chunks.reduce((sum, c) => sum + c.size, 0); }
+      };
+
+    } else if (format === 'wav' || format === 'mp3') {
+      // WAV/MP3: AudioWorkletNode captures PCM on the audio rendering thread,
+      // sends it to the main thread via MessagePort for encoding/storage.
+      // This replaces the deprecated ScriptProcessorNode.
+
+      if (format === 'mp3' && typeof lamejs === 'undefined') {
+        return { success: false, error: 'MP3 encoder not loaded' };
+      }
+
+      // Load the recording worklet module (idempotent — safe to call multiple times)
+      await ctx.audioWorklet.addModule(
+        new URL('recording-worklet.js', location.href).href
+      );
+
+      // Create worklet node with 0 outputs — acts as a pure audio sink.
+      // No silent gain hack needed (unlike ScriptProcessorNode), and no
+      // risk of doubling audio output to speakers.
+      const workletNode = new AudioWorkletNode(ctx, 'recording-processor', {
+        numberOfInputs: 1,
+        numberOfOutputs: 0,
+        channelCount: 2
+      });
+
+      // Always use the AudioContext's actual sample rate.
+      // The worklet captures PCM at ctx.sampleRate — using a different rate
+      // for the encoder/header causes pitch/speed artifacts.
+      const actualSampleRate = ctx.sampleRate;
+
+      // Format-specific state
+      let mp3Encoder = null;
+      const dataChunks = []; // WAV: {left, right} objects | MP3: Uint8Array frames
+      let estimatedBytes = 0;
+      let stopped = false;
+
+      if (format === 'mp3') {
+        const mp3Bitrate = bitrate || 192;
+        mp3Encoder = new lamejs.Mp3Encoder(2, actualSampleRate, mp3Bitrate);
+      }
+
+      // Handle PCM data arriving from the worklet thread
+      workletNode.port.onmessage = (e) => {
+        if (stopped || e.data.type !== 'pcm') return;
+
+        if (format === 'wav') {
+          dataChunks.push({ left: e.data.left, right: e.data.right });
+          estimatedBytes += e.data.left.length * 4; // 2ch * 16-bit = 4 bytes/frame
+          if (estimatedBytes > MAX_RECORDING_BYTES) {
+            stopped = true;
+            log('WAV recording size limit reached, stopping');
+            setTimeout(() => handleStopRecording(tabId), 0);
+          }
+        } else {
+          // MP3: convert Float32 → Int16 → lamejs
+          const leftInt16 = floatTo16BitPCM(e.data.left);
+          const rightInt16 = floatTo16BitPCM(e.data.right);
+          const mp3Data = mp3Encoder.encodeBuffer(leftInt16, rightInt16);
+          if (mp3Data.length > 0) {
+            dataChunks.push(mp3Data);
+            estimatedBytes += mp3Data.length;
+            if (estimatedBytes > MAX_RECORDING_BYTES) {
+              stopped = true;
+              log('MP3 recording size limit reached, stopping');
+              setTimeout(() => handleStopRecording(tabId), 0);
+            }
+          }
+        }
+      };
+
+      // Connect: limiter → workletNode (no output, no signal doubling)
+      capture.limiter.connect(workletNode);
+
+      recordingState = {
+        type: format, // 'wav' or 'mp3'
+        workletNode,
+        dataChunks,
+        mp3Encoder,
+        startTime,
+        format,
+        sampleRate: actualSampleRate,
+        bitrate: bitrate || 192,
+        get currentBytes() {
+          if (format === 'wav') {
+            return dataChunks.reduce((sum, c) => sum + c.left.length, 0) * 4;
+          }
+          return dataChunks.reduce((sum, c) => sum + c.length, 0);
+        }
+      };
+    }
+
+    activeRecordings.set(tabId, recordingState);
+    log('Recording started for tab', tabId, 'format:', format);
+    return { success: true };
+
+  } catch (e) {
+    console.error('[Offscreen] Error starting recording:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+async function handleStopRecording(tabId) {
+  if (!isValidTabId(tabId)) {
+    return { success: false, error: 'Invalid tab ID' };
+  }
+
+  const recording = activeRecordings.get(tabId);
+  if (!recording) {
+    return { success: false, error: 'No active recording for this tab' };
+  }
+
+  try {
+    let blob;
+    const duration = Date.now() - recording.startTime;
+
+    if (recording.type === 'mediarecorder') {
+      // Stop MediaRecorder and wait for final data
+      await new Promise((resolve) => {
+        recording.recorder.onstop = resolve;
+        recording.recorder.stop();
+      });
+
+      // Disconnect the destination node
+      try {
+        const capture = visualizerCaptures.get(tabId);
+        if (capture && capture.limiter) {
+          capture.limiter.disconnect(recording.destNode);
+        }
+      } catch (e) { /* May already be disconnected */ }
+
+      blob = new Blob(recording.chunks, { type: 'audio/webm;codecs=opus' });
+
+    } else if (recording.type === 'wav' || recording.type === 'mp3') {
+      // Stop the worklet processor and disconnect
+      try {
+        recording.workletNode.port.postMessage({ type: 'stop' });
+        recording.workletNode.disconnect();
+        const capture = visualizerCaptures.get(tabId);
+        if (capture && capture.limiter) {
+          capture.limiter.disconnect(recording.workletNode);
+        }
+      } catch (e) { /* May already be disconnected */ }
+
+      if (recording.type === 'wav') {
+        // Guard against oversized WAV before allocation
+        const wavTotalSamples = recording.dataChunks.reduce((sum, c) => sum + c.left.length, 0);
+        if (wavTotalSamples * 4 + 44 > MAX_RECORDING_BYTES) {
+          activeRecordings.delete(tabId);
+          return { success: false, error: 'Recording too large to save as WAV' };
+        }
+        blob = buildWavBlob(recording.dataChunks, recording.sampleRate);
+
+      } else {
+        // Flush the MP3 encoder
+        const finalData = recording.mp3Encoder.flush();
+        if (finalData.length > 0) {
+          recording.dataChunks.push(finalData);
+        }
+
+        // Combine all MP3 chunks
+        const totalLength = recording.dataChunks.reduce((sum, c) => sum + c.length, 0);
+        const mp3Data = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const chunk of recording.dataChunks) {
+          mp3Data.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        blob = new Blob([mp3Data], { type: 'audio/mpeg' });
+      }
+    }
+
+    // Clean up
+    activeRecordings.delete(tabId);
+
+    // Create blob URL for download
+    const blobUrl = URL.createObjectURL(blob);
+
+    log('Recording stopped for tab', tabId, 'size:', blob.size, 'duration:', duration);
+    return {
+      success: true,
+      blobUrl,
+      size: blob.size,
+      duration,
+      format: recording.format
+    };
+
+  } catch (e) {
+    console.error('[Offscreen] Error stopping recording:', e);
+    activeRecordings.delete(tabId);
+    return { success: false, error: e.message };
+  }
+}
+
+function handleCancelRecording(tabId) {
+  if (!isValidTabId(tabId)) {
+    return { success: false, error: 'Invalid tab ID' };
+  }
+
+  const recording = activeRecordings.get(tabId);
+  if (!recording) {
+    return { success: true }; // Nothing to cancel
+  }
+
+  try {
+    if (recording.type === 'mediarecorder' && recording.recorder.state !== 'inactive') {
+      recording.recorder.stop();
+      try {
+        const capture = visualizerCaptures.get(tabId);
+        if (capture && capture.limiter) {
+          capture.limiter.disconnect(recording.destNode);
+        }
+      } catch (e) { /* ignore */ }
+    } else if (recording.type === 'wav' || recording.type === 'mp3') {
+      try {
+        recording.workletNode.port.postMessage({ type: 'stop' });
+        recording.workletNode.disconnect();
+        const capture = visualizerCaptures.get(tabId);
+        if (capture && capture.limiter) {
+          capture.limiter.disconnect(recording.workletNode);
+        }
+      } catch (e) { /* ignore */ }
+    }
+  } catch (e) {
+    console.error('[Offscreen] Error during cancel cleanup:', e);
+  }
+
+  activeRecordings.delete(tabId);
+  log('Recording cancelled for tab', tabId);
+  return { success: true };
+}
+
+function getRecordingStatus(tabId) {
+  const recording = activeRecordings.get(tabId);
+  if (!recording) {
+    return { recording: false };
+  }
+  return {
+    recording: true,
+    duration: Date.now() - recording.startTime,
+    size: recording.currentBytes || 0,
+    format: recording.format
+  };
+}
+
+// Convert Float32Array to Int16Array for lamejs
+function floatTo16BitPCM(float32Array) {
+  const int16 = new Int16Array(float32Array.length);
+  for (let i = 0; i < float32Array.length; i++) {
+    const s = Math.max(-1, Math.min(1, float32Array[i]));
+    int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+  }
+  return int16;
+}
+
+// Build a WAV file blob from PCM chunk data
+function buildWavBlob(pcmChunks, sampleRate) {
+  // Count total samples
+  let totalSamples = 0;
+  for (const chunk of pcmChunks) {
+    totalSamples += chunk.left.length;
+  }
+
+  const numChannels = 2;
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  const dataSize = totalSamples * blockAlign;
+  const headerSize = 44;
+  const buffer = new ArrayBuffer(headerSize + dataSize);
+  const view = new DataView(buffer);
+
+  // WAV header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true); // Subchunk1Size (PCM)
+  view.setUint16(20, 1, true); // AudioFormat (PCM)
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeString(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  // Interleave PCM data (left, right, left, right, ...)
+  let offset = headerSize;
+  for (const chunk of pcmChunks) {
+    for (let i = 0; i < chunk.left.length; i++) {
+      const leftSample = Math.max(-1, Math.min(1, chunk.left[i]));
+      const rightSample = Math.max(-1, Math.min(1, chunk.right[i]));
+      view.setInt16(offset, leftSample < 0 ? leftSample * 0x8000 : leftSample * 0x7FFF, true);
+      offset += 2;
+      view.setInt16(offset, rightSample < 0 ? rightSample * 0x8000 : rightSample * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+function writeString(view, offset, string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
 // ==================== Message Handler ====================
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Security: Validate sender is our extension
@@ -77,9 +472,36 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return false;
 
     case 'TAB_REMOVED':
-      // Clean up capture when tab is closed
+      // Clean up capture and any active recording when tab is closed
       if (message.tabId) {
+        if (activeRecordings.has(message.tabId)) {
+          handleCancelRecording(message.tabId);
+        }
         handleStopVisualizerCapture(message.tabId);
+      }
+      return false;
+
+    // ==================== Recording ====================
+    case 'START_RECORDING':
+      handleStartRecording(message.tabId, message.format, message.bitrate, message.sampleRate).then(sendResponse);
+      return true;
+
+    case 'STOP_RECORDING':
+      handleStopRecording(message.tabId).then(sendResponse);
+      return true;
+
+    case 'CANCEL_RECORDING':
+      sendResponse(handleCancelRecording(message.tabId));
+      return false;
+
+    case 'GET_RECORDING_STATUS':
+      sendResponse(getRecordingStatus(message.tabId));
+      return false;
+
+    case 'REVOKE_BLOB_URL':
+      if (message.blobUrl && typeof message.blobUrl === 'string' &&
+          message.blobUrl.startsWith('blob:')) {
+        try { URL.revokeObjectURL(message.blobUrl); } catch (e) { /* ignore */ }
       }
       return false;
 
@@ -678,6 +1100,13 @@ async function handleStartVisualizerCapture(streamId, tabId, initialVolume) {
  */
 async function handleStopVisualizerCapture(tabId) {
   log('Stopping visualizer capture for tab:', tabId);
+
+  // Guard: don't tear down AudioContext if a recording is in progress
+  // The recording depends on the same capture's AudioContext and nodes
+  if (activeRecordings.has(tabId)) {
+    log('Recording active for tab', tabId, '- deferring visualizer stop');
+    return { success: false, error: 'Recording in progress' };
+  }
 
   const capture = visualizerCaptures.get(tabId);
   if (!capture) {

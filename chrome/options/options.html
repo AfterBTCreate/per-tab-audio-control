@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="options-rules.css">
   <link rel="stylesheet" href="options-header-layout.css">
   <link rel="stylesheet" href="options-popup-sections.css">
+  <link rel="stylesheet" href="options-recording.css">
 </head>
 <body>
   <canvas id="starField" class="star-field" aria-hidden="true"></canvas>
@@ -498,6 +499,56 @@
           </div>
 
           <div id="defaultDeviceStatus" class="status" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section collapsible" data-section="recording" role="region" aria-labelledby="recordingHeader">
+      <h2 class="section-header" id="recordingHeader" role="button" aria-expanded="false" tabindex="0">
+        <span>Recording</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h2>
+      <div class="section-content">
+        <p class="section-desc">Configure the default format, bitrate, and sample rate for tab audio recordings. Click the record button in the popup to capture audio from any tab.</p>
+
+        <div class="info-box">
+          <h4>Recording Disclaimer</h4>
+          <p>Recording is intended for your own content, lectures, meetings (with consent), and other lawful purposes. You are responsible for compliance with applicable copyright laws, wiretapping statutes, and third-party terms of service.</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Format &amp; Quality</h3>
+
+          <div class="recording-format-row">
+            <label for="recordingFormat">Format</label>
+            <select id="recordingFormat" aria-label="Recording format">
+              <option value="mp3">MP3</option>
+              <option value="wav">WAV (Uncompressed)</option>
+              <option value="webm">WebM (Opus)</option>
+            </select>
+          </div>
+          <p class="recording-hint">MP3 is widely compatible. WAV is lossless but creates large files. WebM/OGG use the Opus codec.</p>
+
+          <div class="recording-format-row" id="recordingBitrateRow">
+            <label for="recordingBitrate">Bitrate</label>
+            <select id="recordingBitrate" aria-label="Recording bitrate">
+              <option value="64">64 kbps</option>
+              <option value="128">128 kbps</option>
+              <option value="192" selected>192 kbps</option>
+              <option value="256">256 kbps</option>
+              <option value="320">320 kbps</option>
+            </select>
+          </div>
+
+          <p class="recording-hint">Sample rate is automatically matched to the browser's audio capture rate (typically 48,000 Hz).</p>
+
+          <div class="button-row mt-12">
+            <button id="resetRecordingBtn" class="btn secondary" title="Reset recording settings to defaults" aria-label="Reset recording settings to defaults">Reset to Defaults</button>
+          </div>
+
+          <div id="recordingSettingsStatus" class="status" role="status" aria-live="polite"></div>
         </div>
       </div>
     </section>
@@ -1169,6 +1220,7 @@
   <script src="options-devices.js"></script>
   <script src="options-header-layout.js"></script>
   <script src="options-popup-sections.js"></script>
+  <script src="options-recording.js"></script>
   <script src="options-ui.js"></script>
   <script src="options-starfield.js"></script>
 </body>

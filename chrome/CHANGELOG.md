@@ -10,6 +10,53 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.0.1] - Alpha - 2026-03-24 — Inline record timer
+
+### Fixed
+- Recording timer no longer pushes reset button off-screen; timer now displays inline within the record button itself as `[■ 0:01]`, swapping the record circle for a stop square icon while recording
+
+---
+
+## [6.0.0] - Alpha - 2026-03-19 — Tab audio recording
+
+### Added
+- **Recording feature**: Record tab audio directly from the popup with a single click
+  - Record button in popup playback controls (red circle icon)
+  - Pulsing red indicator and elapsed time counter while recording
+  - Recordings capture audio with all applied effects (EQ, volume boost, compression)
+  - First-use disclaimer dialog for legal awareness
+- **Recording format support**: MP3 (default), WAV, WebM (Opus), OGG (Opus)
+  - MP3 encoding via bundled lamejs library (pure JavaScript, fully local)
+  - WAV recording with proper header generation (uncompressed, lossless)
+  - WebM/OGG via native MediaRecorder API
+- **Recording settings** in options page (new "Recording" section)
+  - Format selector with format-specific bitrate options
+  - Configurable bitrate: MP3 (64-320 kbps), WebM/OGG (32-256 kbps)
+  - Sample rate selection: 44,100 Hz (CD) or 48,000 Hz (DVD)
+  - Reset to defaults button
+- **Download handling**: Files saved via chrome.downloads API with "Save As" dialog
+  - Filenames auto-generated from tab title + timestamp
+  - Format: `{TabTitle}_{YYYY-MM-DD}_{HH-mm-ss}.{ext}`
+- **Safety features**:
+  - 2GB recording size ceiling (browser ArrayBuffer limit protection)
+  - Recording auto-cancels when tab is closed
+  - Recording state persists across popup open/close cycles
+  - Legal disclaimer shown on first recording use (stored in sync storage)
+
+### Changed
+- **Manifest version**: Bumped to 6.0.0 (major version for new feature)
+- **Permissions**: Added `downloads` permission for recording file saves
+- **Offscreen document**: Now loads lamejs encoder library for MP3 support
+
+### Security
+- Recording blob URLs handled entirely within extension context
+- Filename sanitization prevents path traversal in download filenames
+- All recording message types validated in background service worker
+- Tab ID validation on all recording operations
+- Format/bitrate/sample rate validated before encoder initialization
+
+---
+
 ## [5.7.14] - Release - 2026-03-14 — Light mode site rule add button fix
 
 ### Fixed

@@ -1847,7 +1847,10 @@ const VALID_MESSAGE_TYPES = [
   // Pending site rule application (from popup)
   'APPLY_PENDING_SITE_RULE',
   // Sleep timer (from popup)
-  'START_SLEEP_TIMER', 'CANCEL_SLEEP_TIMER', 'GET_SLEEP_TIMER', 'UPDATE_SLEEP_TIMER'
+  'START_SLEEP_TIMER', 'CANCEL_SLEEP_TIMER', 'GET_SLEEP_TIMER', 'UPDATE_SLEEP_TIMER',
+  // Recording (from popup)
+  'START_RECORDING', 'STOP_RECORDING', 'CANCEL_RECORDING', 'GET_RECORDING_STATUS',
+  'DOWNLOAD_RECORDING', 'REVOKE_BLOB_URL'
 ];
 
 function isValidMessageType(type) {
@@ -2762,6 +2765,184 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
       await setSleepTimerState(tabId, state);
       sendResponse({ success: true });
+    })();
+    return true;
+  }
+
+  // ==================== Recording Message Handlers ====================
+
+  if (request.type === 'START_RECORDING') {
+    const tabId = request.tabId;
+    if (!isValidTabId(tabId)) {
+      sendResponse({ success: false, error: 'Invalid tab ID' });
+      return false;
+    }
+    // Validate recording parameters at background trust boundary (defense-in-depth)
+    const VALID_REC_FORMATS = ['mp3', 'wav', 'webm'];
+    const format = VALID_REC_FORMATS.includes(request.format) ? request.format : 'mp3';
+    const bitrate = (Number.isInteger(request.bitrate) && request.bitrate >= 32 && request.bitrate <= 320)
+      ? request.bitrate : 192;
+    const sampleRate = [44100, 48000].includes(request.sampleRate) ? request.sampleRate : 44100;
+    (async () => {
+      try {
+        // Ensure offscreen document exists
+        const offscreenReady = await setupOffscreenDocument();
+        if (!offscreenReady) {
+          sendResponse({ success: false, error: 'Could not create offscreen document' });
+          return;
+        }
+        const result = await chrome.runtime.sendMessage({
+          type: 'START_RECORDING',
+          tabId: tabId,
+          format,
+          bitrate,
+          sampleRate
+        });
+        sendResponse(result);
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
+    return true;
+  }
+
+  if (request.type === 'STOP_RECORDING') {
+    const tabId = request.tabId;
+    if (!isValidTabId(tabId)) {
+      sendResponse({ success: false, error: 'Invalid tab ID' });
+      return false;
+    }
+    (async () => {
+      try {
+        // Check offscreen document exists before messaging
+        const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
+        const contexts = await chrome.runtime.getContexts({
+          contextTypes: ['OFFSCREEN_DOCUMENT'],
+          documentUrls: [offscreenUrl]
+        });
+        if (contexts.length === 0) {
+          sendResponse({ success: false, error: 'Recording lost: audio context was recycled' });
+          return;
+        }
+        const result = await chrome.runtime.sendMessage({
+          type: 'STOP_RECORDING',
+          tabId: tabId
+        });
+        sendResponse(result);
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
+    return true;
+  }
+
+  if (request.type === 'CANCEL_RECORDING') {
+    const tabId = request.tabId;
+    if (!isValidTabId(tabId)) {
+      sendResponse({ success: false, error: 'Invalid tab ID' });
+      return false;
+    }
+    (async () => {
+      try {
+        const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
+        const contexts = await chrome.runtime.getContexts({
+          contextTypes: ['OFFSCREEN_DOCUMENT'],
+          documentUrls: [offscreenUrl]
+        });
+        if (contexts.length === 0) {
+          sendResponse({ success: true }); // Nothing to cancel
+          return;
+        }
+        const result = await chrome.runtime.sendMessage({
+          type: 'CANCEL_RECORDING',
+          tabId: tabId
+        });
+        sendResponse(result);
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
+    return true;
+  }
+
+  if (request.type === 'GET_RECORDING_STATUS') {
+    const tabId = request.tabId;
+    if (!isValidTabId(tabId)) {
+      sendResponse({ recording: false });
+      return false;
+    }
+    (async () => {
+      try {
+        const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
+        const existingContexts = await chrome.runtime.getContexts({
+          contextTypes: ['OFFSCREEN_DOCUMENT'],
+          documentUrls: [offscreenUrl]
+        });
+        if (existingContexts.length === 0) {
+          sendResponse({ recording: false });
+          return;
+        }
+        const result = await chrome.runtime.sendMessage({
+          type: 'GET_RECORDING_STATUS',
+          tabId: tabId
+        });
+        sendResponse(result);
+      } catch (e) {
+        sendResponse({ recording: false });
+      }
+    })();
+    return true;
+  }
+
+  if (request.type === 'DOWNLOAD_RECORDING') {
+    const { blobUrl, filename } = request;
+    // Security: Only accept blob URLs from our extension origin
+    if (!blobUrl || typeof blobUrl !== 'string' ||
+        !blobUrl.startsWith('blob:chrome-extension://')) {
+      sendResponse({ success: false, error: 'Invalid blob URL' });
+      return false;
+    }
+    if (!filename || typeof filename !== 'string' || filename.length > 255) {
+      sendResponse({ success: false, error: 'Invalid filename' });
+      return false;
+    }
+    // Security: Re-sanitize filename at the trust boundary (defense-in-depth)
+    const safeFilename = filename
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '') // Remove filesystem-unsafe chars
+      .replace(/\.\./g, '') // Prevent path traversal
+      .replace(/^[/\\]+/, '') // No leading path separators
+      .replace(/^\.+/, '') // No leading dots
+      .substring(0, 200);
+    if (!safeFilename) {
+      sendResponse({ success: false, error: 'Invalid filename after sanitization' });
+      return false;
+    }
+    (async () => {
+      try {
+        const downloadId = await chrome.downloads.download({
+          url: blobUrl,
+          filename: safeFilename,
+          saveAs: true
+        });
+        // Revoke blob URL after download is initiated to free memory
+        // Note: blob was created in offscreen context, send revoke message
+        try {
+          await chrome.runtime.sendMessage({
+            type: 'REVOKE_BLOB_URL',
+            blobUrl: blobUrl
+          });
+        } catch (e) { /* offscreen may already be closed */ }
+        sendResponse({ success: true, downloadId });
+      } catch (e) {
+        // Also revoke on error to prevent memory leak
+        try {
+          await chrome.runtime.sendMessage({
+            type: 'REVOKE_BLOB_URL',
+            blobUrl: blobUrl
+          });
+        } catch (revokeErr) { /* offscreen may already be closed */ }
+        sendResponse({ success: false, error: e.message });
+      }
     })();
     return true;
   }
