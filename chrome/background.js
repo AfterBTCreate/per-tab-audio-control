@@ -213,8 +213,12 @@ const fullscreenOpQueue = new Map();
 // Session storage key for fullscreen state (survives service worker restarts)
 const FULLSCREEN_SESSION_KEY = 'fullscreenStates';
 
-// CSS rule injected during fullscreen to force container to fill viewport
-const FULLSCREEN_CSS = ':fullscreen { width: 100vw !important; height: 100vh !important; }';
+// CSS rule injected during fullscreen to force container to fill viewport.
+// Uses 100% (not 100vw/100vh) because vw includes scrollbar gutter width per CSS spec.
+// On ultrawide monitors (21:9), even a 17px gutter makes the container wider than the
+// visible viewport, causing 16:9 video players to scale the video taller than the screen
+// and clip the bottom controls. 100% on position:fixed = exact visible viewport.
+const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; }';
 
 // Restore fullscreen state from session storage on service worker startup
 browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]).then(result => {

@@ -10,6 +10,11 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.26] - Alpha - 2026-04-03 — Fix fullscreen video cut off on ultrawide monitors
+
+### Fixed
+- **Fullscreen CSS on ultrawide monitors**: Video bottom and controls were clipped when entering fullscreen on ultrawide (21:9) displays. Root cause: injected CSS used `100vw`/`100vh` viewport units which include the scrollbar gutter width per CSS spec. On ultrawide monitors, the extra ~17px width caused 16:9 video players to scale the video ~500px taller than the viewport. Changed to `100%` which matches the exact visible viewport for `position: fixed` elements.
+
 ## [6.2.25] - Alpha - 2026-04-03 — Fix fullscreen not exiting after YouTube playlist advance
 
 ### Fixed
