@@ -23,12 +23,10 @@
 
 .volume-left {
   justify-content: flex-end;
-  min-width: 0;
 }
 
 .volume-right {
   justify-content: flex-start;
-  flex-shrink: 0;
 }
 
 /* Disabled status shown in volume row when extension is disabled on domain */
@@ -71,7 +69,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   transition: all 0.15s ease;
   user-select: none;
 }

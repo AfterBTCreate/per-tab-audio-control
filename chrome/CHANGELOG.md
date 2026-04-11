@@ -10,12 +10,11 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.0.3] - Alpha - 2026-03-24 — Inline record timer
+## [6.0.4] - Alpha - 2026-03-24 — Floating record timer badge
 
 ### Fixed
-- Recording timer no longer pushes reset button off-screen; timer now displays inline within the record button itself as `[■ 0:01]`, swapping the record circle for a stop square icon while recording
-- Volume-right side (reset button) protected from flex shrinkage; volume-left compresses with tighter gaps/padding when recording is active
-- Volume adjust buttons (−/+) no longer shrink during recording due to flex compression
+- Recording timer no longer affects volume row layout; record button stays fixed at 24px, icon swaps to stop square when recording, and timer displays as a floating badge above the button using absolute positioning (zero flow impact)
+- Reverted flex compression hacks (min-width, flex-shrink overrides) that caused button sizing issues
 
 ---
 
