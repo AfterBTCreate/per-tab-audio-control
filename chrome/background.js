@@ -62,6 +62,7 @@ const DEFAULT_BASS_CUT_PRESETS = [-6, -12, -24];
 const DEFAULT_TREBLE_PRESETS = [6, 12, 24];
 const DEFAULT_TREBLE_CUT_PRESETS = [-6, -12, -24];
 const DEFAULT_VOICE_PRESETS = [4, 10, 18];
+const DEFAULT_VOICE_CUT_PRESETS = [-4, -10, -18];
 const DEFAULT_SPEED_SLOW_PRESETS = [0.75, 0.50, 0.25];
 const DEFAULT_SPEED_FAST_PRESETS = [1.25, 1.50, 2.00];
 const DEFAULT_SLEEP_TIMER_PRESETS = [5, 15, 30, 60];
@@ -539,11 +540,22 @@ async function sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLab
       }
     }
 
-    if (effectResult[voiceKey]) {
+    if (effectResult[voiceKey] && effectResult[voiceKey] !== 'off') {
       const voiceLevel = effectResult[voiceKey];
-      const voiceGain = voiceLevel === 'low' ? voiceBoostPresets[0] : voiceLevel === 'medium' ? voiceBoostPresets[1] : voiceLevel === 'high' ? voiceBoostPresets[2] : 0;
-      if (voiceGain > 0) {
-        await browserAPI.tabs.sendMessage(tabId, { type: 'SET_VOICE', gain: voiceGain });
+      if (typeof voiceLevel === 'string') {
+        let voiceGain = 0;
+        if (voiceLevel.startsWith('cut-')) {
+          const voiceCutPresetsData = (await browserAPI.storage.sync.get(['voiceCutPresets'])).voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS;
+          const cutLevel = voiceLevel.replace('cut-', '');
+          voiceGain = cutLevel === 'low' ? voiceCutPresetsData[0] : cutLevel === 'medium' ? voiceCutPresetsData[1] : cutLevel === 'high' ? voiceCutPresetsData[2] : 0;
+        } else if (voiceLevel.startsWith('slider:')) {
+          voiceGain = parseInt(voiceLevel.split(':')[1], 10) || 0;
+        } else {
+          voiceGain = voiceLevel === 'low' ? voiceBoostPresets[0] : voiceLevel === 'medium' ? voiceBoostPresets[1] : voiceLevel === 'high' ? voiceBoostPresets[2] : 0;
+        }
+        if (voiceGain !== 0) {
+          await browserAPI.tabs.sendMessage(tabId, { type: 'SET_VOICE', gain: voiceGain });
+        }
       }
     }
 
@@ -648,9 +660,20 @@ async function syncStoredSettingsToTabCapture(tabId) {
 
     if (result[voiceKey] && result[voiceKey] !== 'off') {
       const level = result[voiceKey];
-      const gain = level === 'low' ? voiceBoostPresets[0] : level === 'medium' ? voiceBoostPresets[1] : level === 'high' ? voiceBoostPresets[2] : 0;
-      if (gain !== 0) {
-        chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_VOICE', tabId, gain }).catch(() => {});
+      if (typeof level === 'string') {
+        let gain = 0;
+        if (level.startsWith('cut-')) {
+          const voiceCutPresetsData = (await browserAPI.storage.sync.get(['voiceCutPresets'])).voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS;
+          const cutLevel = level.replace('cut-', '');
+          gain = cutLevel === 'low' ? voiceCutPresetsData[0] : cutLevel === 'medium' ? voiceCutPresetsData[1] : cutLevel === 'high' ? voiceCutPresetsData[2] : 0;
+        } else if (level.startsWith('slider:')) {
+          gain = parseInt(level.split(':')[1], 10) || 0;
+        } else {
+          gain = level === 'low' ? voiceBoostPresets[0] : level === 'medium' ? voiceBoostPresets[1] : level === 'high' ? voiceBoostPresets[2] : 0;
+        }
+        if (gain !== 0) {
+          chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_VOICE', tabId, gain }).catch(() => {});
+        }
       }
     }
 
@@ -3436,6 +3459,7 @@ async function createContextMenus() {
     'trebleBoostPresets',
     'trebleCutPresets',
     'voiceBoostPresets',
+    'voiceCutPresets',
     'speedSlowPresets',
     'speedFastPresets',
     'sleepTimerPresets'
@@ -3447,6 +3471,7 @@ async function createContextMenus() {
   const treblePresets = storage.trebleBoostPresets || DEFAULT_TREBLE_PRESETS;
   const trebleCutPresets = storage.trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
   const voicePresets = storage.voiceBoostPresets || DEFAULT_VOICE_PRESETS;
+  const voiceCutPresetsMenu = storage.voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS;
   const speedSlowPresets = storage.speedSlowPresets || DEFAULT_SPEED_SLOW_PRESETS;
   const speedFastPresets = storage.speedFastPresets || DEFAULT_SPEED_FAST_PRESETS;
   const sleepTimerPresets = storage.sleepTimerPresets || DEFAULT_SLEEP_TIMER_PRESETS;
@@ -3802,6 +3827,39 @@ async function createContextMenus() {
       contexts: MENU_CONTEXTS
     });
 
+    // ========== Voice Cut Submenu ==========
+    contextMenusAPI.create({
+      id: 'voiceCutSubmenu',
+      parentId: 'tabVolumeParent',
+      title: 'Voice Cut',
+      contexts: MENU_CONTEXTS
+    });
+
+    contextMenusAPI.create({
+      id: 'voiceCut_off',
+      parentId: 'voiceCutSubmenu',
+      title: 'Off',
+      contexts: MENU_CONTEXTS
+    });
+    contextMenusAPI.create({
+      id: 'voiceCut_low',
+      parentId: 'voiceCutSubmenu',
+      title: `Low (${voiceCutPresetsMenu[0]}dB)`,
+      contexts: MENU_CONTEXTS
+    });
+    contextMenusAPI.create({
+      id: 'voiceCut_medium',
+      parentId: 'voiceCutSubmenu',
+      title: `Medium (${voiceCutPresetsMenu[1]}dB)`,
+      contexts: MENU_CONTEXTS
+    });
+    contextMenusAPI.create({
+      id: 'voiceCut_high',
+      parentId: 'voiceCutSubmenu',
+      title: `High (${voiceCutPresetsMenu[2]}dB)`,
+      contexts: MENU_CONTEXTS
+    });
+
     // ========== Range Submenu ==========
     contextMenusAPI.create({
       id: 'rangeSubmenu',
@@ -3936,7 +3994,7 @@ async function createContextMenus() {
 // Listen for storage changes to update menus when presets change
 browserAPI.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'sync') {
-    const presetKeys = ['customPresets', 'bassBoostPresets', 'bassCutPresets', 'trebleBoostPresets', 'trebleCutPresets', 'voiceBoostPresets', 'speedSlowPresets', 'speedFastPresets', 'sleepTimerPresets'];
+    const presetKeys = ['customPresets', 'bassBoostPresets', 'bassCutPresets', 'trebleBoostPresets', 'trebleCutPresets', 'voiceBoostPresets', 'voiceCutPresets', 'speedSlowPresets', 'speedFastPresets', 'sleepTimerPresets'];
     if (presetKeys.some(key => changes[key])) {
       console.log('[TabVolume] Presets changed, rebuilding context menus');
       createContextMenus();
@@ -3980,14 +4038,15 @@ if (contextMenusAPI) {
     async function resolveEffectGain(effect, level) {
       if (level === 'off') return 0;
       const storage = await browserAPI.storage.sync.get([
-        'bassBoostPresets', 'bassCutPresets', 'trebleBoostPresets', 'trebleCutPresets', 'voiceBoostPresets'
+        'bassBoostPresets', 'bassCutPresets', 'trebleBoostPresets', 'trebleCutPresets', 'voiceBoostPresets', 'voiceCutPresets'
       ]);
       const presetMap = {
         'bass': storage.bassBoostPresets || DEFAULT_BASS_PRESETS,
         'bassCut': storage.bassCutPresets || DEFAULT_BASS_CUT_PRESETS,
         'treble': storage.trebleBoostPresets || DEFAULT_TREBLE_PRESETS,
         'trebleCut': storage.trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS,
-        'voice': storage.voiceBoostPresets || DEFAULT_VOICE_PRESETS
+        'voice': storage.voiceBoostPresets || DEFAULT_VOICE_PRESETS,
+        'voiceCut': storage.voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS
       };
       const presets = presetMap[effect] || [0, 0, 0];
       const index = level === 'low' ? 0 : level === 'medium' ? 1 : 2;
@@ -4038,6 +4097,25 @@ if (contextMenusAPI) {
         await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_VOICE', gain });
       } catch (e) {
         console.log('[TabVolume] Could not set voice boost:', e.message);
+      }
+      // Forward to Tab Capture
+      await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_VOICE', { gain });
+      return;
+    }
+
+    // ========== Voice Cut ==========
+    if (menuItemId.startsWith('voiceCut_')) {
+      const level = menuItemId.replace('voiceCut_', '');
+      const gain = level === 'off' ? 0 : await resolveEffectGain('voiceCut', level);
+      // Store as cut-level string so popup can restore it (e.g. 'cut-low')
+      const storageLevel = level === 'off' ? 'off' : `cut-${level}`;
+      const storageKey = getTabStorageKey(tab.id, TAB_STORAGE.VOICE);
+      await browserAPI.storage.local.set({ [storageKey]: storageLevel });
+      // Send to content script
+      try {
+        await browserAPI.tabs.sendMessage(tab.id, { type: 'SET_VOICE', gain });
+      } catch (e) {
+        console.log('[TabVolume] Could not set voice cut:', e.message);
       }
       // Forward to Tab Capture
       await forwardToTabCapture(tab.id, 'SET_TAB_CAPTURE_VOICE', { gain });

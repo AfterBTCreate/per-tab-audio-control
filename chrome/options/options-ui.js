@@ -187,6 +187,7 @@ loadBassCutPresets();
 loadTreblePresets();
 loadTrebleCutPresets();
 loadVoicePresets();
+loadVoiceCutPresets();
 loadSpeedFastPresets();
 loadSpeedSlowPresets();
 loadBalancePresetsOptions();

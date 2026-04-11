@@ -416,10 +416,13 @@
       <div class="advanced-item" data-item-id="voice">
         <div class="effects-divider" aria-hidden="true"></div>
         <!-- Voice: Preset buttons (default) -->
-        <div class="effect-row eq-presets-mode" role="group" aria-label="Voice boost presets">
-          <span class="effect-label" title="Enhances vocal frequencies for clearer speech">Voice</span>
-          <div class="effect-buttons">
-            <button class="effect-btn" data-effect="voice" data-level="off" title="No voice enhancement" aria-label="Voice boost off">Off</button>
+        <div class="effect-row eq-presets-mode" role="group" aria-label="Voice presets">
+          <span class="effect-label" title="Boost or cut vocal frequencies">Voice</span>
+          <div class="effect-buttons combined">
+            <button class="effect-btn cut high" data-effect="voice" data-level="cut-high" id="voiceCutHigh" title="Strong voice cut (-18 dB)" aria-label="Voice cut high">-18dB</button>
+            <button class="effect-btn cut medium" data-effect="voice" data-level="cut-medium" id="voiceCutMed" title="Medium voice cut (-10 dB)" aria-label="Voice cut medium">-10dB</button>
+            <button class="effect-btn cut low" data-effect="voice" data-level="cut-low" id="voiceCutLow" title="Light voice cut (-4 dB)" aria-label="Voice cut low">-4dB</button>
+            <button class="effect-btn" data-effect="voice" data-level="off" title="No voice adjustment" aria-label="Voice off">Off</button>
             <button class="effect-btn low" data-effect="voice" data-level="low" id="voiceLow" title="Subtle voice clarity (+4 dB)" aria-label="Voice boost low">+4dB</button>
             <button class="effect-btn medium" data-effect="voice" data-level="medium" id="voiceMed" title="Moderate voice boost (+10 dB)" aria-label="Voice boost medium">+10dB</button>
             <button class="effect-btn high" data-effect="voice" data-level="high" id="voiceHigh" title="Strong voice boost (+18 dB)" aria-label="Voice boost high">+18dB</button>
@@ -427,9 +430,9 @@
         </div>
         <!-- Voice: Slider mode (hidden by default) -->
         <div class="effect-row eq-slider-mode hidden" role="group" aria-label="Voice slider">
-          <span class="effect-label" title="Enhances vocal frequencies for clearer speech">Voice</span>
+          <span class="effect-label" title="Boost or cut vocal frequencies">Voice</span>
           <div class="eq-slider-container">
-            <input type="range" id="voiceSlider" class="eq-slider voice-slider" min="0" max="18" value="0" title="Adjust voice clarity: 0 to +18 dB" aria-label="Voice level">
+            <input type="range" id="voiceSlider" class="eq-slider" min="-18" max="18" value="0" title="Adjust voice: -18 to +18 dB" aria-label="Voice level">
             <span class="eq-slider-value" id="voiceSliderValue">0 dB</span>
           </div>
           <button class="eq-reset-btn" id="voiceReset" title="Reset voice" aria-label="Reset voice to 0 dB">

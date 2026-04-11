@@ -746,6 +746,57 @@ resetVoiceBtn.addEventListener('click', resetVoicePresets);
   input.addEventListener('change', saveVoicePresets);
 });
 
+// ==================== Voice Cut Presets ====================
+
+const voiceCutLow = document.getElementById('voiceCutLow');
+const voiceCutMed = document.getElementById('voiceCutMed');
+const voiceCutHigh = document.getElementById('voiceCutHigh');
+const resetVoiceCutBtn = document.getElementById('resetVoiceCutBtn');
+const voiceCutStatus = document.getElementById('voiceCutStatus');
+
+// Load saved voice cut presets (stored as negative, display as positive)
+async function loadVoiceCutPresets() {
+  const result = await browserAPI.storage.sync.get(['voiceCutPresets']);
+  const presets = result.voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS;
+
+  // Negate stored values to display as positive
+  voiceCutLow.value = Math.abs(presets[0]);
+  voiceCutMed.value = Math.abs(presets[1]);
+  voiceCutHigh.value = Math.abs(presets[2]);
+}
+
+// Save voice cut presets (auto-save) - display as positive, store as negative
+async function saveVoiceCutPresets() {
+  clampRangeInput(voiceCutLow, 'low', VOICE_CUT_RANGES);
+  clampRangeInput(voiceCutMed, 'medium', VOICE_CUT_RANGES);
+  clampRangeInput(voiceCutHigh, 'high', VOICE_CUT_RANGES);
+
+  // Negate positive input values to store as negative
+  const values = [
+    -Math.abs(parseInt(voiceCutLow.value)),
+    -Math.abs(parseInt(voiceCutMed.value)),
+    -Math.abs(parseInt(voiceCutHigh.value))
+  ];
+
+  await browserAPI.storage.sync.set({ voiceCutPresets: values });
+}
+
+// Reset voice cut presets to defaults (display as positive)
+async function resetVoiceCutPresets() {
+  await browserAPI.storage.sync.remove(['voiceCutPresets']);
+  voiceCutLow.value = Math.abs(DEFAULT_VOICE_CUT_PRESETS[0]);
+  voiceCutMed.value = Math.abs(DEFAULT_VOICE_CUT_PRESETS[1]);
+  voiceCutHigh.value = Math.abs(DEFAULT_VOICE_CUT_PRESETS[2]);
+  showStatus(voiceCutStatus, 'Reset to defaults', 'success');
+}
+
+// Event listeners for voice cut presets (auto-save on change)
+resetVoiceCutBtn.addEventListener('click', resetVoiceCutPresets);
+
+[voiceCutLow, voiceCutMed, voiceCutHigh].forEach(input => {
+  input.addEventListener('change', saveVoiceCutPresets);
+});
+
 // ==================== Speed Fast Presets ====================
 
 const speedFastLow = document.getElementById('speedFastLow');

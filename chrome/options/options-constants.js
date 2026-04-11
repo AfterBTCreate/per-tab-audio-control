@@ -9,6 +9,7 @@ const DEFAULT_PRESETS = DEFAULTS.volumePresets;
 const DEFAULT_BASS_PRESETS = DEFAULTS.bassBoostPresets;
 const DEFAULT_TREBLE_PRESETS = DEFAULTS.trebleBoostPresets;
 const DEFAULT_VOICE_PRESETS = DEFAULTS.voiceBoostPresets;
+const DEFAULT_VOICE_CUT_PRESETS = DEFAULTS.voiceCutPresets;
 const DEFAULT_BASS_CUT_PRESETS = DEFAULTS.bassCutPresets;
 const DEFAULT_TREBLE_CUT_PRESETS = DEFAULTS.trebleCutPresets;
 
@@ -43,6 +44,13 @@ const TREBLE_CUT_RANGES = {
 };
 
 const VOICE_BOOST_RANGES = {
+  low: { min: 1, max: 6 },
+  medium: { min: 7, max: 12 },
+  high: { min: 13, max: 18 }
+};
+
+// Voice cut ranges (positive values for UI, stored as negative)
+const VOICE_CUT_RANGES = {
   low: { min: 1, max: 6 },
   medium: { min: 7, max: 12 },
   high: { min: 13, max: 18 }

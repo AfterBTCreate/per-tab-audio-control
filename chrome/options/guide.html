@@ -238,7 +238,7 @@
             <li><strong>Speed</strong> — Playback speed presets/slider (0.05x to 5x)</li>
             <li><strong>Bass</strong> — Bass boost/cut (-24 to +24 dB)</li>
             <li><strong>Treble</strong> — Treble boost/cut (-24 to +24 dB)</li>
-            <li><strong>Voice</strong> — Voice clarity boost (0 to +18 dB)</li>
+            <li><strong>Voice</strong> — Voice boost or cut (-18 to +18 dB)</li>
             <li><strong>Range</strong> — Dynamic range compression (Off/Podcast/Movie/Max)</li>
             <li><strong>Output</strong> — Audio output device selector</li>
             <li><strong>Site Rule</strong> — Add site-specific volume rules</li>
@@ -286,6 +286,7 @@
             <li><strong>Treble Boost</strong> — Off, plus your custom Low/Medium/High values</li>
             <li><strong>Treble Cut</strong> — Off, plus your custom Low/Medium/High values</li>
             <li><strong>Voice Boost</strong> — Off, plus your custom Low/Medium/High values</li>
+            <li><strong>Voice Cut</strong> — Off, plus your custom Low/Medium/High values</li>
             <li><strong>Range</strong> — Off, Podcast, Movie, Maximum (dynamic range compression)</li>
             <li><strong>Pause/Play</strong> — Toggle media playback on the current tab</li>
             <li><strong>Toggle Focus Mode</strong> — Mute/unmute all other browser tabs</li>
@@ -584,20 +585,21 @@
         </div>
 
         <div class="info-box">
-          <h4>Voice Boost</h4>
-          <p>Enhances mid-range frequencies where human speech is most prominent. Use for:</p>
+          <h4>Voice Boost / Voice Cut</h4>
+          <p>Adjusts mid-range frequencies where human speech is most prominent. Use boost for:</p>
           <ul class="feature-list">
             <li>Movies with quiet dialogue and loud sound effects</li>
             <li>Podcasts or interviews with soft-spoken guests</li>
             <li>Video calls where participants are hard to hear</li>
           </ul>
+          <p class="mt-8">Use cut to reduce harsh or nasal-sounding voices, or to reduce mid-range muddiness.</p>
         </div>
 
         <div class="info-box">
           <h4>Slider vs Preset Mode</h4>
           <p>Bass, Treble, and Voice each support two control modes:</p>
           <ul class="feature-list">
-            <li><strong>Presets</strong> — 7 buttons for bass/treble (-24, -12, -6, Off, +6, +12, +24 dB) or 4 buttons for voice (Off, +4, +10, +18 dB)</li>
+            <li><strong>Presets</strong> — 7 buttons for bass/treble/voice (-24/-18, -12/-10, -6/-4, Off, +6/+4, +12/+10, +24/+18 dB)</li>
             <li><strong>Slider</strong> — Continuous adjustment with dB value display and reset button. Scroll wheel supported.</li>
           </ul>
           <p class="mt-8"><em>Preset button values are customizable in Settings → Presets.</em></p>

@@ -7,6 +7,7 @@ let bassCutPresets = [...DEFAULTS.bassCutPresets];
 let treblePresets = [...DEFAULTS.trebleBoostPresets];
 let trebleCutPresets = [...DEFAULTS.trebleCutPresets];
 let voicePresets = [...DEFAULTS.voiceBoostPresets];
+let voiceCutPresets = [...DEFAULTS.voiceCutPresets];
 let speedSlowPresets = [...DEFAULTS.speedSlowPresets];
 let speedFastPresets = [...DEFAULTS.speedFastPresets];
 let sleepTimerPresets = [...DEFAULTS.sleepTimerPresets];
@@ -22,6 +23,7 @@ async function loadEffectPresets() {
     trebleBoostPresets: [...DEFAULTS.trebleBoostPresets],
     trebleCutPresets: [...DEFAULTS.trebleCutPresets],
     voiceBoostPresets: [...DEFAULTS.voiceBoostPresets],
+    voiceCutPresets: [...DEFAULTS.voiceCutPresets],
     speedSlowPresets: [...DEFAULTS.speedSlowPresets],
     speedFastPresets: [...DEFAULTS.speedFastPresets],
     sleepTimerPresets: [...DEFAULTS.sleepTimerPresets]
@@ -32,6 +34,7 @@ async function loadEffectPresets() {
   treblePresets = presets.trebleBoostPresets;
   trebleCutPresets = presets.trebleCutPresets;
   voicePresets = presets.voiceBoostPresets;
+  voiceCutPresets = presets.voiceCutPresets;
   speedSlowPresets = presets.speedSlowPresets;
   speedFastPresets = presets.speedFastPresets;
   sleepTimerPresets = presets.sleepTimerPresets;
@@ -47,13 +50,21 @@ async function loadEffectPresets() {
 
 // Update effect button labels with actual dB values
 function updateEffectButtonLabels() {
-  // Voice buttons (+dB for boost)
+  // Voice boost buttons (+dB)
   const voiceLow = document.getElementById('voiceLow');
   const voiceMed = document.getElementById('voiceMed');
   const voiceHigh = document.getElementById('voiceHigh');
   if (voiceLow) voiceLow.textContent = `+${voicePresets[0]}dB`;
   if (voiceMed) voiceMed.textContent = `+${voicePresets[1]}dB`;
   if (voiceHigh) voiceHigh.textContent = `+${voicePresets[2]}dB`;
+
+  // Voice cut buttons (already negative values from presets)
+  const voiceCutLow = document.getElementById('voiceCutLow');
+  const voiceCutMed = document.getElementById('voiceCutMed');
+  const voiceCutHigh = document.getElementById('voiceCutHigh');
+  if (voiceCutLow) voiceCutLow.textContent = `${voiceCutPresets[0]}dB`;
+  if (voiceCutMed) voiceCutMed.textContent = `${voiceCutPresets[1]}dB`;
+  if (voiceCutHigh) voiceCutHigh.textContent = `${voiceCutPresets[2]}dB`;
 
   // Bass boost buttons (short format for combined row)
   const bassLow = document.getElementById('bassLow');
@@ -192,7 +203,7 @@ function updateEqSlidersUI() {
   }
   if (voiceSlider) {
     voiceSlider.value = voiceGain;
-    updateEqSliderValueDisplay(voiceSliderValue, voiceGain, true); // voice is boost-only
+    updateEqSliderValueDisplay(voiceSliderValue, voiceGain);
   }
 
   // Sync speed slider from currentSpeedLevel
@@ -280,7 +291,7 @@ const EQ_EFFECTS = {
     getState: () => currentVoiceBoost,
     setState: (v) => { currentVoiceBoost = v; },
     range: EFFECT_RANGES.voice,
-    boostOnly: true,
+    boostOnly: false,
   },
 };
 
@@ -507,6 +518,13 @@ function getEffectGain(effect, level) {
     const cutLevel = level.replace('cut-', '');
     const index = cutLevel === 'low' ? 0 : cutLevel === 'medium' ? 1 : cutLevel === 'high' ? 2 : -1;
     return (index >= 0 && index < trebleCutPresets.length) ? trebleCutPresets[index] : 0;
+  }
+
+  // Handle voice cut levels
+  if (effect === 'voice' && level.startsWith('cut-')) {
+    const cutLevel = level.replace('cut-', '');
+    const index = cutLevel === 'low' ? 0 : cutLevel === 'medium' ? 1 : cutLevel === 'high' ? 2 : -1;
+    return (index >= 0 && index < voiceCutPresets.length) ? voiceCutPresets[index] : 0;
   }
 
   // Select appropriate presets array

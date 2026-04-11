@@ -31,6 +31,7 @@ async function resetAllSettings() {
     'trebleBoostPresets',
     'trebleCutPresets',
     'voiceBoostPresets',
+    'voiceCutPresets',
     'speedSlowPresets',
     'speedFastPresets',
     'volumeSteps',
@@ -288,6 +289,13 @@ async function generateBackupCSV() {
   lines.push('Low,Medium,High');
   const voicePresets = syncData.voiceBoostPresets || DEFAULT_VOICE_PRESETS;
   lines.push(voicePresets.join(','));
+  lines.push('');
+
+  // Voice Cut Presets
+  lines.push('[Voice Cut Presets]');
+  lines.push('Low,Medium,High');
+  const voiceCutPresetsData = syncData.voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS;
+  lines.push(voiceCutPresetsData.join(','));
   lines.push('');
 
   // Balance Presets
@@ -687,7 +695,18 @@ async function restoreFromBackup(csvContent) {
         } else {
           const presets = parseCSVLine(trimmedLine).map(v => parseInt(v, 10)).filter(v => !isNaN(v));
           if (presets.length === 3) {
-            restoredData.sync.voiceBoostPresets = presets.map(v => Math.max(EFFECT_RANGES.voice.min, Math.min(EFFECT_RANGES.voice.max, v)));
+            restoredData.sync.voiceBoostPresets = presets.map(v => Math.max(0, Math.min(EFFECT_RANGES.voice.max, v)));
+          }
+        }
+        break;
+
+      case 'Voice Cut Presets':
+        if (!headerRow) {
+          headerRow = trimmedLine;
+        } else {
+          const presets = parseCSVLine(trimmedLine).map(v => parseInt(v, 10)).filter(v => !isNaN(v));
+          if (presets.length === 3) {
+            restoredData.sync.voiceCutPresets = presets.map(v => Math.max(EFFECT_RANGES.voice.min, Math.min(0, v)));
           }
         }
         break;
@@ -1036,7 +1055,7 @@ async function restoreFromBackup(csvContent) {
             if (values[3]) rule.deviceLabel = values[3].slice(0, 500);
             // Validate effect levels against allowed values
             const validEqLevels = ['low', 'medium', 'high', 'cut-low', 'cut-medium', 'cut-high'];
-            const validVoiceLevels = ['low', 'medium', 'high'];
+            const validVoiceLevels = ['low', 'medium', 'high', 'cut-low', 'cut-medium', 'cut-high'];
             const validCompressorModes = ['podcast', 'movie', 'maximum'];
             const validChannelModes = ['mono', 'swap'];
             const validSpeedLevels = ['slow-low', 'slow-medium', 'slow-high', 'fast-low', 'fast-medium', 'fast-high'];
@@ -1177,7 +1196,8 @@ restoreFileInput.addEventListener('change', async (e) => {
     if (restored.sync.bassCutPresets) counts.push('bass cut presets');
     if (restored.sync.trebleBoostPresets) counts.push('treble boost presets');
     if (restored.sync.trebleCutPresets) counts.push('treble cut presets');
-    if (restored.sync.voiceBoostPresets) counts.push('voice presets');
+    if (restored.sync.voiceBoostPresets) counts.push('voice boost presets');
+    if (restored.sync.voiceCutPresets) counts.push('voice cut presets');
     if (restored.sync.speedSlowPresets) counts.push('speed slow presets');
     if (restored.sync.speedFastPresets) counts.push('speed fast presets');
     if (restored.sync.balancePresets) counts.push('balance presets');

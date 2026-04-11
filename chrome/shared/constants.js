@@ -47,6 +47,7 @@ const DEFAULTS = {
   trebleBoostPresets: [6, 12, 24],
   trebleCutPresets: [-6, -12, -24],
   voiceBoostPresets: [4, 10, 18],
+  voiceCutPresets: [-4, -10, -18],
   speedSlowPresets: [0.75, 0.50, 0.25],
   speedFastPresets: [1.25, 1.50, 2.00],
 
@@ -111,7 +112,7 @@ const DEFAULT_AUDIO_MODE = DEFAULTS.audioMode;
 const EFFECT_RANGES = {
   bass: { min: -24, max: 24, default: 0 },
   treble: { min: -24, max: 24, default: 0 },
-  voice: { min: 0, max: 18, default: 0 },
+  voice: { min: -18, max: 18, default: 0 },
   speed: { min: 0.05, max: 5, default: 1 }
 };
 

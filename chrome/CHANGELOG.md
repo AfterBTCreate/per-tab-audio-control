@@ -10,6 +10,20 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.14] - Alpha - 2026-03-30 — Voice Cut
+
+### Added
+- **Voice Cut**: Popup preset row now has 7 buttons matching Bass/Treble (-18dB, -10dB, -4dB, Off, +4dB, +10dB, +18dB)
+- **Voice Cut slider**: Voice slider extended to -18 dB (was 0 minimum)
+- **`voiceCutPresets` storage key**: Defaults to `[-4, -10, -18]`, customizable in Settings → Presets → Voice Cut
+- **Voice Cut context menu**: Added Voice Cut submenu alongside Voice Boost in right-click menu
+- **Options page Voice Cut section**: Configure Low/Medium/High cut preset values
+- **Backup/restore**: Voice Cut presets included in CSV export and restored on import
+
+### Changed
+- **`EFFECT_RANGES.voice.min`**: Changed from `0` to `-18` to support cut values
+- **Guide/FAQ**: Updated Voice descriptions from boost-only to boost/cut, updated preset button counts
+
 ## [6.2.13] - Alpha - 2026-03-27 — Recording settings QA/security fixes
 
 ### Fixed
