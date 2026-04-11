@@ -53,7 +53,7 @@ const DEFAULTS = {
 
   // Header layout
   headerLayout: {
-    order: ['companyLogo', 'spacer1', 'brandText', 'spacer2', 'audioMode', 'focus', 'spacer3', 'modeToggle', 'theme', 'settings', 'spacer4', 'logo'],
+    order: ['companyLogo', 'spacer1', 'brandText', 'spacer2', 'audioMode', 'focus', 'modeToggle', 'theme', 'settings', 'spacer3', 'logo', 'spacer4'],
     hidden: [],
     spacerCount: 4
   },
@@ -67,7 +67,7 @@ const DEFAULTS = {
 
   // Popup sections layout (individual advanced controls)
   popupSectionsLayout: {
-    order: ['balance', 'speed', 'bass', 'treble', 'voice', 'range', 'output', 'siteRule', 'sleepTimer'],
+    order: ['sleepTimer', 'balance', 'speed', 'bass', 'treble', 'voice', 'range', 'output', 'siteRule'],
     hidden: [],
     controlMode: { range: 'presets' }
   },

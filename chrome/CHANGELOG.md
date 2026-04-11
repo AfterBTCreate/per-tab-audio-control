@@ -10,6 +10,12 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.20] - Alpha - 2026-03-30 — New header and sections layout defaults
+
+### Changed
+- **Default header order**: `companyLogo, [space], brandText, [space], audioMode, focus, modeToggle, theme, settings, [space], logo, [space]`
+- **Default sections order**: `sleepTimer, balance, speed, bass, treble, voice, range, output, siteRule` — Sleep Timer moved to top; Speed/Bass/Treble/Voice default to sliders; Range stays presets
+
 ## [6.2.19] - Alpha - 2026-03-30 — Layout defaults, sleep timer, status messages
 
 ### Changed
