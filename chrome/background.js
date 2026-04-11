@@ -213,17 +213,10 @@ const fullscreenOpQueue = new Map();
 // Session storage key for fullscreen state (survives service worker restarts)
 const FULLSCREEN_SESSION_KEY = 'fullscreenStates';
 
-// CSS injected during fullscreen to fix Tab Capture's broken fullscreen rendering.
-// Container rule: forces the fullscreen element to fill the viewport (100%, not 100vw).
-// Video rule (ultrawide only, via media query): YouTube applies a CSS transform:scale()
-// to the video element to fill the player container. With our width/height:100% and
-// object-fit:contain the content correctly pillarboxes inside the element's box — but
-// YouTube's transform then scales the ENTIRE element (including the pillarboxed rendering
-// with its black bars) past the viewport on all sides, producing a zoomed-in crop.
-// transform:none disables this. Media query threshold 2/1 catches 21:9+ while excluding
-// 16:9 (1.78) — the video rule never activates on standard monitors, avoiding the
-// static-screen regression that caused v5.1.2 to remove it.
-const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; } @media (min-aspect-ratio: 2/1) { :fullscreen:fullscreen:fullscreen:fullscreen:fullscreen video { width: 100% !important; height: 100% !important; object-fit: contain !important; transform: none !important; } }';
+// CSS injected during fullscreen to force the fullscreen container to fill the viewport.
+// Video element sizing is handled via inline JS (see correctVideo) because YouTube sets
+// video dimensions with inline !important styles that no CSS rule can override.
+const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; }';
 
 // Restore fullscreen state from session storage on service worker startup
 browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]).then(result => {
@@ -3068,27 +3061,146 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
 
-        // Dispatch resize events so video players recalculate their layout.
-        // The injected CSS handles ultrawide sizing declaratively via a media query,
-        // but players still need a resize signal to re-read viewport dimensions after
-        // the browser finishes entering fullscreen.
-        const dispatchResize = () => {
+        // Early resize for standard video players (works without further intervention)
+        setTimeout(() => {
           browserAPI.scripting.executeScript({
             target: { tabId, allFrames: true },
             func: () => { window.dispatchEvent(new Event('resize')); },
             world: 'MAIN'
           }).catch(() => {});
+        }, 100);
+
+        // Ultrawide video correction. YouTube sets video dimensions via inline
+        // !important styles that no CSS rule can override. We must fight at the
+        // same level: inline !important set AFTER YouTube's, with a MutationObserver
+        // to hold them. Skips entirely on 16:9 (videoAR >= screenAR).
+        // Starts at 1000ms to ensure the viewport has settled to screen dimensions.
+        const correctVideo = () => {
+          browserAPI.scripting.executeScript({
+            target: { tabId, allFrames: true },
+            func: () => {
+              const el = document.fullscreenElement;
+              if (!el) return;
+              window.dispatchEvent(new Event('resize'));
+
+              const video = el.querySelector('video');
+              if (!video || !video.videoWidth || !video.videoHeight) return;
+
+              const vw = window.innerWidth;
+              const vh = window.innerHeight;
+
+              // Skip if viewport hasn't settled to fullscreen (screen) dimensions
+              if (Math.abs(vw - screen.width) > 100 ||
+                  Math.abs(vh - screen.height) > 100) return;
+
+              const videoAR = video.videoWidth / video.videoHeight;
+              const screenAR = vw / vh;
+
+              // Only correct on ultrawide (video narrower than screen).
+              // On 16:9 with 16:9 video these match — nothing runs, zero risk.
+              if (videoAR >= screenAR - 0.01) return;
+
+              // Store targets in a mutable window-level var so the observer
+              // always reads the LATEST values (fixes the v6.2.29 timing bug
+              // where the observer locked in pre-fullscreen dimensions).
+              const target = { w: vw + 'px', h: vh + 'px' };
+              window.__tvFsTarget = target;
+
+              // Apply inline !important — last setProperty call wins
+              video.style.setProperty('width', target.w, 'important');
+              video.style.setProperty('height', target.h, 'important');
+              video.style.setProperty('object-fit', 'contain', 'important');
+              video.style.setProperty('transform', 'none', 'important');
+              video.dataset.tvFs = '1';
+
+              // Also constrain the video's parent container
+              if (video.parentElement && video.parentElement !== el) {
+                video.parentElement.style.setProperty('max-height', target.h, 'important');
+                video.parentElement.dataset.tvFs = '1';
+              }
+
+              // MutationObserver reads from window.__tvFsTarget (dynamic)
+              if (!window.__tvFsObs) {
+                window.__tvFsObs = new MutationObserver(() => {
+                  const t = window.__tvFsTarget;
+                  if (!t || !document.fullscreenElement || !video.dataset.tvFs) {
+                    if (window.__tvFsObs) {
+                      window.__tvFsObs.disconnect();
+                      window.__tvFsObs = null;
+                    }
+                    return;
+                  }
+                  if (video.style.getPropertyValue('width') !== t.w ||
+                      video.style.getPropertyValue('height') !== t.h) {
+                    video.style.setProperty('width', t.w, 'important');
+                    video.style.setProperty('height', t.h, 'important');
+                    video.style.setProperty('object-fit', 'contain', 'important');
+                    video.style.setProperty('transform', 'none', 'important');
+                  }
+                });
+                window.__tvFsObs.observe(video, {
+                  attributes: true, attributeFilter: ['style']
+                });
+              }
+
+              // Auto-cleanup when fullscreen exits
+              if (!window.__tvFsCleanup) {
+                window.__tvFsCleanup = () => {
+                  if (!document.fullscreenElement) {
+                    if (window.__tvFsObs) {
+                      window.__tvFsObs.disconnect();
+                      window.__tvFsObs = null;
+                    }
+                    window.__tvFsTarget = null;
+                    document.querySelectorAll('[data-tv-fs]').forEach(e => {
+                      e.style.removeProperty('width');
+                      e.style.removeProperty('height');
+                      e.style.removeProperty('object-fit');
+                      e.style.removeProperty('transform');
+                      e.style.removeProperty('max-height');
+                      delete e.dataset.tvFs;
+                    });
+                    document.removeEventListener('fullscreenchange', window.__tvFsCleanup);
+                    window.__tvFsCleanup = null;
+                  }
+                };
+                document.addEventListener('fullscreenchange', window.__tvFsCleanup);
+              }
+            },
+            world: 'MAIN'
+          }).catch(() => {});
         };
-        setTimeout(dispatchResize, 100);
-        setTimeout(dispatchResize, 500);
-        setTimeout(dispatchResize, 1000);
-        setTimeout(dispatchResize, 2000);
+        // Start after viewport has settled — NOT at 200ms like v6.2.29
+        setTimeout(correctVideo, 1000);
+        setTimeout(correctVideo, 1500);
+        setTimeout(correctVideo, 2000);
       } else {
         // Exiting fullscreen — restore previous window state if we triggered it
         // Check Map first, fall back to session storage (service worker may have restarted)
         const fsState = fullscreenStateByTab.get(tabId) || await getFullscreenState(tabId);
         clearFullscreenState(tabId);
         if (fsState) {
+          // Clean up inline video corrections (ultrawide fix)
+          browserAPI.scripting.executeScript({
+            target: { tabId, allFrames: true },
+            func: () => {
+              if (window.__tvFsObs) { window.__tvFsObs.disconnect(); window.__tvFsObs = null; }
+              if (window.__tvFsCleanup) {
+                document.removeEventListener('fullscreenchange', window.__tvFsCleanup);
+                window.__tvFsCleanup = null;
+              }
+              window.__tvFsTarget = null;
+              document.querySelectorAll('[data-tv-fs]').forEach(e => {
+                e.style.removeProperty('width');
+                e.style.removeProperty('height');
+                e.style.removeProperty('object-fit');
+                e.style.removeProperty('transform');
+                e.style.removeProperty('max-height');
+                delete e.dataset.tvFs;
+              });
+            },
+            world: 'MAIN'
+          }).catch(() => {});
           browserAPI.scripting.removeCSS({
             target: { tabId },
             css: FULLSCREEN_CSS
