@@ -114,7 +114,13 @@ async function loadCustomPresets() {
 
   // Migrate old 5-preset format to 6-preset format
   if (presets.length === 5) {
-    presets = [presets[0], 50, presets[1], presets[2], presets[3], presets[4]];
+    const insertValue = Math.round((presets[0] + presets[1]) / 2);
+    if (insertValue > presets[0] && insertValue < presets[1]) {
+      presets = [presets[0], insertValue, presets[1], presets[2], presets[3], presets[4]];
+    } else {
+      // Can't find a unique midpoint — use defaults
+      presets = DEFAULTS.volumePresets;
+    }
   }
 
   // Get all non-mute preset buttons (skip the first one which is Mute)

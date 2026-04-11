@@ -75,9 +75,10 @@ async function resetAllSettings() {
   preset3.value = DEFAULT_PRESETS[2];
   preset4.value = DEFAULT_PRESETS[3];
   preset5.value = DEFAULT_PRESETS[4];
+  preset6.value = DEFAULT_PRESETS[5];
 
   // Update preset colors
-  [preset1, preset2, preset3, preset4, preset5].forEach(updateInputColor);
+  [preset1, preset2, preset3, preset4, preset5, preset6].forEach(updateInputColor);
 
   // Reset bass boost presets UI
   bassLow.value = DEFAULT_BASS_PRESETS[0];
@@ -243,7 +244,7 @@ async function generateBackupCSV() {
 
   // Volume Presets
   lines.push('[Volume Presets]');
-  lines.push('Preset 1,Preset 2,Preset 3,Preset 4,Preset 5');
+  lines.push('Preset 1,Preset 2,Preset 3,Preset 4,Preset 5,Preset 6');
   const presets = syncData.customPresets || DEFAULT_PRESETS;
   lines.push(presets.join(','));
   lines.push('');
@@ -606,8 +607,18 @@ async function restoreFromBackup(csvContent) {
           headerRow = trimmedLine;
         } else {
           const presets = parseCSVLine(trimmedLine).map(v => parseInt(v, 10)).filter(v => !isNaN(v));
-          if (presets.length === 5) {
+          if (presets.length === 6) {
             restoredData.sync.customPresets = presets.map(v => Math.max(VOLUME_MIN, Math.min(VOLUME_MAX, v)));
+          } else if (presets.length === 5) {
+            // Migrate old 5-preset backup to 6 presets
+            const insertValue = Math.round((presets[0] + presets[1]) / 2);
+            let migrated;
+            if (insertValue > presets[0] && insertValue < presets[1]) {
+              migrated = [presets[0], insertValue, presets[1], presets[2], presets[3], presets[4]];
+            } else {
+              migrated = DEFAULT_PRESETS;
+            }
+            restoredData.sync.customPresets = migrated.map(v => Math.max(VOLUME_MIN, Math.min(VOLUME_MAX, v)));
           }
         }
         break;

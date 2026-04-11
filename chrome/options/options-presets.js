@@ -418,7 +418,18 @@ async function loadPresets() {
   const presets = result.customPresets || DEFAULT_PRESETS;
 
   // Handle migration from 5-preset format
-  const values = presets.length === 5 ? [presets[0], 50, presets[1], presets[2], presets[3], presets[4]] : presets;
+  let values;
+  if (presets.length === 5) {
+    const insertValue = Math.round((presets[0] + presets[1]) / 2);
+    if (insertValue > presets[0] && insertValue < presets[1]) {
+      values = [presets[0], insertValue, presets[1], presets[2], presets[3], presets[4]];
+    } else {
+      // Can't find a unique midpoint — use defaults
+      values = DEFAULT_PRESETS;
+    }
+  } else {
+    values = presets;
+  }
 
   preset1.value = values[0];
   preset2.value = values[1];

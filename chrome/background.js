@@ -1850,7 +1850,7 @@ const VALID_MESSAGE_TYPES = [
   'START_SLEEP_TIMER', 'CANCEL_SLEEP_TIMER', 'GET_SLEEP_TIMER', 'UPDATE_SLEEP_TIMER',
   // Recording (from popup)
   'START_RECORDING', 'STOP_RECORDING', 'CANCEL_RECORDING', 'GET_RECORDING_STATUS',
-  'DOWNLOAD_RECORDING', 'REVOKE_BLOB_URL'
+  'GET_ANY_RECORDING_STATUS', 'DOWNLOAD_RECORDING', 'REVOKE_BLOB_URL'
 ];
 
 function isValidMessageType(type) {
@@ -2887,6 +2887,29 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           tabId: tabId
         });
         sendResponse(result);
+      } catch (e) {
+        sendResponse({ recording: false });
+      }
+    })();
+    return true;
+  }
+
+  if (request.type === 'GET_ANY_RECORDING_STATUS') {
+    (async () => {
+      try {
+        const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
+        const existingContexts = await chrome.runtime.getContexts({
+          contextTypes: ['OFFSCREEN_DOCUMENT'],
+          documentUrls: [offscreenUrl]
+        });
+        if (existingContexts.length === 0) {
+          sendResponse({ recording: false });
+          return;
+        }
+        const result = await chrome.runtime.sendMessage({
+          type: 'GET_ANY_RECORDING_STATUS'
+        });
+        sendResponse(result || { recording: false });
       } catch (e) {
         sendResponse({ recording: false });
       }

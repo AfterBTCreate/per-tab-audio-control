@@ -14,12 +14,13 @@ function showStatus(statusElement, message, type = 'success') {
 }
 
 // Get volume color class based on level
+// Thresholds match popup/popup-volume.js preset button styling
 function getVolumeClass(volume) {
-  if (volume === VOLUME_THRESHOLDS.MUTED) return 'muted';
-  if (volume >= VOLUME_THRESHOLDS.HIGH + 1) return 'ultra';
-  if (volume >= VOLUME_THRESHOLDS.BOOST + 1) return 'extreme';
-  if (volume >= VOLUME_THRESHOLDS.NORMAL + 1) return 'high';
-  if (volume >= VOLUME_THRESHOLDS.LOW + 1) return 'boosted';
+  if (volume === 0) return 'muted';
+  if (volume >= 400) return 'ultra';
+  if (volume >= 201) return 'extreme';
+  if (volume >= 101) return 'high';
+  if (volume >= 50) return 'boosted';
   return 'reduced';
 }
 

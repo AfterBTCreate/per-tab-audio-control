@@ -8,6 +8,7 @@ let isRecording = false;
 let recordingTabId = null; // Which tab is actually being recorded
 let recordingStartTime = 0;
 let recordingTimerInterval = null;
+let checkingRecordingStatus = false;
 
 // ==================== DOM References ====================
 const recordBtn = document.getElementById('recordBtn');
@@ -69,6 +70,10 @@ function stopRecordingTimer() {
   if (recordingTimerInterval) {
     clearInterval(recordingTimerInterval);
     recordingTimerInterval = null;
+  }
+  // Restore focus mode reminder if active (onStatusExpiredCallback = showFocusReminder)
+  if (typeof onStatusExpiredCallback === 'function') {
+    onStatusExpiredCallback();
   }
 }
 
@@ -245,31 +250,41 @@ async function toggleRecording() {
   }
 }
 
-// Check recording status for the current tab
+// Check recording status across all tabs
 // Called on popup open and on tab switch
 async function checkRecordingStatus() {
   if (!currentTabId) return;
+  if (checkingRecordingStatus) return;
+  checkingRecordingStatus = true;
 
   try {
     const response = await browserAPI.runtime.sendMessage({
-      type: 'GET_RECORDING_STATUS',
-      tabId: currentTabId
+      type: 'GET_ANY_RECORDING_STATUS'
     });
 
     if (response && response.recording) {
-      recordingTabId = currentTabId;
-      updateRecordButtonState(true);
-      startRecordingTimer(response.duration);
+      recordingTabId = response.tabId;
+      if (response.tabId === currentTabId) {
+        // This tab is recording
+        updateRecordButtonState(true);
+        stopRecordingTimer();
+        startRecordingTimer(response.duration);
+      } else {
+        // Another tab is recording
+        updateRecordButtonState(false);
+        stopRecordingTimer();
+      }
     } else {
-      // This tab is not recording — but another tab might be
-      // Clear the button state but keep recordingTabId if set
+      // Nothing is recording
+      recordingTabId = null;
       updateRecordButtonState(false);
       stopRecordingTimer();
     }
   } catch (e) {
-    // Offscreen might not be active
     updateRecordButtonState(false);
     stopRecordingTimer();
+  } finally {
+    checkingRecordingStatus = false;
   }
 }
 

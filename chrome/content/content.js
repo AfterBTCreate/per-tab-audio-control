@@ -2071,6 +2071,7 @@
   // Listen for port connections from popup
   browserAPI.runtime.onConnect.addListener((port) => {
     if (port.name !== 'visualizer') return;
+    if (port.sender?.id !== browserAPI.runtime.id) return;
 
     console.log('[TabVolume] Visualizer port connected');
     visualizerPort = port;

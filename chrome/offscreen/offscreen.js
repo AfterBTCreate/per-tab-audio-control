@@ -136,7 +136,7 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
 
       // Load the recording worklet module (idempotent — safe to call multiple times)
       await ctx.audioWorklet.addModule(
-        new URL('recording-worklet.js', location.href).href
+        chrome.runtime.getURL('offscreen/recording-worklet.js')
       );
 
       // Create worklet node with 0 outputs — acts as a pure audio sink.
@@ -497,6 +497,20 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'GET_RECORDING_STATUS':
       sendResponse(getRecordingStatus(message.tabId));
       return false;
+
+    case 'GET_ANY_RECORDING_STATUS': {
+      if (activeRecordings.size > 0) {
+        const [tabId, recording] = activeRecordings.entries().next().value;
+        sendResponse({
+          recording: true,
+          tabId: tabId,
+          duration: Date.now() - recording.startTime
+        });
+      } else {
+        sendResponse({ recording: false });
+      }
+      return true;
+    }
 
     case 'REVOKE_BLOB_URL':
       if (message.blobUrl && typeof message.blobUrl === 'string' &&

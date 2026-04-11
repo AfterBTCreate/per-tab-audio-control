@@ -10,6 +10,25 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.3] - Alpha - 2026-03-24 — Security & QA audit fixes
+
+### Fixed
+- **[HIGH]** Fresh popup now detects recordings on other tabs via new `GET_ANY_RECORDING_STATUS` message — prevents concurrent recordings
+- **[HIGH]** 5→6 preset migration no longer inserts duplicate values; uses midpoint calculation with fallback to defaults
+- **[HIGH]** Backup export/restore updated for 6 presets — header, parser, and migration all handle the new format
+- **[HIGH]** "Reset All Settings" now includes preset6 in UI reset and color update
+- **[MED]** Recording timer no longer permanently displaces Focus Mode status reminder — `stopRecordingTimer()` restores it
+- **[MED]** `checkRecordingStatus()` now has in-flight guard and calls `stopRecordingTimer()` before `startRecordingTimer()`
+- **[MED]** Color class thresholds aligned between popup (`loadCustomPresets`) and options (`getVolumeClass`)
+- **[LOW]** Visualizer port `onConnect` now validates `port.sender.id` matches extension ID
+- **[LOW]** Recording worklet loaded via `chrome.runtime.getURL()` instead of relative `location.href`
+
+### Security Documentation
+- Documented `scripting.executeScript` with `world: "MAIN"` pattern and pre-validation invariant
+- Documented blob URL revocation race condition on offscreen teardown
+
+---
+
 ## [6.2.2] - Alpha - 2026-03-24 — Per-tab recording state
 
 ### Fixed
