@@ -272,7 +272,7 @@ async function switchToTab(tabIndex) {
 
   // Check for DRM-protected streaming sites
   if (isDrmSite(currentTabUrl)) {
-    showStatus('DRM site — playback control & visualizer may be limited', 'info', 8000);
+    showStatus('DRM site — playback control may be limited', 'info', 8000);
   }
 
   // Update tab counter display
@@ -1495,7 +1495,7 @@ async function init() {
 
     // Check for DRM-protected streaming sites
     if (isDrmSite(currentTabUrl)) {
-      showStatus('DRM site — playback control & visualizer may be limited', 'info', 8000);
+      showStatus('DRM site — playback control may be limited', 'info', 8000);
     }
 
     // Load all settings for this tab

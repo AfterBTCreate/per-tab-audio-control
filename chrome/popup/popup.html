@@ -512,19 +512,12 @@
         <!-- Sleep Timer -->
         <div class="sleep-timer-section compact-row" role="group" aria-label="Sleep timer">
           <span class="compact-label" title="Automatically pause playback after a set time">Sleep</span>
-          <div class="effect-buttons sleep-timer-buttons eq-presets-mode hidden">
+          <div class="effect-buttons sleep-timer-buttons">
             <button class="effect-btn sleep-btn" data-minutes="5" title="Sleep timer: 5 minutes" aria-label="Set sleep timer to 5 minutes">5m</button>
             <button class="effect-btn sleep-btn" data-minutes="15" title="Sleep timer: 15 minutes" aria-label="Set sleep timer to 15 minutes">15m</button>
             <button class="effect-btn sleep-btn" data-minutes="30" title="Sleep timer: 30 minutes" aria-label="Set sleep timer to 30 minutes">30m</button>
             <button class="effect-btn sleep-btn" data-minutes="60" title="Sleep timer: 60 minutes" aria-label="Set sleep timer to 60 minutes">60m</button>
           </div>
-          <div class="sleep-slider-container eq-slider-mode">
-            <input type="range" id="sleepSlider" class="eq-slider sleep-slider"
-                   min="1" max="120" value="30" step="1"
-                   aria-label="Sleep timer duration" title="Sleep timer: 30 minutes">
-            <span class="eq-slider-value sleep-slider-value" id="sleepSliderValue">30m</span>
-          </div>
-          <button class="sleep-go-btn eq-slider-mode" id="sleepGoBtn" title="Start sleep timer" aria-label="Start sleep timer">Go</button>
           <label class="domain-checkbox" title="Apply sleep timer to all tabs">
             <input type="checkbox" id="sleepAllTabsCheckbox" aria-label="Apply to all tabs">
             <span>All Tabs</span>

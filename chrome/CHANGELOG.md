@@ -10,6 +10,14 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.19] - Alpha - 2026-03-30 — Layout defaults, sleep timer, status messages
+
+### Changed
+- **Default `tabInfoLocation`**: `'inside'` → `'below'`
+- **Default `popupSectionsLayout.controlMode`**: Speed and Sleep Timer removed from presets override — Speed now defaults to sliders; only Range stays as presets default
+- **Sleep timer slider removed**: Sleep timer is now presets-only; slider and Go button removed from popup; `sleepTimer` removed from `EQ_DUAL_MODE_ITEMS` (no longer shows Slider/Preset toggle in edit panel)
+- **DRM status message**: Removed "& visualizer" — now reads "DRM site — playback control may be limited" (fits on one line)
+
 ## [6.2.18] - Alpha - 2026-03-30 — Voice range reverted to ±18 dB
 
 ### Changed

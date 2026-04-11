@@ -28,7 +28,7 @@ const DEFAULTS = {
   showVisualizer: true,
   showSeekbar: true,
   seekbarTimeDisplay: 'total',
-  tabInfoLocation: 'inside',
+  tabInfoLocation: 'below',
   popupMode: 'basic',
   eqControlMode: 'sliders',
   showShortcutsFooter: true,
@@ -69,7 +69,7 @@ const DEFAULTS = {
   popupSectionsLayout: {
     order: ['balance', 'speed', 'bass', 'treble', 'voice', 'range', 'output', 'siteRule', 'sleepTimer'],
     hidden: [],
-    controlMode: { speed: 'presets', range: 'presets', sleepTimer: 'presets' }
+    controlMode: { range: 'presets' }
   },
 
   // Recording defaults
@@ -98,7 +98,7 @@ const POPUP_SECTION_DATA = {
   sleepTimer: { name: 'Sleep Timer', description: 'Auto-fade and pause after set time' }
 };
 
-const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance', 'sleepTimer']);
+const EQ_DUAL_MODE_ITEMS = new Set(['speed', 'bass', 'treble', 'voice', 'range', 'balance']);
 const MIN_VISIBLE_POPUP_SECTIONS = 1;
 
 // Legacy aliases (used by background.js which can't access DEFAULTS)
