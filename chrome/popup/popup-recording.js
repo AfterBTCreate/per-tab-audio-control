@@ -73,12 +73,25 @@ function stopRecordingTimer() {
 }
 
 // Update recording button visual state
+// Three states: recording (this tab), disabled (another tab recording), idle
 function updateRecordButtonState(recording) {
   if (!recordBtn) return;
   isRecording = recording;
+  const otherTabRecording = !recording && recordingTabId && recordingTabId !== currentTabId;
+
   recordBtn.classList.toggle('recording', recording);
-  recordBtn.title = recording ? 'Stop recording' : 'Record tab audio';
-  recordBtn.setAttribute('aria-label', recording ? 'Stop recording' : 'Record tab audio');
+  recordBtn.disabled = otherTabRecording;
+
+  if (recording) {
+    recordBtn.title = 'Stop recording';
+    recordBtn.setAttribute('aria-label', 'Stop recording');
+  } else if (otherTabRecording) {
+    recordBtn.title = 'Stop current recording first';
+    recordBtn.setAttribute('aria-label', 'Recording in progress on another tab');
+  } else {
+    recordBtn.title = 'Record tab audio';
+    recordBtn.setAttribute('aria-label', 'Record tab audio');
+  }
 }
 
 // Show disclaimer dialog on first use
@@ -225,14 +238,9 @@ async function stopRecording() {
 
 // Toggle recording on/off
 async function toggleRecording() {
-  // If this tab is the one recording, stop it
-  if (isRecording && recordingTabId === currentTabId) {
+  if (isRecording) {
     await stopRecording();
   } else {
-    // If another tab is recording, stop that first
-    if (recordingTabId && recordingTabId !== currentTabId) {
-      await stopRecording();
-    }
     await startRecording();
   }
 }

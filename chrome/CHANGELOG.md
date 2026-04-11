@@ -10,14 +10,16 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.2.1] - Alpha - 2026-03-24 — Per-tab recording state
+## [6.2.2] - Alpha - 2026-03-24 — Per-tab recording state
 
 ### Fixed
 - Recording state now tracks which specific tab is being recorded (`recordingTabId`)
 - Switching tabs in the popup correctly resets the record button and timer for the new tab
 - Record button only pulses red when viewing the tab that is actually recording
 - Stop recording always targets the correct tab, not whichever tab is currently displayed
-- Starting a recording on a new tab auto-stops any existing recording on another tab
+
+### Changed
+- Record button is greyed out and disabled on non-recording tabs while another tab is recording; tooltip shows "Stop current recording first"
 
 ---
 

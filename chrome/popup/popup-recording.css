@@ -27,6 +27,12 @@
   transform: scale(0.95);
 }
 
+.record-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* Recording active state */
 .record-btn.recording {
   background: rgba(239, 68, 68, 0.2);
