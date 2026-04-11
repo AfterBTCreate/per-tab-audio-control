@@ -61,6 +61,7 @@ async function pollMediaPosition() {
           seekbarFill.style.width = '0%';
         } else {
           seekbarRow.classList.remove('has-media');
+          seekbarSlider.disabled = true;
         }
         return;
       }
@@ -86,10 +87,12 @@ async function pollMediaPosition() {
       seekbarSlider.setAttribute('aria-valuenow', Math.round(pct));
     } else {
       seekbarRow.classList.remove('has-media');
+      seekbarSlider.disabled = true;
       updatePlayPauseIcon(false);
     }
   } catch {
     seekbarRow.classList.remove('has-media');
+    seekbarSlider.disabled = true;
     updatePlayPauseIcon(false);
   }
 }

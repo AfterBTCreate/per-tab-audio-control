@@ -10,6 +10,13 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.7] - Alpha - 2026-03-27 — Seekbar disabled when no media
+
+### Fixed
+- Seekbar slider now properly disabled on all no-media paths in `pollMediaPosition()` (not just in `resetSeekbar()`)
+
+---
+
 ## [6.2.6] - Alpha - 2026-03-27 — Seekbar always visible
 
 ### Changed
