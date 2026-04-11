@@ -2,7 +2,6 @@
 
 /* Record button - placed in the volume-left control group */
 .record-btn {
-  position: relative;
   width: 30px;
   height: 30px;
   padding: 0;
@@ -28,13 +27,7 @@
   transform: scale(0.95);
 }
 
-/* Hide stop icon and timer badge by default */
-.record-btn .stop-icon,
-.record-btn .record-btn-timer {
-  display: none;
-}
-
-/* Recording active state - button stays 24px, just changes color/icon */
+/* Recording active state */
 .record-btn.recording {
   background: rgba(239, 68, 68, 0.2);
   border-color: #ef4444;
@@ -46,51 +39,52 @@
   background: rgba(239, 68, 68, 0.35);
 }
 
-/* Swap icons: hide record circle, show stop square */
-.record-btn.recording .record-icon {
+@keyframes recordPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record-btn.recording {
+    animation: none;
+    box-shadow: 0 0 6px 1px rgba(239, 68, 68, 0.3);
+  }
+}
+
+/* ==================== Header Recording Indicator ==================== */
+/* Replaces the brand text ("After Bedtime Creations") while recording */
+
+.recording-indicator {
   display: none;
-}
-
-.record-btn.recording .stop-icon {
-  display: block;
-}
-
-/* Floating timer badge above the button - takes zero flow space */
-.record-btn.recording .record-btn-timer {
-  display: flex;
   align-items: center;
-  gap: 3px;
-  position: absolute;
-  bottom: calc(100% + 3px);
-  left: 50%;
-  transform: translateX(-50%);
+  gap: 5px;
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.4);
-  border-radius: 10px;
-  padding: 1px 6px;
-  font-size: 10px;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
   font-weight: 600;
   color: #ef4444;
   white-space: nowrap;
-  line-height: 1;
-  z-index: 10;
-  pointer-events: none;
+  letter-spacing: 0.5px;
+  user-select: none;
 }
 
-/* Blinking dot in the timer badge */
-.record-btn.recording .record-btn-timer::before {
-  content: '';
-  width: 5px;
-  height: 5px;
+body.recording .recording-indicator {
+  display: flex;
+}
+
+body.recording .brand-text {
+  display: none;
+}
+
+.recording-indicator-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #ef4444;
   flex-shrink: 0;
   animation: recordDotBlink 1s ease-in-out infinite;
-}
-
-@keyframes recordPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-  50% { box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.3); }
 }
 
 @keyframes recordDotBlink {
@@ -99,16 +93,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .record-btn.recording {
-    animation: none;
-    box-shadow: 0 0 6px 1px rgba(239, 68, 68, 0.3);
-  }
-  .record-btn.recording .record-btn-timer::before {
+  .recording-indicator-dot {
     animation: none;
   }
 }
 
-/* Recording disclaimer dialog overlay */
+/* ==================== Recording Disclaimer Dialog ==================== */
+
 .recording-disclaimer-overlay {
   display: none;
   position: fixed;
@@ -214,13 +205,13 @@ body.light-mode .record-btn.recording {
   color: #dc2626;
 }
 
-body.light-mode .record-btn.recording .record-btn-timer {
-  color: #dc2626;
+body.light-mode .recording-indicator {
   background: rgba(220, 38, 38, 0.1);
-  border-color: rgba(220, 38, 38, 0.4);
+  border-color: rgba(220, 38, 38, 0.35);
+  color: #dc2626;
 }
 
-body.light-mode .record-btn.recording .record-btn-timer::before {
+body.light-mode .recording-indicator-dot {
   background: #dc2626;
 }
 

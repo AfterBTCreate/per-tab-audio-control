@@ -73,14 +73,15 @@ function stopRecordingTimer() {
     clearInterval(recordingTimerInterval);
     recordingTimerInterval = null;
   }
-  if (recordingTimerText) recordingTimerText.textContent = '';
+  if (recordingTimerText) recordingTimerText.textContent = '0:00';
 }
 
-// Update recording button visual state
+// Update recording button visual state and header indicator
 function updateRecordButtonState(recording) {
   if (!recordBtn) return;
   isRecording = recording;
   recordBtn.classList.toggle('recording', recording);
+  document.body.classList.toggle('recording', recording);
   recordBtn.title = recording ? 'Stop recording' : 'Record tab audio';
   recordBtn.setAttribute('aria-label', recording ? 'Stop recording' : 'Record tab audio');
 }

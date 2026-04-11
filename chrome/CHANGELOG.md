@@ -10,12 +10,12 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.0.5] - Alpha - 2026-03-24 — Floating record timer badge
+## [6.0.6] - Alpha - 2026-03-24 — Header recording indicator
 
-### Fixed
-- Recording timer no longer affects volume row layout; record button icon swaps to stop square when recording, timer displays as a floating badge above the button using absolute positioning (zero flow impact)
-- Reverted flex compression hacks (min-width, flex-shrink overrides) that caused button sizing issues
-- Record button sized to 30px to match adjacent tab-nav buttons
+### Changed
+- Recording timer now replaces "After Bedtime Creations" brand text in the header with a red pill badge showing blinking dot + "REC" + elapsed time
+- Record button stays at fixed 30px with pulsing red state when recording; no layout changes to the volume row
+- Removed floating timer badge and icon-swap approaches in favor of header indicator
 
 ---
 

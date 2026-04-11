@@ -54,6 +54,11 @@
       <div data-header-item="spacer1" class="header-spacer" aria-hidden="true"></div>
       <!-- 3. Brand Text -->
       <span data-header-item="brandText" class="brand-text"><span>After Bedtime</span><span>Creations</span></span>
+      <span class="recording-indicator" id="recordingIndicator">
+        <span class="recording-indicator-dot"></span>
+        <span>REC</span>
+        <span id="recordingTimerText">0:00</span>
+      </span>
       <!-- 3. Enable/Disable Toggle (grey = enabled, red = disabled) -->
       <button data-header-item="audioMode" class="header-btn audio-mode-toggle" id="audioModeToggle" title="Enabled (click to disable)" aria-label="Audio processing: Enabled (click to disable)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -176,13 +181,9 @@
     <div class="volume-row" role="group" aria-label="Volume controls">
       <div class="volume-left">
         <button class="record-btn" id="recordBtn" title="Record tab audio" aria-label="Record tab audio">
-          <svg class="record-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <circle cx="12" cy="12" r="7"/>
           </svg>
-          <svg class="stop-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-          </svg>
-          <span class="record-btn-timer" id="recordingTimerText"></span>
         </button>
         <button class="tab-nav-btn" id="mediaToggleBtn" title="Toggle play/pause" aria-label="Toggle play/pause">
           <svg class="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
