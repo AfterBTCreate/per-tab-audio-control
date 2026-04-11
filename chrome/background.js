@@ -215,10 +215,9 @@ const FULLSCREEN_SESSION_KEY = 'fullscreenStates';
 
 // CSS rule injected during fullscreen to force container to fill viewport.
 // Uses 100% (not 100vw/100vh) because vw includes scrollbar gutter width per CSS spec.
-// On ultrawide monitors (21:9), even a 17px gutter makes the container wider than the
-// visible viewport, causing 16:9 video players to scale the video taller than the screen
-// and clip the bottom controls. 100% on position:fixed = exact visible viewport.
-const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; }';
+// overflow:hidden prevents child content (video sized to fill width) from extending past
+// the viewport on ultrawide monitors — keeps controls visible at the container bottom.
+const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; overflow: hidden !important; }';
 
 // Restore fullscreen state from session storage on service worker startup
 browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]).then(result => {
@@ -3065,17 +3064,30 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
 
-        // Dispatch resize events so video players recalculate their layout
-        const dispatchResize = () => {
+        // Force video players to recalculate layout for the new viewport.
+        // Under Tab Capture, the player calculates fullscreen layout BEFORE the
+        // browser enters fullscreen (wrong dimensions). On ultrawide monitors this
+        // causes the video to overflow the viewport. We force a reflow on the
+        // fullscreen element and dispatch resize to trigger recalculation.
+        const forceRecalc = () => {
           browserAPI.scripting.executeScript({
             target: { tabId, allFrames: true },
-            func: () => { window.dispatchEvent(new Event('resize')); },
+            func: () => {
+              const el = document.fullscreenElement;
+              if (el) {
+                // Force synchronous reflow — player will re-read dimensions
+                void el.offsetWidth;
+                void el.offsetHeight;
+              }
+              window.dispatchEvent(new Event('resize'));
+            },
             world: 'MAIN'
           }).catch(() => {});
         };
-        setTimeout(dispatchResize, 100);
-        setTimeout(dispatchResize, 500);
-        setTimeout(dispatchResize, 1000);
+        setTimeout(forceRecalc, 100);
+        setTimeout(forceRecalc, 500);
+        setTimeout(forceRecalc, 1000);
+        setTimeout(forceRecalc, 2000);
       } else {
         // Exiting fullscreen — restore previous window state if we triggered it
         // Check Map first, fall back to session storage (service worker may have restarted)
