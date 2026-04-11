@@ -1,16 +1,29 @@
 # Changelog
 
-All notable changes to Per-Tab Audio Control will be documented in this file.
+All notable changes to Per-Tab Audio Control are documented in this file.
 
-This project uses [Semantic Versioning](https://semver.org/):
-- **MAJOR.MINOR.PATCH** format
-- **Alpha** (0.x): Initial development, unstable
-- **Beta** (1.x - 3.x): Feature complete, testing phase
-- **Release** (4.0+): Production ready
+This project follows [Semantic Versioning 2.0.0](https://semver.org/):
+
+- **MAJOR** version: incompatible / breaking changes (e.g., settings format migration risk, removal of features users relied on)
+- **MINOR** version: new features, backwards-compatible
+- **PATCH** version: bug fixes and small improvements, backwards-compatible
+
+Pre-release versions (e.g., `6.4.0-beta.1`) are tagged in git and marked as pre-release in GitHub Releases, but never appear in `manifest.json` (Chrome Web Store does not support pre-release suffixes in the version field).
+
+Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+- `feat(scope): description` — new feature
+- `fix(scope): description` — bug fix
+- `docs(scope): description` — documentation only
+- `refactor(scope): description` — code change without behavior change
+- `chore(release): vX.Y.Z` — release version bump
+- `chore: description` — meta / housekeeping
+
+> **Note**: Versions through v6.3.0 used an earlier "Alpha / Beta / Release" lifecycle framework tied to the major version number. That scheme was retired in April 2026 in favor of strict SemVer, with v6.3.0 marked as the first stable release under the new scheme. Historical entries below preserve their original labels for accuracy.
 
 ---
 
-## [6.3.0] - Alpha - 2026-04-03 — Playlist fullscreen fix
+## [6.3.0] - 2026-04-03 — Playlist fullscreen fix
 
 ### Fixed
 - **Fullscreen workaround**: Browser fullscreen (F11 equivalent) now correctly exits after YouTube playlist auto-advances to a new video. Root cause: the navigation safety net fired during SPA navigations (which don't destroy the content script or exit fullscreen), prematurely clearing the saved window state. Safety net now verifies fullscreen has actually exited via `scripting.executeScript` before clearing state.
