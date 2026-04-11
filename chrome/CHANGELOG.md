@@ -10,6 +10,18 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.13] - Alpha - 2026-03-27 — Recording settings QA/security fixes
+
+### Fixed
+- **[HIGH]** Recording settings (`recordingFormat`, `recordingBitrate`) now included in backup export and restore — previously silently dropped on backup/restore
+- **[HIGH]** "Reset All Settings" now resets recording settings and updates the recording UI — previously excluded
+- **[MED]** `saveRecordingSettings()` always writes `recordingBitrate` regardless of format, keeping storage consistent and preserving the user's bitrate preference when switching back from WAV
+- **[MED]** `loadRecordingSettings()` and `startRecording()` now use `??` instead of `||` for defaults — correctly distinguishes "not set" from falsy values
+- **[LOW]** `options-recording.js` now uses `RECORDING_BITRATES` from `constants.js` instead of a local duplicate (`BITRATE_OPTIONS`)
+- **[LOW]** `resetRecordingSettings()` now references `DEFAULTS.*` instead of hardcoded literals
+
+---
+
 ## [6.2.12] - Alpha - 2026-03-27 — Remove redundant recording info-box
 
 ### Removed

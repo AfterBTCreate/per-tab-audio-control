@@ -57,7 +57,10 @@ async function resetAllSettings() {
     'visualizerColor',
     'sleepTimerPresets',
     'sleepTimerDuration',
-    'expandedSections'
+    'expandedSections',
+    'recordingFormat',
+    'recordingBitrate',
+    'recordingSampleRate'
   ]);
 
   // Reset local settings (device-specific, dual-written settings, and unbounded maps)
@@ -191,6 +194,9 @@ async function resetAllSettings() {
 
   // Reload header layout preview from (now-default) storage
   if (typeof loadHeaderLayout === 'function') loadHeaderLayout();
+
+  // Reset recording settings UI
+  if (typeof loadRecordingSettings === 'function') loadRecordingSettings();
 
   // Reload UI lists
   loadRules();
@@ -430,6 +436,14 @@ async function generateBackupCSV() {
     escapeCSV(headerLayout.hidden?.join('|') || ''),
     headerLayout.spacerCount ?? DEFAULTS.headerLayout.spacerCount
   ].join(','));
+  lines.push('');
+
+  // Recording Settings
+  lines.push('[Recording Settings]');
+  lines.push('Format,Bitrate');
+  const recFormat = syncData.recordingFormat ?? DEFAULTS.recordingFormat;
+  const recBitrate = syncData.recordingBitrate ?? DEFAULTS.recordingBitrate;
+  lines.push(recFormat === 'wav' ? `${recFormat},` : `${recFormat},${recBitrate}`);
   lines.push('');
 
   // ===== SITE RULES =====
@@ -976,6 +990,24 @@ async function restoreFromBackup(csvContent) {
         }
         break;
 
+      case 'Recording Settings':
+        if (!headerRow) {
+          headerRow = trimmedLine;
+        } else {
+          const values = parseCSVLine(trimmedLine);
+          const fmt = values[0];
+          if (Object.keys(RECORDING_FORMATS).includes(fmt)) {
+            restoredData.sync.recordingFormat = fmt;
+            if (fmt !== 'wav' && values[1]) {
+              const bitrate = parseInt(values[1], 10);
+              if (!isNaN(bitrate) && RECORDING_BITRATES[fmt]?.includes(bitrate)) {
+                restoredData.sync.recordingBitrate = bitrate;
+              }
+            }
+          }
+        }
+        break;
+
       case 'Site Volume Rules':
         if (!headerRow) {
           headerRow = trimmedLine;
@@ -1174,6 +1206,7 @@ restoreFileInput.addEventListener('change', async (e) => {
     if (restored.sync.visualizerColor) counts.push('visualizer color');
     if (restored.sync.badgeStyle) counts.push('badge style');
     if (restored.local.globalDefaultDevice) counts.push('default device');
+    if (restored.sync.recordingFormat) counts.push('recording settings');
 
     if (counts.length > 0) {
       // Save restore flag to sessionStorage and reload immediately

@@ -11,14 +11,9 @@ const recordingResetBtn = document.getElementById('resetRecordingBtn');
 const recordingStatusEl = document.getElementById('recordingSettingsStatus');
 const recordingBitrateRow = document.getElementById('recordingBitrateRow');
 
-// Bitrate options per format
-const BITRATE_OPTIONS = {
-  mp3: [64, 128, 192, 256, 320],
-  webm: [32, 64, 96, 128, 256]
-};
-
+// Default bitrate per format when switching (mp3 references DEFAULTS; webm has no DEFAULTS entry)
 const DEFAULT_BITRATES = {
-  mp3: 192,
+  mp3: DEFAULTS.recordingBitrate,
   webm: 128
 };
 
@@ -44,7 +39,7 @@ function updateBitrateOptions(format) {
   }
 
   recordingBitrateRow.classList.remove('hidden');
-  const options = BITRATE_OPTIONS[format] || BITRATE_OPTIONS.mp3;
+  const options = RECORDING_BITRATES[format] || RECORDING_BITRATES.mp3;
   const currentValue = parseInt(recordingBitrateSelect.value, 10);
 
   // Clear existing options using DOM methods (safe - no innerHTML)
@@ -72,9 +67,9 @@ async function loadRecordingSettings() {
       'recordingFormat', 'recordingBitrate', 'recordingSampleRate'
     ]);
 
-    const format = result.recordingFormat || 'mp3';
-    const bitrate = result.recordingBitrate || 192;
-    const sampleRate = result.recordingSampleRate || 44100;
+    const format = result.recordingFormat ?? DEFAULTS.recordingFormat;
+    const bitrate = result.recordingBitrate ?? DEFAULTS.recordingBitrate;
+    const sampleRate = result.recordingSampleRate ?? DEFAULTS.recordingSampleRate;
 
     if (recordingFormatSelect) recordingFormatSelect.value = format;
     updateBitrateOptions(format);
@@ -95,9 +90,10 @@ async function saveRecordingSettings() {
     recordingSampleRate: sampleRate
   };
 
-  // Only save bitrate for formats that support it
-  if (format !== 'wav' && recordingBitrateSelect) {
-    settings.recordingBitrate = parseInt(recordingBitrateSelect.value, 10);
+  // Always save bitrate to keep storage consistent (WAV ignores it at record time,
+  // but preserving the value means it's restored when switching back to MP3/WebM)
+  if (recordingBitrateSelect) {
+    settings.recordingBitrate = parseInt(recordingBitrateSelect.value, 10) || DEFAULTS.recordingBitrate;
   }
 
   try {
@@ -111,9 +107,9 @@ async function saveRecordingSettings() {
 async function resetRecordingSettings() {
   try {
     await browserAPI.storage.sync.set({
-      recordingFormat: 'mp3',
-      recordingBitrate: 192,
-      recordingSampleRate: 44100
+      recordingFormat: DEFAULTS.recordingFormat,
+      recordingBitrate: DEFAULTS.recordingBitrate,
+      recordingSampleRate: DEFAULTS.recordingSampleRate
     });
     await loadRecordingSettings();
     showRecordingStatus('Reset to defaults', 'success');

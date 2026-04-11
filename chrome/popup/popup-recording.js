@@ -150,9 +150,9 @@ async function startRecording() {
   const settings = await browserAPI.storage.sync.get([
     'recordingFormat', 'recordingBitrate', 'recordingSampleRate'
   ]);
-  const format = settings.recordingFormat || 'mp3';
-  const bitrate = settings.recordingBitrate || 192;
-  const sampleRate = settings.recordingSampleRate || 44100;
+  const format = settings.recordingFormat ?? DEFAULTS.recordingFormat;
+  const bitrate = settings.recordingBitrate ?? DEFAULTS.recordingBitrate;
+  const sampleRate = settings.recordingSampleRate ?? DEFAULTS.recordingSampleRate;
 
   try {
     const response = await browserAPI.runtime.sendMessage({
