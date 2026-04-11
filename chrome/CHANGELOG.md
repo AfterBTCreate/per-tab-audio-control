@@ -10,10 +10,11 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.0.1] - Alpha - 2026-03-24 — Inline record timer
+## [6.0.2] - Alpha - 2026-03-24 — Inline record timer
 
 ### Fixed
 - Recording timer no longer pushes reset button off-screen; timer now displays inline within the record button itself as `[■ 0:01]`, swapping the record circle for a stop square icon while recording
+- Volume-right side (reset button) protected from flex shrinkage; volume-left compresses with tighter gaps/padding when recording is active
 
 ---
 

@@ -38,13 +38,22 @@
   background: rgba(239, 68, 68, 0.2);
   border-color: #ef4444;
   color: #ef4444;
-  padding: 0 6px;
-  gap: 4px;
+  padding: 0 4px;
+  gap: 3px;
   animation: recordPulse 1.5s ease-in-out infinite;
 }
 
 .record-btn.recording:hover {
   background: rgba(239, 68, 68, 0.35);
+}
+
+/* Tighter layout in volume-left when recording is active */
+.volume-left:has(.record-btn.recording) {
+  gap: 3px;
+}
+
+.volume-row:has(.record-btn.recording) .volume-left .tab-nav-btn {
+  padding: 4px;
 }
 
 /* Swap icons: hide record circle, show stop square */
