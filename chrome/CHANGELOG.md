@@ -10,6 +10,15 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.6] - Alpha - 2026-03-27 — Seekbar always visible
+
+### Changed
+- Seekbar row is now always visible when enabled, even when no media is playing on the current tab
+- Prevents popup height from shifting when switching between tabs with and without media
+- Slider is disabled when no media is present to prevent interaction
+
+---
+
 ## [6.2.5] - Alpha - 2026-03-27 — Tab list scroll fix
 
 ### Fixed

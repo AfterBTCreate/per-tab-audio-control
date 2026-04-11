@@ -111,6 +111,7 @@ function resetSeekbar() {
   stopSeekbarPolling();
   seekbarRow.classList.remove('has-media');
   seekbarSlider.value = 0;
+  seekbarSlider.disabled = true;
   seekbarFill.style.width = '0%';
   seekbarCurrentTime.textContent = '0:00';
   seekbarDuration.textContent = '0:00';

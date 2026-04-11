@@ -1,15 +1,11 @@
 /* ==================== Seekbar ==================== */
 
 .seekbar-row {
-  display: none;  /* hidden until media with duration is detected */
+  display: flex;  /* always visible when seekbar is enabled */
   align-items: center;
   gap: 8px;
   margin: 2px 0 4px 0;
   padding: 0 2px;
-}
-
-.seekbar-row.has-media {
-  display: flex;
 }
 
 .seekbar-time {
@@ -116,11 +112,11 @@ body.light-mode .seekbar-slider::-webkit-slider-thumb:hover { background: #37415
 body.light-mode .seekbar-slider::-moz-range-thumb { background: #6b7280; }
 
 /* ===== Seekbar hidden via options ===== */
-body.seekbar-hidden .seekbar-row.has-media {
+body.seekbar-hidden .seekbar-row {
   display: none;
 }
 
 /* ===== Visualizer-hidden: add top margin since there's no visualizer above ===== */
-body.visualizer-hidden .seekbar-row.has-media {
+body.visualizer-hidden .seekbar-row {
   margin-top: 6px;
 }
