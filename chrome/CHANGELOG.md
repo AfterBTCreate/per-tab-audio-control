@@ -10,10 +10,10 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.2.34] - Alpha - 2026-04-03 — Fix fullscreen video on ultrawide monitors
+## [6.2.35] - Alpha - 2026-04-03 — Revert ultrawide fullscreen attempts
 
-### Fixed
-- **Ultrawide fullscreen**: Stripped back to the v5.1.1 CSS approach that originally worked, plus `transform: none` to disable YouTube's scale transform. No media query wrapper (may have been preventing the rule from activating), no JavaScript MutationObserver complexity (broke generic sites and had timing issues). CSS: `:fullscreen video { width: 100%; height: 100%; object-fit: contain; transform: none; }` with `!important`. On 16:9 monitors, these produce identical rendering to YouTube's own sizing (video fills container exactly). Simple resize dispatch at 100/500/1000/2000ms.
+### Reverted
+- **Ultrawide fullscreen fix attempts (v6.2.26–v6.2.34)**: Reverted all ultrawide fullscreen CSS/JS changes back to the v6.2.25 state. Multiple approaches were attempted (CSS unit changes, overflow:hidden, max-height constraints, MutationObserver with inline styles, media queries, specificity boosting, transform:none) but none resolved YouTube's ultrawide rendering without regressions. The playlist fix from v6.2.25 is preserved. Ultrawide fullscreen on YouTube remains a known issue.
 
 ## [6.2.25] - Alpha - 2026-04-03 — Fix fullscreen not exiting after YouTube playlist advance
 

@@ -213,13 +213,8 @@ const fullscreenOpQueue = new Map();
 // Session storage key for fullscreen state (survives service worker restarts)
 const FULLSCREEN_SESSION_KEY = 'fullscreenStates';
 
-// CSS injected during fullscreen to fix Tab Capture's broken fullscreen rendering.
-// Container: forces the fullscreen element to fill the viewport.
-// Video: forces the video to fill the container with pillarboxing via object-fit:contain.
-// transform:none disables YouTube's scale transform that otherwise zooms the video past
-// the viewport edges on ultrawide monitors. On 16:9, the video already fills the
-// container exactly so these overrides produce identical rendering to YouTube's own.
-const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; } :fullscreen video { width: 100% !important; height: 100% !important; object-fit: contain !important; transform: none !important; }';
+// CSS rule injected during fullscreen to force container to fill viewport
+const FULLSCREEN_CSS = ':fullscreen { width: 100vw !important; height: 100vh !important; }';
 
 // Restore fullscreen state from session storage on service worker startup
 browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]).then(result => {
@@ -3049,7 +3044,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Save previous state so we can restore on exit (persisted to session storage
         // in case service worker restarts while tab is fullscreen)
         saveFullscreenState(tabId, windowId, win.state);
-        // Inject CSS: container fills viewport + ultrawide video sizing via media query.
+        // Inject CSS to force the fullscreen container to fill the actual viewport.
+        // Only targets :fullscreen (the container), NOT :fullscreen video — overriding
+        // video element sizing breaks players like YouTube that use transforms/positioning.
         browserAPI.scripting.insertCSS({
           target: { tabId },
           css: FULLSCREEN_CSS
@@ -3075,7 +3072,6 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         setTimeout(dispatchResize, 100);
         setTimeout(dispatchResize, 500);
         setTimeout(dispatchResize, 1000);
-        setTimeout(dispatchResize, 2000);
       } else {
         // Exiting fullscreen — restore previous window state if we triggered it
         // Check Map first, fall back to session storage (service worker may have restarted)
