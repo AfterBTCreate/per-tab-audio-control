@@ -407,85 +407,81 @@ const preset2 = document.getElementById('preset2');
 const preset3 = document.getElementById('preset3');
 const preset4 = document.getElementById('preset4');
 const preset5 = document.getElementById('preset5');
+const preset6 = document.getElementById('preset6');
 const resetBtn = document.getElementById('resetBtn');
 const status = document.getElementById('status');
+const allPresetInputs = [preset1, preset2, preset3, preset4, preset5, preset6];
 
 // Load saved presets
 async function loadPresets() {
   const result = await browserAPI.storage.sync.get(['customPresets']);
   const presets = result.customPresets || DEFAULT_PRESETS;
 
-  preset1.value = presets[0];
-  preset2.value = presets[1];
-  preset3.value = presets[2];
-  preset4.value = presets[3];
-  preset5.value = presets[4];
+  // Handle migration from 5-preset format
+  const values = presets.length === 5 ? [presets[0], 50, presets[1], presets[2], presets[3], presets[4]] : presets;
 
-  // Update colors
-  [preset1, preset2, preset3, preset4, preset5].forEach(updateInputColor);
+  preset1.value = values[0];
+  preset2.value = values[1];
+  preset3.value = values[2];
+  preset4.value = values[3];
+  preset5.value = values[4];
+  preset6.value = values[5];
+
+  allPresetInputs.forEach(updateInputColor);
 }
 
 // Save presets (auto-save)
 async function savePresets() {
-  // Clamp all values to valid range
-  [preset1, preset2, preset3, preset4, preset5].forEach(clampVolumeInput);
+  allPresetInputs.forEach(clampVolumeInput);
 
   let v1 = parseInt(preset1.value);
   let v2 = parseInt(preset2.value);
   let v3 = parseInt(preset3.value);
   let v4 = parseInt(preset4.value);
   let v5 = parseInt(preset5.value);
+  let v6 = parseInt(preset6.value);
 
   // Enforce strict ascending order (no duplicates: each must be at least +1 from previous)
-  // Cap v1 at 496 to ensure room for v2, v3, v4, v5
-  if (v1 > 496) { v1 = 496; preset1.value = v1; }
+  if (v1 > 495) { v1 = 495; preset1.value = v1; }
 
-  // v2 must be > v1 and <= 497
   if (v2 <= v1) { v2 = v1 + 1; }
-  if (v2 > 497) { v2 = 497; }
+  if (v2 > 496) { v2 = 496; }
   preset2.value = v2;
 
-  // v3 must be > v2 and <= 498
   if (v3 <= v2) { v3 = v2 + 1; }
-  if (v3 > 498) { v3 = 498; }
+  if (v3 > 497) { v3 = 497; }
   preset3.value = v3;
 
-  // v4 must be > v3 and <= 499
   if (v4 <= v3) { v4 = v3 + 1; }
-  if (v4 > 499) { v4 = 499; }
+  if (v4 > 498) { v4 = 498; }
   preset4.value = v4;
 
-  // v5 must be > v4 and <= 500
   if (v5 <= v4) { v5 = v4 + 1; }
-  if (v5 > 500) { v5 = 500; }
+  if (v5 > 499) { v5 = 499; }
   preset5.value = v5;
 
-  // Update colors after potential adjustments
-  [preset1, preset2, preset3, preset4, preset5].forEach(updateInputColor);
+  if (v6 <= v5) { v6 = v5 + 1; }
+  if (v6 > 500) { v6 = 500; }
+  preset6.value = v6;
 
-  const values = [v1, v2, v3, v4, v5];
+  allPresetInputs.forEach(updateInputColor);
+
+  const values = [v1, v2, v3, v4, v5, v6];
   await browserAPI.storage.sync.set({ customPresets: values });
 }
 
 // Reset to defaults
 async function resetPresets() {
   await browserAPI.storage.sync.remove(['customPresets']);
-  preset1.value = DEFAULT_PRESETS[0];
-  preset2.value = DEFAULT_PRESETS[1];
-  preset3.value = DEFAULT_PRESETS[2];
-  preset4.value = DEFAULT_PRESETS[3];
-  preset5.value = DEFAULT_PRESETS[4];
-
-  // Update colors
-  [preset1, preset2, preset3, preset4, preset5].forEach(updateInputColor);
-
+  allPresetInputs.forEach((input, i) => { input.value = DEFAULT_PRESETS[i]; });
+  allPresetInputs.forEach(updateInputColor);
   showStatus(status, 'Reset to defaults', 'success');
 }
 
 // Event listeners (auto-save on change)
 resetBtn.addEventListener('click', resetPresets);
 
-[preset1, preset2, preset3, preset4, preset5].forEach(input => {
+allPresetInputs.forEach(input => {
   input.addEventListener('input', () => updateInputColor(input));
   input.addEventListener('change', savePresets);
 });

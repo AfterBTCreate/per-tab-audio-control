@@ -10,6 +10,20 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.0] - Alpha - 2026-03-24 — 50% volume preset
+
+### Added
+- New 50% volume preset button between 25% and 100%, making 100% the centered button
+- 6th preset input in the options page (Presets section)
+- Migration for users with old 5-preset custom data
+
+### Changed
+- Preset buttons shrunk (10px font, tighter padding/gaps) to fit 7 buttons (Mute + 6 presets)
+- Default volume presets: [25, 50, 100, 200, 300, 500]
+- Improved color assignment thresholds: 50% now gets green (reduced) styling, 400%+ gets purple (ultra)
+
+---
+
 ## [6.1.1] - Alpha - 2026-03-24 — Recording status bar
 
 ### Changed

@@ -108,9 +108,14 @@ function stop214Timer() {
 
 // Load and apply custom presets
 async function loadCustomPresets() {
-  const { customPresets: presets } = await getStorageWithDefaults({
+  let { customPresets: presets } = await getStorageWithDefaults({
     customPresets: DEFAULTS.volumePresets
   });
+
+  // Migrate old 5-preset format to 6-preset format
+  if (presets.length === 5) {
+    presets = [presets[0], 50, presets[1], presets[2], presets[3], presets[4]];
+  }
 
   // Get all non-mute preset buttons (skip the first one which is Mute)
   const presetBtns = document.querySelectorAll('.preset-btn:not(#muteBtn)');
@@ -122,12 +127,14 @@ async function loadCustomPresets() {
       btn.textContent = `${value}%`;
 
       // Update button styling based on value
-      btn.classList.remove('reduced', 'boost', 'extreme', 'high');
-      if (value >= 201) {
+      btn.classList.remove('reduced', 'boost', 'high', 'extreme', 'ultra');
+      if (value >= 400) {
+        btn.classList.add('ultra');
+      } else if (value >= 201) {
         btn.classList.add('extreme');
       } else if (value >= 101) {
         btn.classList.add('high');
-      } else if (value >= 51) {
+      } else if (value >= 50) {
         btn.classList.add('reduced');
       } else {
         btn.classList.add('boost');

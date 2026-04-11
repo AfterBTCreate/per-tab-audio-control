@@ -38,7 +38,7 @@ const DEFAULTS = {
   audioMode: 'tabcapture',
 
   // Volume
-  volumePresets: [25, 100, 200, 300, 500],
+  volumePresets: [25, 50, 100, 200, 300, 500],
   volumeSteps: { scrollWheel: 5, keyboard: 1, buttons: 1 },
 
   // EQ presets (Low, Medium, High)
