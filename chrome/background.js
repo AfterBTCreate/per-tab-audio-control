@@ -213,21 +213,13 @@ const fullscreenOpQueue = new Map();
 // Session storage key for fullscreen state (survives service worker restarts)
 const FULLSCREEN_SESSION_KEY = 'fullscreenStates';
 
-// CSS injected during fullscreen to fix Tab Capture's broken fullscreen rendering.
-//
-// Container rule: forces the fullscreen element to fill the viewport.
-//   - Uses 100% (not 100vw/100vh) — vw includes scrollbar gutter width.
-//   - overflow:hidden clips child content that extends past the viewport.
-//
-// Video rule: constrains the video element on ultrawide monitors.
-//   - On ultrawide (21:9), players size the video to fill container width (3440px),
-//     producing a 16:9 height of ~1935px that overflows the 1440px viewport.
-//   - max-height:100vh caps the video at the viewport height WITHOUT changing it on
-//     standard 16:9 monitors (where video height already equals viewport height).
-//     Unlike height:100%, max-height doesn't fight the player's pixel dimensions on
-//     16:9 — avoids the YouTube static-screen regression from v5.1.2.
-//   - object-fit:contain pillarboxes the video content within the constrained element.
-const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; overflow: hidden !important; } :fullscreen video { max-height: 100vh !important; object-fit: contain !important; }';
+// CSS injected during fullscreen to force the fullscreen container to fill the viewport.
+// Uses 100% (not 100vw/100vh) — vw includes scrollbar gutter width on classic-scrollbar
+// systems. overflow:hidden clips any child content that extends past the viewport.
+// Video element sizing is handled separately via inline styles + MutationObserver
+// (see correctVideo below) because YouTube sets pixel dimensions via inline styles
+// that CSS rules alone cannot reliably override.
+const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; overflow: hidden !important; }';
 
 // Restore fullscreen state from session storage on service worker startup
 browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]).then(result => {
@@ -3057,9 +3049,8 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Save previous state so we can restore on exit (persisted to session storage
         // in case service worker restarts while tab is fullscreen)
         saveFullscreenState(tabId, windowId, win.state);
-        // Inject CSS to force the fullscreen container to fill the actual viewport.
-        // Only targets :fullscreen (the container), NOT :fullscreen video — overriding
-        // video element sizing breaks players like YouTube that use transforms/positioning.
+        // Inject CSS to force the fullscreen container to fill the viewport.
+        // Video element sizing is handled via JS after browser fullscreen (see below).
         browserAPI.scripting.insertCSS({
           target: { tabId },
           css: FULLSCREEN_CSS
@@ -3074,36 +3065,126 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
 
-        // Force video players to recalculate layout for the new viewport.
-        // Under Tab Capture, the player calculates fullscreen layout BEFORE the
-        // browser enters fullscreen (wrong dimensions). On ultrawide monitors this
-        // causes the video to overflow the viewport. We force a reflow on the
-        // fullscreen element and dispatch resize to trigger recalculation.
-        const forceRecalc = () => {
+        // Fix video sizing on ultrawide monitors + dispatch resize for all players.
+        // YouTube sets video dimensions via inline pixel styles (e.g. width:3440px;
+        // height:1935px) that CSS rules cannot reliably override. On ultrawide (21:9)
+        // monitors this overflows the viewport. We detect overflow by comparing the
+        // video's intrinsic aspect ratio to the screen's, then apply corrected inline
+        // dimensions with !important. A MutationObserver counteracts the player's
+        // attempts to re-apply its own dimensions.
+        const correctVideo = () => {
           browserAPI.scripting.executeScript({
             target: { tabId, allFrames: true },
             func: () => {
               const el = document.fullscreenElement;
-              if (el) {
-                // Force synchronous reflow — player will re-read dimensions
-                void el.offsetWidth;
-                void el.offsetHeight;
-              }
+              if (!el) return;
+
+              // Resize event for standard players (works without further intervention)
               window.dispatchEvent(new Event('resize'));
+
+              const video = el.querySelector('video');
+              if (!video || !video.videoWidth || !video.videoHeight) return;
+
+              const vw = window.innerWidth;
+              const vh = window.innerHeight;
+              const videoAR = video.videoWidth / video.videoHeight;
+              const screenAR = vw / vh;
+
+              // Only correct when video AR is narrower than screen AR (ultrawide).
+              // On 16:9 monitors with 16:9 video, these match — no correction needed,
+              // no conflict with player transforms, no static-screen risk.
+              if (videoAR >= screenAR - 0.01) return;
+
+              // Set video to fill viewport; object-fit:contain handles pillarboxing
+              const w = vw + 'px';
+              const h = vh + 'px';
+              video.style.setProperty('width', w, 'important');
+              video.style.setProperty('height', h, 'important');
+              video.style.setProperty('object-fit', 'contain', 'important');
+              video.dataset.tvFs = '1';
+
+              // Constrain the video's parent container too (e.g. .html5-video-container)
+              if (video.parentElement && video.parentElement !== el) {
+                video.parentElement.style.setProperty('max-height', h, 'important');
+                video.parentElement.style.setProperty('overflow', 'hidden', 'important');
+                video.parentElement.dataset.tvFs = '1';
+              }
+
+              // MutationObserver: counteract player re-sizing (set up once per session)
+              if (!window.__tvFsObs) {
+                window.__tvFsObs = new MutationObserver(() => {
+                  if (!document.fullscreenElement || !video.dataset.tvFs) {
+                    window.__tvFsObs.disconnect();
+                    window.__tvFsObs = null;
+                    return;
+                  }
+                  if (video.style.getPropertyValue('height') !== h ||
+                      video.style.getPropertyValue('width') !== w) {
+                    video.style.setProperty('width', w, 'important');
+                    video.style.setProperty('height', h, 'important');
+                    video.style.setProperty('object-fit', 'contain', 'important');
+                  }
+                });
+                window.__tvFsObs.observe(video, { attributes: true, attributeFilter: ['style'] });
+              }
+
+              // Auto-cleanup when fullscreen exits (set up once per session)
+              if (!window.__tvFsCleanup) {
+                window.__tvFsCleanup = () => {
+                  if (!document.fullscreenElement) {
+                    if (window.__tvFsObs) {
+                      window.__tvFsObs.disconnect();
+                      window.__tvFsObs = null;
+                    }
+                    document.querySelectorAll('[data-tv-fs]').forEach(e => {
+                      e.style.removeProperty('width');
+                      e.style.removeProperty('height');
+                      e.style.removeProperty('object-fit');
+                      e.style.removeProperty('max-height');
+                      e.style.removeProperty('overflow');
+                      delete e.dataset.tvFs;
+                    });
+                    document.removeEventListener('fullscreenchange', window.__tvFsCleanup);
+                    window.__tvFsCleanup = null;
+                  }
+                };
+                document.addEventListener('fullscreenchange', window.__tvFsCleanup);
+              }
             },
             world: 'MAIN'
           }).catch(() => {});
         };
-        setTimeout(forceRecalc, 100);
-        setTimeout(forceRecalc, 500);
-        setTimeout(forceRecalc, 1000);
-        setTimeout(forceRecalc, 2000);
+        // Run at intervals to cover viewport transition timing
+        setTimeout(correctVideo, 200);
+        setTimeout(correctVideo, 600);
+        setTimeout(correctVideo, 1200);
+        setTimeout(correctVideo, 2000);
       } else {
         // Exiting fullscreen — restore previous window state if we triggered it
         // Check Map first, fall back to session storage (service worker may have restarted)
         const fsState = fullscreenStateByTab.get(tabId) || await getFullscreenState(tabId);
         clearFullscreenState(tabId);
         if (fsState) {
+          // Clean up inline video corrections (ultrawide fix) + injected CSS
+          browserAPI.scripting.executeScript({
+            target: { tabId, allFrames: true },
+            func: () => {
+              if (window.__tvFsObs) { window.__tvFsObs.disconnect(); window.__tvFsObs = null; }
+              if (window.__tvFsCleanup) {
+                document.removeEventListener('fullscreenchange', window.__tvFsCleanup);
+                window.__tvFsCleanup = null;
+              }
+              document.querySelectorAll('[data-tv-fs]').forEach(e => {
+                e.style.removeProperty('width');
+                e.style.removeProperty('height');
+                e.style.removeProperty('object-fit');
+                e.style.removeProperty('max-height');
+                e.style.removeProperty('overflow');
+                delete e.dataset.tvFs;
+              });
+            },
+            world: 'MAIN'
+          }).catch(() => {});
           browserAPI.scripting.removeCSS({
             target: { tabId },
             css: FULLSCREEN_CSS

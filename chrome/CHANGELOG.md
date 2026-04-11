@@ -10,10 +10,10 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.2.28] - Alpha - 2026-04-03 — Fix fullscreen video cut off on ultrawide monitors (YouTube)
+## [6.2.29] - Alpha - 2026-04-03 — Fix fullscreen video cut off on ultrawide monitors (YouTube)
 
 ### Fixed
-- **YouTube fullscreen clipped on ultrawide monitors**: Restored video element CSS constraint that was removed in v5.1.2 (caused YouTube static screen). The original rule used `width: 100%; height: 100%` which forcefully overrides the player's pixel dimensions on ALL monitors, conflicting with YouTube's transform-based positioning on 16:9 displays. New approach uses `max-height: 100vh` — a constraint that only activates when the video exceeds the viewport height (ultrawide), with zero effect on standard 16:9 where dimensions already match. Combined with `object-fit: contain` for proper pillarboxing, `overflow: hidden` on the container as a safety net, forced DOM reflow after browser fullscreen transition, and extended resize timing to 2 seconds.
+- **YouTube fullscreen clipped on ultrawide monitors**: YouTube sets video dimensions via inline pixel styles (e.g. `width:3440px; height:1935px`) that CSS rules alone cannot override — YouTube's JS keeps re-applying them. New approach uses `scripting.executeScript` in the MAIN world to detect ultrawide overflow (video aspect ratio narrower than screen), calculate correct pillarboxed dimensions from the video's intrinsic `videoWidth`/`videoHeight`, and apply them as inline styles with `!important`. A `MutationObserver` on the video element's `style` attribute counteracts YouTube's attempts to re-apply its own oversized dimensions. Corrections only activate when `videoAR < screenAR` — on standard 16:9 monitors with 16:9 video the aspect ratios match and no correction runs, avoiding the static-screen regression from v5.1.2. Auto-cleanup on fullscreen exit via `fullscreenchange` listener + background exit handler removes inline styles, disconnects observer, and restores original player sizing. Previous CSS-only approaches (`max-height:100vh`, `height:100%`, `100vw`/`100vh`) all failed because YouTube's inline styles take precedence.
 
 ## [6.2.25] - Alpha - 2026-04-03 — Fix fullscreen not exiting after YouTube playlist advance
 
