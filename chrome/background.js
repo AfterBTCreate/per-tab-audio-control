@@ -223,7 +223,7 @@ const FULLSCREEN_SESSION_KEY = 'fullscreenStates';
 // transform:none disables this. Media query threshold 2/1 catches 21:9+ while excluding
 // 16:9 (1.78) — the video rule never activates on standard monitors, avoiding the
 // static-screen regression that caused v5.1.2 to remove it.
-const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; } @media (min-aspect-ratio: 2/1) { :fullscreen video { width: 100% !important; height: 100% !important; object-fit: contain !important; transform: none !important; } }';
+const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; } @media (min-aspect-ratio: 2/1) { :fullscreen:fullscreen:fullscreen:fullscreen:fullscreen video { width: 100% !important; height: 100% !important; object-fit: contain !important; transform: none !important; } }';
 
 // Restore fullscreen state from session storage on service worker startup
 browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]).then(result => {
