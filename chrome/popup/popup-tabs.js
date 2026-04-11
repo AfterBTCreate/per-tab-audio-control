@@ -345,6 +345,11 @@ async function switchToTab(tabIndex) {
       clearFocusReminder();
     }
   }
+
+  // Update recording UI for the new tab
+  if (typeof checkRecordingStatus === 'function') {
+    checkRecordingStatus();
+  }
 }
 
 // Toggle play/pause on current tab's media

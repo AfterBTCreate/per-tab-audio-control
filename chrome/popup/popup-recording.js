@@ -5,6 +5,7 @@
 
 // ==================== Recording State ====================
 let isRecording = false;
+let recordingTabId = null; // Which tab is actually being recorded
 let recordingStartTime = 0;
 let recordingTimerInterval = null;
 
@@ -148,6 +149,7 @@ async function startRecording() {
     });
 
     if (response && response.success) {
+      recordingTabId = currentTabId;
       updateRecordButtonState(true);
       startRecordingTimer();
     } else {
@@ -161,16 +163,18 @@ async function startRecording() {
 
 // Stop recording and trigger download
 async function stopRecording() {
-  if (!currentTabId || !isRecording) return;
+  if (!recordingTabId || !isRecording) return;
 
+  const stoppingTabId = recordingTabId;
   try {
     const response = await browserAPI.runtime.sendMessage({
       type: 'STOP_RECORDING',
-      tabId: currentTabId
+      tabId: stoppingTabId
     });
 
     if (response && response.success) {
       // Only update UI after confirmed stop
+      recordingTabId = null;
       updateRecordButtonState(false);
       stopRecordingTimer();
       // Generate filename from tab title
@@ -212,6 +216,7 @@ async function stopRecording() {
     }
   } catch (e) {
     // On error, reset UI since state is uncertain
+    recordingTabId = null;
     updateRecordButtonState(false);
     stopRecordingTimer();
     showStatus('Recording error: ' + e.message, 'error', 4000);
@@ -220,14 +225,20 @@ async function stopRecording() {
 
 // Toggle recording on/off
 async function toggleRecording() {
-  if (isRecording) {
+  // If this tab is the one recording, stop it
+  if (isRecording && recordingTabId === currentTabId) {
     await stopRecording();
   } else {
+    // If another tab is recording, stop that first
+    if (recordingTabId && recordingTabId !== currentTabId) {
+      await stopRecording();
+    }
     await startRecording();
   }
 }
 
-// Check recording status on popup open (in case recording was started and popup was closed)
+// Check recording status for the current tab
+// Called on popup open and on tab switch
 async function checkRecordingStatus() {
   if (!currentTabId) return;
 
@@ -238,11 +249,19 @@ async function checkRecordingStatus() {
     });
 
     if (response && response.recording) {
+      recordingTabId = currentTabId;
       updateRecordButtonState(true);
       startRecordingTimer(response.duration);
+    } else {
+      // This tab is not recording — but another tab might be
+      // Clear the button state but keep recordingTabId if set
+      updateRecordButtonState(false);
+      stopRecordingTimer();
     }
   } catch (e) {
     // Offscreen might not be active
+    updateRecordButtonState(false);
+    stopRecordingTimer();
   }
 }
 
