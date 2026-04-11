@@ -10,6 +10,17 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.10] - Alpha - 2026-03-27 — Per-tab recording consent + options warning
+
+### Changed
+- Recording disclaimer now shows the first time recording is started for each individual tab, rather than once globally — consent is tracked per tab ID in memory for the popup session
+- Removed persistent `recordingDisclaimerAccepted` storage.sync flag (no longer needed)
+
+### Added
+- Recording legal warning added to the Recording section of the options page, styled to match the existing hearing damage warning
+
+---
+
 ## [6.2.9] - Alpha - 2026-03-27 — Paused media in tab switcher
 
 ### Fixed

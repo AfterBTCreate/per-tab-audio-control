@@ -10,6 +10,9 @@ let recordingStartTime = 0;
 let recordingTimerInterval = null;
 let checkingRecordingStatus = false;
 
+// Tracks which tab IDs have accepted the recording disclaimer this session
+const recordingConsentedTabs = new Set();
+
 // ==================== DOM References ====================
 const recordBtn = document.getElementById('recordBtn');
 const disclaimerOverlay = document.getElementById('recordingDisclaimerOverlay');
@@ -99,15 +102,11 @@ function updateRecordButtonState(recording) {
   }
 }
 
-// Show disclaimer dialog on first use
-async function showDisclaimerIfNeeded() {
-  try {
-    const result = await browserAPI.storage.sync.get(['recordingDisclaimerAccepted']);
-    if (result.recordingDisclaimerAccepted) {
-      return true; // Already accepted
-    }
-  } catch (e) {
-    // Storage error, show disclaimer
+// Show disclaimer dialog the first time recording is started for each tab
+function showDisclaimerIfNeeded() {
+  // Already consented for this tab this session
+  if (currentTabId && recordingConsentedTabs.has(currentTabId)) {
+    return Promise.resolve(true);
   }
 
   // Show dialog
@@ -119,13 +118,11 @@ async function showDisclaimerIfNeeded() {
 
     disclaimerOverlay.classList.add('visible');
 
-    const handleAccept = async () => {
+    const handleAccept = () => {
       disclaimerOverlay.classList.remove('visible');
       disclaimerAcceptBtn.removeEventListener('click', handleAccept);
       disclaimerCancelBtn.removeEventListener('click', handleCancel);
-      try {
-        await browserAPI.storage.sync.set({ recordingDisclaimerAccepted: true });
-      } catch (e) { /* proceed anyway */ }
+      if (currentTabId) recordingConsentedTabs.add(currentTabId);
       resolve(true);
     };
 
