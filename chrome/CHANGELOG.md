@@ -10,6 +10,11 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.23] - Alpha - 2026-03-30 — Status message opacity
+
+### Changed
+- **Status message opacity**: Background raised from `0.15` → `0.92`, border from `0.3` → `0.8`, text color switched to dark — now fully readable as an overlay without content bleeding through.
+
 ## [6.2.22] - Alpha - 2026-03-30 — Fix status message causing scrollbar
 
 ### Fixed
