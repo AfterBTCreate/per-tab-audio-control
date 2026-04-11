@@ -57,7 +57,7 @@
   const EFFECT_RANGES = {
     bass: { min: -24, max: 24 },
     treble: { min: -24, max: 24 },
-    voice: { min: -18, max: 18 },
+    voice: { min: -40, max: 18 },
     speed: { min: 0.05, max: 5 }
   };
 
@@ -388,14 +388,18 @@
     });
   }
 
-  // Apply voice boost to all contexts
+  // Apply voice boost/cut to all contexts
+  // When cutting, Q widens to 0.35 to cover the full vocal range (~700Hz–12kHz)
+  // When boosting, Q stays at 1.0 for focused presence boost
   function applyVoiceBoost(gainDb) {
     currentVoiceGain = gainDb;
+    const targetQ = gainDb < 0 ? 0.35 : 1.0;
 
     audioContexts.forEach(ctx => {
       try {
         const data = contextData.get(ctx);
         if (data && data.voiceFilter && ctx.state !== 'closed') {
+          data.voiceFilter.Q.value = targetQ;
           data.voiceFilter.gain.cancelScheduledValues(ctx.currentTime);
           data.voiceFilter.gain.setTargetAtTime(gainDb, ctx.currentTime, 0.03);
         }
@@ -403,6 +407,7 @@
         try {
           const data = contextData.get(ctx);
           if (data && data.voiceFilter) {
+            data.voiceFilter.Q.value = targetQ;
             data.voiceFilter.gain.value = gainDb;
           }
         } catch (e2) {}

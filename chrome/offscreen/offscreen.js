@@ -23,7 +23,7 @@ const VOLUME_MAX = 500;
 const EFFECT_RANGES = {
   bass: { min: -24, max: 24 },
   treble: { min: -24, max: 24 },
-  voice: { min: -18, max: 18 },
+  voice: { min: -40, max: 18 },
   speed: { min: 0.05, max: 5 }
 };
 
@@ -670,6 +670,8 @@ function setTabCaptureVoice(tabId, gainDb) {
   if (!capture || !capture.voiceFilter) return true;
 
   try {
+    // Widen Q when cutting to cover full vocal range (~700Hz–12kHz); narrow for boost
+    capture.voiceFilter.Q.value = gainDb < 0 ? 0.35 : 1.0;
     capture.voiceFilter.gain.setTargetAtTime(gainDb, capture.audioContext.currentTime, 0.03);
     log('Set voice for tab', tabId, ':', gainDb);
     return true;

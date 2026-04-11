@@ -10,6 +10,13 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.17] - Alpha - 2026-03-30 — Voice Cut: aggressive mode
+
+### Changed
+- **Voice filter Q widens when cutting**: Q drops from 1.0 to 0.35 when gain < 0, covering ~700Hz–12kHz instead of ~1.5–6kHz — cuts the full vocal range including fundamentals and sibilance
+- **Voice slider extended to -40 dB**: Previously -18dB was the floor; slider now goes to -40dB for near-complete vocal removal
+- **`EFFECT_RANGES.voice.min`**: Updated from `-18` to `-40` in all five local copies (shared/constants.js, content.js, page-script.js, offscreen.js, background.js)
+
 ## [6.2.16] - Alpha - 2026-03-30 — Voice Cut fixes (complete)
 
 ### Fixed
