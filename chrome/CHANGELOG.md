@@ -10,10 +10,10 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.2.33] - Alpha - 2026-04-03 — Fix fullscreen video cut off on ultrawide monitors (YouTube)
+## [6.2.34] - Alpha - 2026-04-03 — Fix fullscreen video on ultrawide monitors
 
 ### Fixed
-- **YouTube fullscreen clipped on ultrawide monitors**: Confirmed via testing that YouTube sets video dimensions with inline `!important` styles — no CSS rule (even with boosted specificity) can override them. Switched to JavaScript inline-style approach: `scripting.executeScript` in MAIN world sets `width`/`height`/`object-fit: contain`/`transform: none` with `!important` directly on the video element, with a `MutationObserver` to hold them against YouTube's re-sizing. Key fix from v6.2.29's failed attempt: corrections now skip if viewport hasn't settled to screen dimensions (`innerWidth ≈ screen.width`), start at 1000ms instead of 200ms, and store targets in a mutable `window.__tvFsTarget` so the observer always reads the latest values. Only activates when `videoAR < screenAR` (ultrawide) — on 16:9 nothing runs.
+- **Ultrawide fullscreen**: Stripped back to the v5.1.1 CSS approach that originally worked, plus `transform: none` to disable YouTube's scale transform. No media query wrapper (may have been preventing the rule from activating), no JavaScript MutationObserver complexity (broke generic sites and had timing issues). CSS: `:fullscreen video { width: 100%; height: 100%; object-fit: contain; transform: none; }` with `!important`. On 16:9 monitors, these produce identical rendering to YouTube's own sizing (video fills container exactly). Simple resize dispatch at 100/500/1000/2000ms.
 
 ## [6.2.25] - Alpha - 2026-04-03 — Fix fullscreen not exiting after YouTube playlist advance
 
