@@ -10,6 +10,22 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [5.7.13] - Release - 2026-03-14 — Performance, theme updates, bug fixes
+
+### Fixed
+- **Compressor preset lost on restore**: Backup allowlist used `'max'` instead of `'maximum'`, silently dropping compressor settings on restore
+- **Context menu crash**: Duplicate `volume_0` ID if user set 0 as a custom volume preset, killing the entire volume context menu
+- **Sleep timer cap inconsistency**: Context menu capped at 120 minutes while message handler allowed 1440; unified to 1440
+
+### Changed
+- **Options starfield performance**: Pre-render star glows and cloud blobs to offscreen canvases (eliminates ~300 gradient allocations/frame)
+- **Options starfield**: Cached overcast gradient, debounced resize handler, added tab visibility guard
+- **Options light mode**: Replaced sun glow/rays with cool overcast ambient light and drifting clouds (matches website)
+- **Theme transition**: Smooth canvas fade (0.5s) when switching between Sky Blue and Starry Night themes
+- **Theme labels**: Renamed from "Bedtime" to "Starry Night" across popup, options, guide, and FAQ
+
+---
+
 ## [5.7.12] - Release - 2026-03-13 — Backup/restore fixes, options/FAQ/guide audit
 
 ### Fixed

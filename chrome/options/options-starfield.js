@@ -1,7 +1,7 @@
 'use strict';
 
 // Per-Tab Audio Control - Options Page Star Field
-// Animated canvas background: stars + shooting stars (dark), clouds + sun (light)
+// Animated canvas background: stars + shooting stars (dark), clouds + overcast (light)
 // Ported from the afterbedtimecreations.com website StarField component.
 
 const _sfCanvas = document.getElementById('starField');
@@ -22,26 +22,46 @@ if (_sfCanvas && _sfCtx) {
   let h = 0;
   let frame = 0;
   let currentThemeIsDay = isDayTheme();
-  let rayFade = currentThemeIsDay ? 1 : 0;
-  let rayDelay = 0;
 
-  // ── Night mode: Stars ──
+  // ── Night mode: Stars (pre-rendered glows) ──
 
   let stars = [];
   let shootingStars = [];
+
+  function createStarGlow(size) {
+    const glowRadius = size * 3;
+    const dim = Math.ceil(glowRadius * 2) + 2;
+    const offscreen = document.createElement('canvas');
+    offscreen.width = dim;
+    offscreen.height = dim;
+    const offCtx = offscreen.getContext('2d');
+    const cx = dim / 2;
+    const cy = dim / 2;
+    const glow = offCtx.createRadialGradient(cx, cy, 0, cx, cy, glowRadius);
+    glow.addColorStop(0, 'rgba(200, 210, 230, 0.6)');
+    glow.addColorStop(0.4, 'rgba(200, 210, 230, 0.15)');
+    glow.addColorStop(1, 'rgba(200, 210, 230, 0)');
+    offCtx.beginPath();
+    offCtx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+    offCtx.fillStyle = glow;
+    offCtx.fill();
+    return offscreen;
+  }
 
   function createStars() {
     const count = Math.min(Math.floor((w * h) / 3000), 300);
     stars = [];
     for (let i = 0; i < count; i++) {
+      const size = 0.5 + Math.random() * 2;
       stars.push({
         x: Math.random() * w,
         y: Math.random() * h,
-        size: 0.5 + Math.random() * 2,
+        size: size,
         alpha: 0.3 + Math.random() * 0.7,
         twinkleSpeed: 0.005 + Math.random() * 0.015,
         twinkleOffset: Math.random() * Math.PI * 2,
         layer: Math.floor(Math.random() * 3),
+        glowCanvas: createStarGlow(size),
       });
     }
   }
@@ -74,16 +94,10 @@ if (_sfCanvas && _sfCtx) {
         ? star.alpha
         : star.alpha * (0.5 + 0.5 * Math.sin(frame * star.twinkleSpeed + star.twinkleOffset));
 
-      // Soft glow
-      const glowRadius = star.size * 3;
-      const glow = _sfCtx.createRadialGradient(px, py, 0, px, py, glowRadius);
-      glow.addColorStop(0, `rgba(200, 210, 230, ${twinkle * 0.6})`);
-      glow.addColorStop(0.4, `rgba(200, 210, 230, ${twinkle * 0.15})`);
-      glow.addColorStop(1, 'rgba(200, 210, 230, 0)');
-      _sfCtx.beginPath();
-      _sfCtx.arc(px, py, glowRadius, 0, Math.PI * 2);
-      _sfCtx.fillStyle = glow;
-      _sfCtx.fill();
+      // Soft glow (pre-rendered offscreen canvas)
+      _sfCtx.globalAlpha = twinkle;
+      _sfCtx.drawImage(star.glowCanvas, px - star.glowCanvas.width / 2, py - star.glowCanvas.height / 2);
+      _sfCtx.globalAlpha = 1;
 
       // Bright core
       _sfCtx.beginPath();
@@ -144,9 +158,31 @@ if (_sfCanvas && _sfCtx) {
     }
   }
 
-  // ── Day mode: Clouds + sun glow ──
+  // ── Day mode: Clouds + cool overcast (pre-rendered blobs) ──
 
   let clouds = [];
+
+  function createBlobGlow(rx, ry) {
+    const pad = 2;
+    const cw = Math.ceil(rx * 2) + pad;
+    const ch = Math.ceil(ry * 2) + pad;
+    const offscreen = document.createElement('canvas');
+    offscreen.width = cw;
+    offscreen.height = ch;
+    const offCtx = offscreen.getContext('2d');
+    const cx = cw / 2;
+    const cy = ch / 2;
+    const grad = offCtx.createRadialGradient(cx, cy, ry * 0.15, cx, cy, ry);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+    grad.addColorStop(0.4, 'rgba(255, 255, 255, 0.6)');
+    grad.addColorStop(0.7, 'rgba(255, 255, 255, 0.25)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    offCtx.beginPath();
+    offCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    offCtx.fillStyle = grad;
+    offCtx.fill();
+    return offscreen;
+  }
 
   function createClouds() {
     clouds = [];
@@ -157,11 +193,17 @@ if (_sfCanvas && _sfCtx) {
       const blobCount = 6 + Math.floor(Math.random() * 6);
       const blobs = [];
       for (let b = 0; b < blobCount; b++) {
+        const rx = cw * (0.2 + Math.random() * 0.25);
+        const ry = ch * (0.5 + Math.random() * 0.5);
+        const glowCanvas = createBlobGlow(rx, ry);
         blobs.push({
           ox: (Math.random() - 0.5) * cw * 0.8,
           oy: (Math.random() - 0.5) * ch * 0.4,
-          rx: cw * (0.2 + Math.random() * 0.25),
-          ry: ch * (0.5 + Math.random() * 0.5),
+          rx: rx,
+          ry: ry,
+          glowCanvas: glowCanvas,
+          glowW: glowCanvas.width,
+          glowH: glowCanvas.height,
         });
       }
       clouds.push({
@@ -171,71 +213,30 @@ if (_sfCanvas && _sfCtx) {
         height: ch,
         alpha: 0.35 + Math.random() * 0.3,
         speed: 0.04 + Math.random() * 0.1,
-        blobs,
+        blobs: blobs,
         layer: Math.floor(Math.random() * 3),
       });
     }
+  }
+
+  // Cached overcast gradient (recreated on resize)
+  let overcastGrad = null;
+
+  function createOvercastGradient() {
+    overcastGrad = _sfCtx.createLinearGradient(0, 0, 0, h);
+    overcastGrad.addColorStop(0, 'rgba(180, 200, 220, 0.08)');
+    overcastGrad.addColorStop(0.5, 'rgba(160, 185, 210, 0.04)');
+    overcastGrad.addColorStop(1, 'rgba(140, 170, 200, 0)');
   }
 
   function drawDay() {
     mouseX += (targetMouseX - mouseX) * 0.03;
     mouseY += (targetMouseY - mouseY) * 0.03;
 
-    // Sun glow from top-right corner
-    const sunX = w - 40;
-    const sunY = -20;
-    const pulseAlpha = prefersReduced ? 1 : 0.9 + 0.1 * Math.sin(frame * 0.008);
-    const rayAlpha = pulseAlpha * rayFade;
-
-    // Large warm ambient glow
-    const ambientR = Math.max(w, h) * 0.9;
-    const ambient = _sfCtx.createRadialGradient(sunX, sunY, 0, sunX, sunY, ambientR);
-    ambient.addColorStop(0, `rgba(255, 220, 140, ${0.30 * pulseAlpha})`);
-    ambient.addColorStop(0.3, `rgba(255, 200, 120, ${0.14 * pulseAlpha})`);
-    ambient.addColorStop(1, 'rgba(255, 200, 120, 0)');
-    _sfCtx.fillStyle = ambient;
-    _sfCtx.fillRect(0, 0, w, h);
-
-    // Bright sun core
-    const coreR = Math.min(w, h) * 0.35;
-    const core = _sfCtx.createRadialGradient(sunX, sunY, 0, sunX, sunY, coreR);
-    core.addColorStop(0, `rgba(255, 240, 200, ${0.50 * pulseAlpha})`);
-    core.addColorStop(0.4, `rgba(255, 225, 160, ${0.25 * pulseAlpha})`);
-    core.addColorStop(1, 'rgba(255, 220, 140, 0)');
-    _sfCtx.fillStyle = core;
-    _sfCtx.fillRect(0, 0, w, h);
-
-    // Sun rays
-    if (rayFade > 0) {
-      _sfCtx.save();
-      const rayCount = 14;
-      const baseRotation = prefersReduced ? 0 : frame * 0.0002;
-      for (let r = 0; r < rayCount; r++) {
-        const angle = (r / rayCount) * Math.PI * 0.75 + Math.PI * 0.6 + baseRotation;
-        const rayLen = Math.max(w, h) * 1.1;
-        const spread = 0.035;
-
-        const rx1 = sunX + Math.cos(angle - spread) * rayLen;
-        const ry1 = sunY + Math.sin(angle - spread) * rayLen;
-        const rx2 = sunX + Math.cos(angle + spread) * rayLen;
-        const ry2 = sunY + Math.sin(angle + spread) * rayLen;
-        const midX = (rx1 + rx2) / 2;
-        const midY = (ry1 + ry2) / 2;
-
-        const rayGrad = _sfCtx.createLinearGradient(sunX, sunY, midX, midY);
-        rayGrad.addColorStop(0, `rgba(255, 210, 100, ${0.22 * rayAlpha})`);
-        rayGrad.addColorStop(0.3, `rgba(255, 220, 130, ${0.10 * rayAlpha})`);
-        rayGrad.addColorStop(1, 'rgba(255, 230, 160, 0)');
-
-        _sfCtx.beginPath();
-        _sfCtx.moveTo(sunX, sunY);
-        _sfCtx.lineTo(rx1, ry1);
-        _sfCtx.lineTo(rx2, ry2);
-        _sfCtx.closePath();
-        _sfCtx.fillStyle = rayGrad;
-        _sfCtx.fill();
-      }
-      _sfCtx.restore();
+    // Cool overcast ambient light (cached gradient)
+    if (overcastGrad) {
+      _sfCtx.fillStyle = overcastGrad;
+      _sfCtx.fillRect(0, 0, w, h);
     }
 
     // Drifting clouds
@@ -248,7 +249,7 @@ if (_sfCanvas && _sfCtx) {
         }
       }
 
-      const parallaxScale = [0.005, 0.012, 0.02][cloud.layer];
+      const parallaxScale = [0.005, 0.015, 0.03][cloud.layer];
       const cx = cloud.x + mouseX * parallaxScale;
       const cy = cloud.y + mouseY * parallaxScale;
 
@@ -258,24 +259,17 @@ if (_sfCanvas && _sfCtx) {
       for (const blob of cloud.blobs) {
         const bx = cx + blob.ox;
         const by = cy + blob.oy;
-        const grad = _sfCtx.createRadialGradient(bx, by, blob.ry * 0.15, bx, by, blob.ry);
-        grad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-        grad.addColorStop(0.4, 'rgba(255, 255, 255, 0.6)');
-        grad.addColorStop(0.7, 'rgba(255, 255, 255, 0.25)');
-        grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-        _sfCtx.beginPath();
-        _sfCtx.ellipse(bx, by, blob.rx, blob.ry, 0, 0, Math.PI * 2);
-        _sfCtx.fillStyle = grad;
-        _sfCtx.fill();
+        _sfCtx.drawImage(blob.glowCanvas, bx - blob.glowW / 2, by - blob.glowH / 2);
       }
 
       _sfCtx.restore();
     }
   }
 
-  // ── Resize ──
-  function sfResize() {
+  // ── Resize (debounced) ──
+  let sfResizeTimer = null;
+
+  function sfResizeNow() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     w = window.innerWidth;
     h = window.innerHeight;
@@ -286,32 +280,33 @@ if (_sfCanvas && _sfCtx) {
     _sfCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     createStars();
     createClouds();
+    createOvercastGradient();
+  }
+
+  function sfResize() {
+    if (sfResizeTimer) clearTimeout(sfResizeTimer);
+    sfResizeTimer = setTimeout(sfResizeNow, 200);
   }
 
   // ── Main draw loop ──
+  let sfTransitioning = false;
+  let isPageVisible = true;
+  let sfRafId = null;
+
   function sfDraw() {
     _sfCtx.clearRect(0, 0, w, h);
     frame++;
 
-    // Check for theme change (options page uses body.light-mode)
+    // Check for theme change with canvas fade transition
     const isDay = isDayTheme();
-    if (isDay !== currentThemeIsDay) {
-      currentThemeIsDay = isDay;
-      if (isDay) {
-        rayFade = 0;
-        rayDelay = 0;
-      } else {
-        rayFade = 0;
-        rayDelay = 0;
-      }
-    }
-
-    // Sun rays: delay then fade in on theme toggle
-    if (currentThemeIsDay && rayFade < 1) {
-      rayDelay++;
-      if (rayDelay > 60) {
-        rayFade = Math.min(rayFade + 0.002, 1);
-      }
+    if (isDay !== currentThemeIsDay && !sfTransitioning) {
+      sfTransitioning = true;
+      _sfCanvas.style.opacity = '0';
+      setTimeout(function() {
+        currentThemeIsDay = isDay;
+        _sfCanvas.style.opacity = '1';
+        sfTransitioning = false;
+      }, 500);
     }
 
     if (currentThemeIsDay) {
@@ -320,10 +315,18 @@ if (_sfCanvas && _sfCtx) {
       drawNight();
     }
 
-    if (!prefersReduced) {
-      requestAnimationFrame(sfDraw);
+    if (!prefersReduced && isPageVisible) {
+      sfRafId = requestAnimationFrame(sfDraw);
     }
   }
+
+  // ── Visibility guard ──
+  document.addEventListener('visibilitychange', function() {
+    isPageVisible = !document.hidden;
+    if (isPageVisible && !prefersReduced) {
+      sfRafId = requestAnimationFrame(sfDraw);
+    }
+  });
 
   // ── Event listeners ──
   let sfMouseQueued = false;
@@ -338,7 +341,7 @@ if (_sfCanvas && _sfCtx) {
   });
 
   window.addEventListener('resize', sfResize);
-  sfResize();
+  sfResizeNow();
 
   if (prefersReduced) {
     sfDraw();

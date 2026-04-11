@@ -994,7 +994,7 @@ async function restoreFromBackup(csvContent) {
             // Validate effect levels against allowed values
             const validEqLevels = ['low', 'medium', 'high', 'cut-low', 'cut-medium', 'cut-high'];
             const validVoiceLevels = ['low', 'medium', 'high'];
-            const validCompressorModes = ['podcast', 'movie', 'max'];
+            const validCompressorModes = ['podcast', 'movie', 'maximum'];
             const validChannelModes = ['mono', 'swap'];
             const validSpeedLevels = ['slow-low', 'slow-medium', 'slow-high', 'fast-low', 'fast-medium', 'fast-high'];
             if (values[4] && values[4] !== 'off' && validEqLevels.includes(values[4])) rule.bassBoost = values[4];

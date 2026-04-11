@@ -3251,6 +3251,8 @@ async function createContextMenus() {
       const validVol = validateVolume(vol);
       // Skip if validation changed the value significantly (indicates corrupted data)
       if (typeof vol !== 'number' || isNaN(vol)) return;
+      // Skip 0 — already covered by the hardcoded Mute entry (volume_0)
+      if (validVol === 0) return;
       contextMenusAPI.create({
         id: `volume_${validVol}`,
         parentId: 'volumeSubmenu',
@@ -3960,7 +3962,7 @@ if (contextMenusAPI) {
     }
     if (menuItemId.startsWith('sleepTimer_')) {
       const minutes = parseInt(menuItemId.replace('sleepTimer_', ''), 10);
-      if (Number.isFinite(minutes) && minutes >= 1 && minutes <= 120) {
+      if (Number.isFinite(minutes) && minutes >= 1 && minutes <= 1440) {
         await startSleepTimer(minutes, tab.id, false);
       }
       return;
