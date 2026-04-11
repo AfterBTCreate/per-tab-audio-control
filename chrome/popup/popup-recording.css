@@ -51,60 +51,6 @@
   }
 }
 
-/* ==================== Header Recording Indicator ==================== */
-/* Replaces the brand text ("After Bedtime Creations") while recording */
-
-.brand-text-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1.1;
-}
-
-.recording-indicator {
-  display: none;
-  align-items: center;
-  gap: 3px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  border-radius: 8px;
-  padding: 2px 6px;
-  font-size: 9px;
-  font-weight: 600;
-  color: #ef4444;
-  white-space: nowrap;
-  letter-spacing: 0.3px;
-  user-select: none;
-}
-
-body.recording .recording-indicator {
-  display: flex;
-}
-
-body.recording .brand-text-label {
-  display: none;
-}
-
-.recording-indicator-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #ef4444;
-  flex-shrink: 0;
-  animation: recordDotBlink 1s ease-in-out infinite;
-}
-
-@keyframes recordDotBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .recording-indicator-dot {
-    animation: none;
-  }
-}
-
 /* ==================== Recording Disclaimer Dialog ==================== */
 
 .recording-disclaimer-overlay {
@@ -210,16 +156,6 @@ body.light-mode .record-btn.recording {
   background: rgba(220, 38, 38, 0.12);
   border-color: #dc2626;
   color: #dc2626;
-}
-
-body.light-mode .recording-indicator {
-  background: rgba(220, 38, 38, 0.1);
-  border-color: rgba(220, 38, 38, 0.35);
-  color: #dc2626;
-}
-
-body.light-mode .recording-indicator-dot {
-  background: #dc2626;
 }
 
 body.light-mode .recording-disclaimer-dialog {

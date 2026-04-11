@@ -73,7 +73,7 @@ body.light-mode .header.edit-mode {
   font-size: 0;
 }
 
-.header.edit-mode .brand-text-label {
+.header.edit-mode .brand-text span {
   display: none;
 }
 

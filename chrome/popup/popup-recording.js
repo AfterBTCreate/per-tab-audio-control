@@ -10,7 +10,6 @@ let recordingTimerInterval = null;
 
 // ==================== DOM References ====================
 const recordBtn = document.getElementById('recordBtn');
-const recordingTimerText = document.getElementById('recordingTimerText');
 const disclaimerOverlay = document.getElementById('recordingDisclaimerOverlay');
 const disclaimerAcceptBtn = document.getElementById('disclaimerAcceptBtn');
 const disclaimerCancelBtn = document.getElementById('disclaimerCancelBtn');
@@ -47,7 +46,7 @@ function sanitizeFilename(title) {
     || 'recording'; // Fallback
 }
 
-// Start recording timer display
+// Start recording timer display via status bar
 // If resumeFromMs is provided, the timer starts from that elapsed time (popup reopen case)
 function startRecordingTimer(resumeFromMs) {
   if (resumeFromMs) {
@@ -55,15 +54,12 @@ function startRecordingTimer(resumeFromMs) {
   } else {
     recordingStartTime = Date.now();
   }
-  if (recordingTimerText) {
-    recordingTimerText.textContent = formatRecordingDuration(Date.now() - recordingStartTime);
-  }
+
+  showStatus(`Recording  ●  ${formatRecordingDuration(Date.now() - recordingStartTime)}`, 'error', 0);
 
   recordingTimerInterval = setInterval(() => {
-    if (recordingTimerText) {
-      const elapsed = Date.now() - recordingStartTime;
-      recordingTimerText.textContent = formatRecordingDuration(elapsed);
-    }
+    const elapsed = Date.now() - recordingStartTime;
+    showStatus(`Recording  ●  ${formatRecordingDuration(elapsed)}`, 'error', 0);
   }, 1000);
 }
 
@@ -73,15 +69,13 @@ function stopRecordingTimer() {
     clearInterval(recordingTimerInterval);
     recordingTimerInterval = null;
   }
-  if (recordingTimerText) recordingTimerText.textContent = '0:00';
 }
 
-// Update recording button visual state and header indicator
+// Update recording button visual state
 function updateRecordButtonState(recording) {
   if (!recordBtn) return;
   isRecording = recording;
   recordBtn.classList.toggle('recording', recording);
-  document.body.classList.toggle('recording', recording);
   recordBtn.title = recording ? 'Stop recording' : 'Record tab audio';
   recordBtn.setAttribute('aria-label', recording ? 'Stop recording' : 'Record tab audio');
 }

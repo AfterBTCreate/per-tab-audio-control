@@ -10,6 +10,14 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.1.1] - Alpha - 2026-03-24 — Recording status bar
+
+### Changed
+- Recording timer now shows as a persistent status notification at the bottom of the popup (e.g. "Recording  ●  0:15") using the existing `showStatus` system
+- Removed header recording indicator that replaced brand text; "After Bedtime Creations" now always visible
+
+---
+
 ## [6.1.0] - Alpha - 2026-03-24 — Tab list dropdown
 
 ### Added
