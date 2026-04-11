@@ -10,6 +10,11 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.22] - Alpha - 2026-03-30 — Fix status message causing scrollbar
+
+### Fixed
+- **Status message scrollbar**: Switched `.status-message` from `position: static` (in-flow) to `position: fixed; bottom: 6px; left: 8px; right: 8px`. Message now overlays the popup bottom instead of pushing content down — eliminates scrollbar when tab title is shown above/below the visualizer.
+
 ## [6.2.21] - Alpha - 2026-03-30 — Fix context menu default volume presets
 
 ### Fixed
