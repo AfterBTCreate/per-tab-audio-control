@@ -19,7 +19,7 @@
   const EFFECT_RANGES = {
     bass: { min: -24, max: 24 },
     treble: { min: -24, max: 24 },
-    voice: { min: 0, max: 18 },
+    voice: { min: -18, max: 18 },
     speed: { min: 0.05, max: 5 }
   };
 
@@ -1852,7 +1852,7 @@
       applyTrebleBoost(request.gain);
       sendResponse({ success: true });
     } else if (request.type === 'SET_VOICE') {
-      // Validate gain is a number between 0 and 24 dB
+      // Validate gain is a number between -18 and +18 dB
       if (!isValidNumber(request.gain, EFFECT_RANGES.voice.min, EFFECT_RANGES.voice.max)) {
         sendResponse({ success: false, error: 'Invalid voice gain' });
         return;

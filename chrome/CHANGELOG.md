@@ -10,6 +10,12 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.15] - Alpha - 2026-03-30 — Voice Cut fixes
+
+### Fixed
+- **Voice cut not working**: `page-script.js` and `content.js` both had local `EFFECT_RANGES.voice.min = 0`, silently rejecting all negative gain values. Changed to `-18` in both files.
+- **Voice button labels too wide**: Removed `dB` suffix from all 7 voice preset buttons to match bass/treble short format (e.g. `-18` instead of `-18dB`)
+
 ## [6.2.14] - Alpha - 2026-03-30 — Voice Cut
 
 ### Added

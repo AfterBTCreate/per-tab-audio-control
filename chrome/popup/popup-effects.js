@@ -54,17 +54,17 @@ function updateEffectButtonLabels() {
   const voiceLow = document.getElementById('voiceLow');
   const voiceMed = document.getElementById('voiceMed');
   const voiceHigh = document.getElementById('voiceHigh');
-  if (voiceLow) voiceLow.textContent = `+${voicePresets[0]}dB`;
-  if (voiceMed) voiceMed.textContent = `+${voicePresets[1]}dB`;
-  if (voiceHigh) voiceHigh.textContent = `+${voicePresets[2]}dB`;
+  if (voiceLow) voiceLow.textContent = `+${voicePresets[0]}`;
+  if (voiceMed) voiceMed.textContent = `+${voicePresets[1]}`;
+  if (voiceHigh) voiceHigh.textContent = `+${voicePresets[2]}`;
 
   // Voice cut buttons (already negative values from presets)
   const voiceCutLow = document.getElementById('voiceCutLow');
   const voiceCutMed = document.getElementById('voiceCutMed');
   const voiceCutHigh = document.getElementById('voiceCutHigh');
-  if (voiceCutLow) voiceCutLow.textContent = `${voiceCutPresets[0]}dB`;
-  if (voiceCutMed) voiceCutMed.textContent = `${voiceCutPresets[1]}dB`;
-  if (voiceCutHigh) voiceCutHigh.textContent = `${voiceCutPresets[2]}dB`;
+  if (voiceCutLow) voiceCutLow.textContent = `${voiceCutPresets[0]}`;
+  if (voiceCutMed) voiceCutMed.textContent = `${voiceCutPresets[1]}`;
+  if (voiceCutHigh) voiceCutHigh.textContent = `${voiceCutPresets[2]}`;
 
   // Bass boost buttons (short format for combined row)
   const bassLow = document.getElementById('bassLow');
