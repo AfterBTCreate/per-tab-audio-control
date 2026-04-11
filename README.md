@@ -1,12 +1,17 @@
 # Per-Tab Audio Control
 
-The audio controls browsers forgot to include.
+> The audio controls browsers forgot to include.
 
-Boost quiet videos up to 500%, adjust playback speed, fine-tune equalizer settings, set automatic volume rules per site, and route audio to different output devices, all from a single popup.
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/fhbglapkjnbiokdjlfbddcchakgpfijg?label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/per-tab-audio-control/fhbglapkjnbiokdjlfbddcchakgpfijg)
+[![License](https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-blue)](LICENSE)
+[![Privacy](https://img.shields.io/badge/privacy-no%20tracking-brightgreen)](#privacy)
+[![Audited](https://img.shields.io/badge/security-15%2B%20audits-success)](docs/SECURITY-FINDINGS.md)
 
-No subscriptions. No ads. No data collection.
+Boost quiet videos up to 500%, adjust playback speed, fine-tune equalizer settings, set automatic volume rules per site, route audio to different output devices, and record tab audio — all from a single popup.
 
-**[Demo and feature overview →](https://afterbedtimecreations.com/projects)**
+**No subscriptions. No ads. No data collection. No tracking. No external network requests.**
+
+[Install →](https://chromewebstore.google.com/detail/per-tab-audio-control/fhbglapkjnbiokdjlfbddcchakgpfijg) · [Demo →](https://afterbedtimecreations.com/projects) · [Changelog →](CHANGELOG.md) · [Security →](SECURITY.md)
 
 ## Features
 
@@ -21,8 +26,17 @@ No subscriptions. No ads. No data collection.
 - **Balance slider** with stereo, mono, and swap modes
 - **Playback speed** 0.05x to 5x with 6 customizable presets and non-linear slider
 - **Bass and treble** boost/cut controls
-- **Voice boost** for dialogue clarity
+- **Voice boost / cut** for dialogue clarity (boost up to +18 dB, cut down to -40 dB)
 - **Range compressor** with Podcast, Movie, and Maximum presets
+
+### Recording
+- **Record tab audio** to MP3 or WAV with one click
+- **Configurable bitrate and sample rate** (MP3 quality presets, sample rate up to 48 kHz)
+- **Per-tab consent disclaimer** on first use of each tab — recording never starts silently
+- **Live recording timer** in the popup status bar
+- **Auto-generated filenames** with sanitized tab title and timestamp
+- **Save As dialog** ensures you confirm every download
+- **Concurrency control** — only one tab can record at a time, prevents accidental overlaps
 
 ### Visualizer
 - **Five display styles** Bars, Waveform, Mirrored, Curve, and Dots
@@ -50,6 +64,7 @@ No subscriptions. No ads. No data collection.
 - **Seekbar** Click-to-seek and drag-to-seek with time remaining toggle
 - **Live stream seekbar** Shows "LIVE" indicator for live streams
 - **Sleep timer** Auto-pause media after a set duration
+- **All audio tabs overlay** Dropdown showing every tab playing audio with favicons and titles — click to switch tabs
 - **Keyboard shortcuts** Alt+Shift+Up/Down for volume, Alt+Shift+M for mute
 - **Context menu** Right-click options for quick actions
 - **Tab switcher** Switch between audio tabs without leaving the popup
@@ -83,6 +98,8 @@ No subscriptions. No ads. No data collection.
 
 Your audio settings stay on your device. This extension makes zero external network requests. Settings sync via your browser account only.
 
+The full source code is published in this repository for independent verification. You don't have to take our word for it — you can read every line.
+
 ## Installation
 
 ### Chrome
@@ -94,7 +111,9 @@ Your audio settings stay on your device. This extension makes zero external netw
 1. Download or clone this repository
 2. Open `chrome://extensions/`
 3. Enable "Developer mode"
-4. Click "Load unpacked" and select the extension folder
+4. Click "Load unpacked" and select the `chrome/` folder from this repository
+
+**Browser support:** Tested on Chrome. Should also work on other Chromium-based browsers (Edge, Brave, Vivaldi, Opera, Arc). Firefox port is not currently planned.
 
 ## Permissions
 
@@ -108,9 +127,16 @@ Your audio settings stay on your device. This extension makes zero external netw
 | `offscreen` | Maintain audio processing in the background |
 | `contextMenus` | Add right-click menu options |
 | `alarms` | Power the sleep timer countdown |
+| `downloads` | Save recorded tab audio to disk via the Save As dialog |
 | `<all_urls>` | Control audio on any website you visit |
 
 **Runtime permission:** Microphone access is requested only when using the output device selector (to list available devices, no audio is recorded).
+
+## Security
+
+This project undergoes regular multi-agent security audits — 15+ documented audits as of v6.0+. The audit playbook with accepted patterns, intentional design decisions, and full audit history is published in [`docs/SECURITY-FINDINGS.md`](docs/SECURITY-FINDINGS.md).
+
+Found a security issue? See [`SECURITY.md`](SECURITY.md) for the security policy and reporting instructions.
 
 ## Disclaimer
 
@@ -128,7 +154,7 @@ The Commons Clause restricts commercial use. You may not sell this software or o
 
 ## Author
 
-**After Bedtime Creations** Privacy-first extensions, built late.
+**After Bedtime Creations** — Privacy-first extensions, built late.
 
 - [Website](https://afterbedtimecreations.com)
 - [GitHub](https://github.com/AfterBTCreate)
