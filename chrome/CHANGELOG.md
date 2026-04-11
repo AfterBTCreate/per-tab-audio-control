@@ -10,10 +10,10 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.2.27] - Alpha - 2026-04-03 — Fix fullscreen video cut off on ultrawide monitors
+## [6.2.28] - Alpha - 2026-04-03 — Fix fullscreen video cut off on ultrawide monitors (YouTube)
 
 ### Fixed
-- **Fullscreen video clipped on ultrawide monitors**: Under Tab Capture, video players calculate fullscreen layout before the browser actually enters fullscreen, using pre-fullscreen viewport dimensions. On ultrawide (21:9) monitors, this causes the video to fill the width (3440px) and overflow the height (1935px vs 1440px viewport), clipping the bottom of the video and hiding controls. Fix: added `overflow: hidden` on the fullscreen container so content can't extend past the viewport (controls at `position: absolute; bottom: 0` stay visible), forced synchronous DOM reflow (`offsetWidth`/`offsetHeight`) on the fullscreen element after browser fullscreen transition so players re-read the correct dimensions, and extended resize timing to 2 seconds. Also changed CSS units from `100vw`/`100vh` to `100%` to avoid scrollbar gutter width inclusion on classic-scrollbar systems.
+- **YouTube fullscreen clipped on ultrawide monitors**: Restored video element CSS constraint that was removed in v5.1.2 (caused YouTube static screen). The original rule used `width: 100%; height: 100%` which forcefully overrides the player's pixel dimensions on ALL monitors, conflicting with YouTube's transform-based positioning on 16:9 displays. New approach uses `max-height: 100vh` — a constraint that only activates when the video exceeds the viewport height (ultrawide), with zero effect on standard 16:9 where dimensions already match. Combined with `object-fit: contain` for proper pillarboxing, `overflow: hidden` on the container as a safety net, forced DOM reflow after browser fullscreen transition, and extended resize timing to 2 seconds.
 
 ## [6.2.25] - Alpha - 2026-04-03 — Fix fullscreen not exiting after YouTube playlist advance
 

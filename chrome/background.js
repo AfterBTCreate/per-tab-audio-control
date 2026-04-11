@@ -213,11 +213,21 @@ const fullscreenOpQueue = new Map();
 // Session storage key for fullscreen state (survives service worker restarts)
 const FULLSCREEN_SESSION_KEY = 'fullscreenStates';
 
-// CSS rule injected during fullscreen to force container to fill viewport.
-// Uses 100% (not 100vw/100vh) because vw includes scrollbar gutter width per CSS spec.
-// overflow:hidden prevents child content (video sized to fill width) from extending past
-// the viewport on ultrawide monitors — keeps controls visible at the container bottom.
-const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; overflow: hidden !important; }';
+// CSS injected during fullscreen to fix Tab Capture's broken fullscreen rendering.
+//
+// Container rule: forces the fullscreen element to fill the viewport.
+//   - Uses 100% (not 100vw/100vh) — vw includes scrollbar gutter width.
+//   - overflow:hidden clips child content that extends past the viewport.
+//
+// Video rule: constrains the video element on ultrawide monitors.
+//   - On ultrawide (21:9), players size the video to fill container width (3440px),
+//     producing a 16:9 height of ~1935px that overflows the 1440px viewport.
+//   - max-height:100vh caps the video at the viewport height WITHOUT changing it on
+//     standard 16:9 monitors (where video height already equals viewport height).
+//     Unlike height:100%, max-height doesn't fight the player's pixel dimensions on
+//     16:9 — avoids the YouTube static-screen regression from v5.1.2.
+//   - object-fit:contain pillarboxes the video content within the constrained element.
+const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; overflow: hidden !important; } :fullscreen video { max-height: 100vh !important; object-fit: contain !important; }';
 
 // Restore fullscreen state from session storage on service worker startup
 browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]).then(result => {
