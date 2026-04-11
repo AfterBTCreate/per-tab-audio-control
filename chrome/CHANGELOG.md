@@ -10,6 +10,13 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.12] - Alpha - 2026-03-27 — Remove redundant recording info-box
+
+### Removed
+- "Recording Disclaimer" info-box from options Recording section — superseded by the warning box added in 6.2.10
+
+---
+
 ## [6.2.11] - Alpha - 2026-03-27 — Fix recording section description
 
 ### Fixed
