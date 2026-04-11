@@ -1,0 +1,48 @@
+# Claude Code local config (per-machine, per-user)
+.claude/
+
+# Editor / IDE configs
+.vscode/
+.idea/
+*.sublime-*
+.history/
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Logs
+*.log
+logs/
+
+# Environment variables and local overrides
+.env
+.env.local
+.env.*.local
+
+# Chrome extension signing keys
+*.pem
+*.crx
+
+# Packaged outputs (zip files), but keep store-assets release zips
+*.zip
+!store-assets/**/*.zip
+
+# Build artifacts (if ever introduced)
+dist/
+build/
+out/
+
+# Dependency directories (if ever introduced)
+node_modules/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
