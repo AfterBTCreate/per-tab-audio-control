@@ -3095,10 +3095,30 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Restore window state when tab navigates while in extension-triggered fullscreen.
 // Navigation can destroy the content script before it sends the fullscreen exit message.
+// SPA navigations (e.g. YouTube playlist auto-advance) also fire 'loading' but keep the
+// content script alive and fullscreen active — we must not interfere in that case.
 browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   if (changeInfo.status !== 'loading' || isFirefox) return;
   // Fast path: check Map synchronously (populated from session storage on startup)
   if (!fullscreenStateByTab.has(tabId)) return;
+
+  // Verify fullscreen has actually exited. SPA navigations (YouTube playlists, etc.)
+  // fire 'loading' without destroying the document or exiting fullscreen.
+  try {
+    const results = await browserAPI.scripting.executeScript({
+      target: { tabId },
+      func: () => !!document.fullscreenElement
+    });
+    if (results && results[0] && results[0].result) {
+      return; // Fullscreen still active — SPA navigation, don't clear state
+    }
+  } catch (e) {
+    // Script execution failed — tab is navigating away or closed, proceed with cleanup
+  }
+
+  // Re-check: state may have been cleared by a FULLSCREEN_CHANGE message while we awaited
+  if (!fullscreenStateByTab.has(tabId)) return;
+
   const fsState = fullscreenStateByTab.get(tabId);
   clearFullscreenState(tabId);
   fullscreenOpQueue.delete(tabId);

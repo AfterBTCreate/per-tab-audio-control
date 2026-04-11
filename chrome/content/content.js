@@ -2119,6 +2119,18 @@
       // - Skip when fullscreenElement is an <iframe> (the child frame sends its own message)
       // - Track per-frame state so only the frame that sent 'true' sends the matching 'false'
       let weTriggeredFullscreen = false;
+
+      // If already in fullscreen when this script loads (e.g. re-injected during a
+      // navigation that preserved fullscreen, or SPA navigation that re-ran content
+      // scripts), sync state with the background so exit will work correctly.
+      if (document.fullscreenElement && document.fullscreenElement.tagName !== 'IFRAME') {
+        weTriggeredFullscreen = true;
+        browserAPI.runtime.sendMessage({
+          type: 'FULLSCREEN_CHANGE',
+          isFullscreen: true
+        }).catch(() => {});
+      }
+
       document.addEventListener('fullscreenchange', () => {
         try {
           if (document.fullscreenElement) {

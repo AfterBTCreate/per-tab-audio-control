@@ -10,6 +10,12 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.25] - Alpha - 2026-04-03 — Fix fullscreen not exiting after YouTube playlist advance
+
+### Fixed
+- **Fullscreen workaround**: Browser fullscreen (F11 equivalent) now correctly exits after YouTube playlist auto-advances to a new video. Root cause: the navigation safety net fired during SPA navigations (which don't destroy the content script or exit fullscreen), prematurely clearing the saved window state. Safety net now verifies fullscreen has actually exited via `scripting.executeScript` before clearing state.
+- **Fullscreen state sync on content script load**: Content script now checks if fullscreen is already active when it initializes, re-syncing state with the background. Handles edge cases where the script is re-injected during a navigation that preserved fullscreen.
+
 ## [6.2.24] - Alpha - 2026-03-30 — Status message back in flow, smaller
 
 ### Changed
