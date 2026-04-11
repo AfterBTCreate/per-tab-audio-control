@@ -10,7 +10,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.0.7] - Alpha - 2026-03-24 — Header recording indicator
+## [6.0.8] - Alpha - 2026-03-24 — Header recording indicator
 
 ### Changed
 - Recording timer now replaces "After Bedtime Creations" brand text in the header with a red pill badge showing blinking dot + "REC" + elapsed time

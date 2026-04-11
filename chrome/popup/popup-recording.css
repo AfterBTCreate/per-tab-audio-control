@@ -64,16 +64,16 @@
 .recording-indicator {
   display: none;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.4);
-  border-radius: 12px;
-  padding: 3px 10px;
-  font-size: 11px;
+  border-radius: 8px;
+  padding: 2px 6px;
+  font-size: 9px;
   font-weight: 600;
   color: #ef4444;
   white-space: nowrap;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   user-select: none;
 }
 
@@ -86,8 +86,8 @@ body.recording .brand-text-label {
 }
 
 .recording-indicator-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #ef4444;
   flex-shrink: 0;
