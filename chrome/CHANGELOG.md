@@ -10,6 +10,13 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.4] - Alpha - 2026-03-24 — 50% preset color
+
+### Changed
+- 50% preset button now uses blue (boost) instead of green (reduced); green reserved for values below 50%
+
+---
+
 ## [6.2.3] - Alpha - 2026-03-24 — Security & QA audit fixes
 
 ### Fixed

@@ -21,7 +21,7 @@ function getVolumeClass(volume) {
   if (volume >= 201) return 'extreme';
   if (volume >= 101) return 'high';
   if (volume >= 50) return 'boosted';
-  return 'reduced';
+  return 'reduced';  // Below 50: green (reduced)
 }
 
 // Update input-group color based on volume value

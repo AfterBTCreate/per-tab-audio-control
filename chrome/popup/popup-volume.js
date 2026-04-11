@@ -141,9 +141,9 @@ async function loadCustomPresets() {
       } else if (value >= 101) {
         btn.classList.add('high');
       } else if (value >= 50) {
-        btn.classList.add('reduced');
-      } else {
         btn.classList.add('boost');
+      } else {
+        btn.classList.add('reduced');
       }
     }
   });
