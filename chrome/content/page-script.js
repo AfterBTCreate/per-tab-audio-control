@@ -57,7 +57,7 @@
   const EFFECT_RANGES = {
     bass: { min: -24, max: 24 },
     treble: { min: -24, max: 24 },
-    voice: { min: -40, max: 18 },
+    voice: { min: -18, max: 18 },
     speed: { min: 0.05, max: 5 }
   };
 

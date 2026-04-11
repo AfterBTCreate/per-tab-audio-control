@@ -10,6 +10,12 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.18] - Alpha - 2026-03-30 — Voice range reverted to ±18 dB
+
+### Changed
+- **Voice range restored to -18 to +18 dB**: Reverted slider and all EFFECT_RANGES copies back to ±18 dB range
+- **Q widening on cut retained**: Filter still drops to Q=0.35 (wide band) when gain < 0
+
 ## [6.2.17] - Alpha - 2026-03-30 — Voice Cut: aggressive mode
 
 ### Changed
