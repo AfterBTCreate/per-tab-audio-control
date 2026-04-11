@@ -10,6 +10,13 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.8] - Alpha - 2026-03-27 — Seekbar updates on tab switch
+
+### Fixed
+- Seekbar now polls immediately when switching tabs instead of waiting for unrelated async operations (domain check, settings load, visualizer reset) to complete first
+
+---
+
 ## [6.2.7] - Alpha - 2026-03-27 — Seekbar disabled when no media
 
 ### Fixed

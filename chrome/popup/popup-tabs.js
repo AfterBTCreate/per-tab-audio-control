@@ -266,8 +266,9 @@ async function switchToTab(tabIndex) {
   clearStatus();
   document.body.classList.remove('audio-blocked');
 
-  // Reset seekbar for new tab
+  // Reset seekbar and immediately start polling for new tab
   if (typeof resetSeekbar === 'function') resetSeekbar();
+  if (typeof startSeekbarPolling === 'function') startSeekbarPolling();
 
   // Check for DRM-protected streaming sites
   if (isDrmSite(currentTabUrl)) {
@@ -310,9 +311,6 @@ async function switchToTab(tabIndex) {
   // Load visualizer type and custom color (global settings)
   await loadVisualizerType();
   await loadVisualizerColor();
-
-  // Restart seekbar polling for new tab
-  if (typeof startSeekbarPolling === 'function') startSeekbarPolling();
 
   // If focus mode is active, mute/unmute AFTER everything else is loaded
   // (placed last so resetVisualizerState/loadTabSettings can't undo the muting)
