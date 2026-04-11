@@ -10,11 +10,12 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.0.4] - Alpha - 2026-03-24 — Floating record timer badge
+## [6.0.5] - Alpha - 2026-03-24 — Floating record timer badge
 
 ### Fixed
-- Recording timer no longer affects volume row layout; record button stays fixed at 24px, icon swaps to stop square when recording, and timer displays as a floating badge above the button using absolute positioning (zero flow impact)
+- Recording timer no longer affects volume row layout; record button icon swaps to stop square when recording, timer displays as a floating badge above the button using absolute positioning (zero flow impact)
 - Reverted flex compression hacks (min-width, flex-shrink overrides) that caused button sizing issues
+- Record button sized to 30px to match adjacent tab-nav buttons
 
 ---
 
