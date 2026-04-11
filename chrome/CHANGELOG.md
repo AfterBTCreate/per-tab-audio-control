@@ -10,6 +10,11 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.16] - Alpha - 2026-03-30 — Voice Cut fixes (complete)
+
+### Fixed
+- **Voice cut still blocked**: `offscreen.js` (Tab Capture pipeline) and `background.js` both had `EFFECT_RANGES.voice.min = 0`, rejecting negative gain on the `SET_TAB_CAPTURE_VOICE` path. Changed to `-18` in both. All four local copies now consistent: shared/constants.js, content.js, page-script.js, offscreen.js, background.js.
+
 ## [6.2.15] - Alpha - 2026-03-30 — Voice Cut fixes
 
 ### Fixed
