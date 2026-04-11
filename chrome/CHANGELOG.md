@@ -10,6 +10,13 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [5.7.14] - Release - 2026-03-14 — Light mode site rule add button fix
+
+### Fixed
+- **Site rule "+ Add" button**: Missing light mode green styling — added base state with darker green (`#16a34a`) that's visible against the light background
+
+---
+
 ## [5.7.13] - Release - 2026-03-14 — Performance, theme updates, bug fixes
 
 ### Fixed

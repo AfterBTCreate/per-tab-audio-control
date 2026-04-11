@@ -865,8 +865,14 @@ body.light-mode .site-rule-scope.active {
   border-color: #3b82f6;
 }
 
+body.light-mode .site-rule-add {
+  background: rgba(22, 163, 74, 0.12);
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.4);
+}
+
 body.light-mode .site-rule-add:hover {
-  background: rgba(22, 163, 74, 0.15);
+  background: rgba(22, 163, 74, 0.2);
   color: #16a34a;
   border-color: #16a34a;
 }
