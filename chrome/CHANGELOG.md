@@ -10,6 +10,13 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.11] - Alpha - 2026-03-27 — Fix recording section description
+
+### Fixed
+- Removed incorrect mention of "sample rate" from Recording section description in options — sample rate is not configurable
+
+---
+
 ## [6.2.10] - Alpha - 2026-03-27 — Per-tab recording consent + options warning
 
 ### Changed
