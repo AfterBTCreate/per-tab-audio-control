@@ -10,10 +10,10 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
-## [6.2.30] - Alpha - 2026-04-03 — Fix fullscreen video cut off on ultrawide monitors (YouTube)
+## [6.2.31] - Alpha - 2026-04-03 — Fix fullscreen video cut off on ultrawide monitors (YouTube)
 
 ### Fixed
-- **YouTube fullscreen clipped on ultrawide monitors**: Restored the v5.1.1 video CSS approach (`:fullscreen video { width: 100%; height: 100%; object-fit: contain }`) but wrapped in `@media (min-aspect-ratio: 2/1)` so it **only activates on ultrawide monitors**. On standard 16:9 the video rule never applies, eliminating the static-screen regression that caused v5.1.2 to remove it. Removed `overflow: hidden` from the container (was causing zoomed-in clipping when YouTube's CSS transforms scaled the video container beyond the viewport). Removed the MutationObserver/inline-style approach from v6.2.29 (captured pre-fullscreen dimensions on first run and fought later corrections). Back to simple declarative CSS + resize events.
+- **YouTube fullscreen clipped on ultrawide monitors**: Root cause identified from screenshots — YouTube applies `transform: scale()` to the video element. The v6.2.30 CSS (`width: 100%; height: 100%; object-fit: contain`) correctly pillarboxed the content inside the element's box, but YouTube's transform then scaled the entire element (including the pillarboxed rendering) past the viewport on all sides, producing a zoomed-in crop. Added `transform: none !important` to disable the scale on ultrawide. Full video CSS (`width/height/object-fit/transform`) wrapped in `@media (min-aspect-ratio: 2/1)` — never activates on 16:9, zero static-screen risk.
 
 ## [6.2.25] - Alpha - 2026-04-03 — Fix fullscreen not exiting after YouTube playlist advance
 

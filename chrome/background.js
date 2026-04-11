@@ -215,13 +215,15 @@ const FULLSCREEN_SESSION_KEY = 'fullscreenStates';
 
 // CSS injected during fullscreen to fix Tab Capture's broken fullscreen rendering.
 // Container rule: forces the fullscreen element to fill the viewport (100%, not 100vw).
-// Video rule: on ultrawide monitors (aspect-ratio > 2:1), forces the video element to
-// fill the container with object-fit:contain for proper pillarboxing. This is the same
-// approach as v5.1.1, but wrapped in a media query so it ONLY activates on ultrawide —
-// on standard 16:9 monitors the video CSS never applies, avoiding the static-screen
-// regression that caused v5.1.2 to remove it. No overflow:hidden (causes zoomed-in
-// clipping when YouTube applies CSS transforms to the video container).
-const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; } @media (min-aspect-ratio: 2/1) { :fullscreen video { width: 100% !important; height: 100% !important; object-fit: contain !important; } }';
+// Video rule (ultrawide only, via media query): YouTube applies a CSS transform:scale()
+// to the video element to fill the player container. With our width/height:100% and
+// object-fit:contain the content correctly pillarboxes inside the element's box — but
+// YouTube's transform then scales the ENTIRE element (including the pillarboxed rendering
+// with its black bars) past the viewport on all sides, producing a zoomed-in crop.
+// transform:none disables this. Media query threshold 2/1 catches 21:9+ while excluding
+// 16:9 (1.78) — the video rule never activates on standard monitors, avoiding the
+// static-screen regression that caused v5.1.2 to remove it.
+const FULLSCREEN_CSS = ':fullscreen { width: 100% !important; height: 100% !important; } @media (min-aspect-ratio: 2/1) { :fullscreen video { width: 100% !important; height: 100% !important; object-fit: contain !important; transform: none !important; } }';
 
 // Restore fullscreen state from session storage on service worker startup
 browserAPI.storage.session.get([FULLSCREEN_SESSION_KEY]).then(result => {
