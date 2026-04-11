@@ -56,7 +56,7 @@ const EFFECT_RANGES = {
 };
 
 // Default presets — KEEP IN SYNC with shared/constants.js DEFAULTS object
-const DEFAULT_VOLUME_PRESETS = [25, 100, 200, 300, 500];
+const DEFAULT_VOLUME_PRESETS = [25, 50, 100, 200, 300, 500];
 const DEFAULT_BASS_PRESETS = [6, 12, 24];
 const DEFAULT_BASS_CUT_PRESETS = [-6, -12, -24];
 const DEFAULT_TREBLE_PRESETS = [6, 12, 24];

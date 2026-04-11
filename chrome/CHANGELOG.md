@@ -10,6 +10,11 @@ This project uses [Semantic Versioning](https://semver.org/):
 
 ---
 
+## [6.2.21] - Alpha - 2026-03-30 — Fix context menu default volume presets
+
+### Fixed
+- **`DEFAULT_VOLUME_PRESETS` in background.js**: Was `[25, 100, 200, 300, 500]` — missing `50`. Now matches `shared/constants.js`: `[25, 50, 100, 200, 300, 500]`. Only affected users who had never saved custom volume presets.
+
 ## [6.2.20] - Alpha - 2026-03-30 — New header and sections layout defaults
 
 ### Changed
