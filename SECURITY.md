@@ -29,7 +29,7 @@ Per-Tab Audio Control is a privacy-first browser extension. Its security posture
 - **No network requests.** The extension makes zero outbound network connections. All audio processing happens locally on the user's device.
 - **No data collection, analytics, or telemetry.** Settings are stored in `chrome.storage.local` and `chrome.storage.sync` only. Nothing is transmitted off-device.
 - **Minimal external dependencies.** The only third-party library is `chrome/lib/lamejs.min.js` (LAME MP3 encoder, used for the audio recording feature). Source URL and SHA-256 integrity hash are documented in [`chrome/lib/lamejs.SOURCE.md`](chrome/lib/lamejs.SOURCE.md).
-- **Open source for verification.** The full source is published in this repository for inspection.
+- **Source-available for verification.** The full source is published in this repository for inspection (MIT + Commons Clause).
 
 ### In scope
 
@@ -48,9 +48,7 @@ Per-Tab Audio Control is a privacy-first browser extension. Its security posture
 
 ## Audit History
 
-This project maintains a detailed internal audit playbook documenting accepted patterns, intentional design decisions, and audit history. See [`docs/SECURITY-FINDINGS.md`](docs/SECURITY-FINDINGS.md) for the complete history.
-
-As of April 2026, the codebase has undergone 15+ documented security audits. The most recent audit (v6.0.0a) scored **9.5/10**, including the new tab audio recording feature.
+As of April 2026, the codebase has undergone 18+ documented security audits across 4 months of active development. The most recent audit (v6.3.0, April 2026) scored **9.5/10** using a 6-agent parallel audit team covering security, accessibility, code quality, and feature behavior. Known issues are tracked in the GitHub issue tracker.
 
 ## Acknowledgments
 
