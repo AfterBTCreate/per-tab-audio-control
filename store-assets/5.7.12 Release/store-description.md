@@ -17,7 +17,7 @@ Sky Blue and Starry Night Themes - Redesigned light and dark themes
 Live Stream Seekbar - Shows LIVE indicator for live streams
 Play/Pause Icon - Media toggle button shows current playback state
 Dormant Mode - Extension stays inert until you interact, fixing YouTube volume slider issues
-Security Hardening - Multi-agent audit, input validation, CSP compliance throughout
+Security Hardening - Comprehensive audit, input validation, CSP compliance throughout
 60+ Bug Fixes - Accessibility, backup/restore, fullscreen, Tab Capture reliability
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -97,7 +97,3 @@ Full source code available on GitHub.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 WARNING: High volume levels can cause permanent hearing damage and may damage speakers or headphones. Use at your own risk. After Bedtime Creations is not liable for any hearing loss, equipment damage, or other harm resulting from use of this software.
-
-
-(3hRVB/u#r-K.nt1
-

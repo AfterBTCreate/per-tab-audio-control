@@ -1,24 +1,3 @@
-# Claude Code local config (per-machine, per-user)
-.claude/
-
-# Forgejo-specific config (internal, not for public mirrors)
-.forgejo/
-
-# Editor / IDE configs
-.vscode/
-.idea/
-*.sublime-*
-.history/
-*.swp
-*.swo
-*~
-
-# OS metadata
-.DS_Store
-Thumbs.db
-desktop.ini
-$RECYCLE.BIN/
-
 # Logs
 *.log
 logs/

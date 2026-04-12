@@ -359,7 +359,7 @@ Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ---
 
-## [5.7.11] - Release - 2026-03-13 — Security hardening from 5-agent audit
+## [5.7.11] - Release - 2026-03-13 — Security hardening from comprehensive audit
 
 ### Security
 - Add `isActive` dormancy guards to 6 effect event listeners in page-script.js (bass, treble, voice, balance, channelMode, speed) — prevents page scripts from pre-seeding effects before extension activates

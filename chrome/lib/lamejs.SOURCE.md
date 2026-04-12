@@ -36,7 +36,7 @@ sha256sum lamejs.min.js
 
 Chrome Web Store extensions load all scripts from the extension origin under CSP `script-src 'self'`. External script loading is not permitted, so the library must be bundled with the extension.
 
-See also: `docs/SECURITY-FINDINGS.md` → "Vendored lamejs Library (v6.0.0)".
+See also: [`SECURITY.md`](../../SECURITY.md) for the project's security policy and audit history.
 
 ## Update procedure
 
