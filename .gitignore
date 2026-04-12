@@ -1,6 +1,9 @@
 # Claude Code local config (per-machine, per-user)
 .claude/
 
+# Forgejo-specific config (internal, not for public mirrors)
+.forgejo/
+
 # Editor / IDE configs
 .vscode/
 .idea/
