@@ -57,6 +57,17 @@ function createActiveSpeakerIcon() {
   return svg;
 }
 
+// Roving-tabindex helper: move the single tabindex=0 to `target`, set all
+// sibling items to tabindex=-1, and focus the target. (#57)
+function focusTabListItem(target) {
+  if (!target || !target.classList.contains('tab-list-item')) return;
+  const items = tabListItems.querySelectorAll('.tab-list-item');
+  items.forEach(el => {
+    el.setAttribute('tabindex', el === target ? '0' : '-1');
+  });
+  target.focus();
+}
+
 // Create a favicon placeholder with default speaker icon
 function createFaviconPlaceholder() {
   const placeholder = document.createElement('span');
@@ -75,13 +86,19 @@ function showTabList() {
     tabListItems.removeChild(tabListItems.firstChild);
   }
 
-  // Populate with current audible tabs
+  // Populate with current audible tabs.
+  // Roving tabindex: only the initially-focused item (active or first) is
+  // tabbable; the rest are tabindex=-1 and receive focus only via arrow
+  // navigation. WAI-ARIA Authoring Practices listbox pattern. (#57)
+  const initialFocusIndex = currentTabIndex >= 0 && currentTabIndex < audibleTabs.length
+    ? currentTabIndex
+    : 0;
   audibleTabs.forEach((tab, i) => {
     const item = document.createElement('div');
     item.className = 'tab-list-item' + (i === currentTabIndex ? ' active' : '');
     item.dataset.index = i;
     item.setAttribute('role', 'option');
-    item.setAttribute('tabindex', '0');
+    item.setAttribute('tabindex', i === initialFocusIndex ? '0' : '-1');
     if (i === currentTabIndex) {
       item.setAttribute('aria-selected', 'true');
     }
@@ -132,20 +149,26 @@ function showTabList() {
         activate();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        const next = item.nextElementSibling;
-        if (next && next.classList.contains('tab-list-item')) next.focus();
+        const first = tabListItems.firstElementChild;
+        const next = item.nextElementSibling || first; // wrap
+        if (next && next.classList.contains('tab-list-item')) {
+          focusTabListItem(next);
+        }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        const prev = item.previousElementSibling;
-        if (prev && prev.classList.contains('tab-list-item')) prev.focus();
+        const last = tabListItems.lastElementChild;
+        const prev = item.previousElementSibling || last; // wrap
+        if (prev && prev.classList.contains('tab-list-item')) {
+          focusTabListItem(prev);
+        }
       } else if (e.key === 'Home') {
         e.preventDefault();
         const first = tabListItems.firstElementChild;
-        if (first) first.focus();
+        if (first) focusTabListItem(first);
       } else if (e.key === 'End') {
         e.preventDefault();
         const last = tabListItems.lastElementChild;
-        if (last) last.focus();
+        if (last) focusTabListItem(last);
       }
     });
 
