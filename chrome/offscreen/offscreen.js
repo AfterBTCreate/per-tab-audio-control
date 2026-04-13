@@ -542,7 +542,8 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } else {
         sendResponse({ recording: false });
       }
-      return true;
+      // Synchronous response — do not keep the channel open.
+      return false;
     }
 
     case 'REVOKE_BLOB_URL':
