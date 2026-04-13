@@ -184,6 +184,7 @@ function updateEqSlidersUI() {
   if (bassSlider) {
     bassSlider.value = bassGain;
     updateEqSliderValueDisplay(bassSliderValue, bassGain);
+    bassSlider.setAttribute('aria-valuetext', bassSliderValue.textContent);
   }
 
   // Get current treble gain from the level
@@ -194,6 +195,7 @@ function updateEqSlidersUI() {
   if (trebleSlider) {
     trebleSlider.value = trebleGain;
     updateEqSliderValueDisplay(trebleSliderValue, trebleGain);
+    trebleSlider.setAttribute('aria-valuetext', trebleSliderValue.textContent);
   }
 
   // Get current voice gain from the level
@@ -204,6 +206,7 @@ function updateEqSlidersUI() {
   if (voiceSlider) {
     voiceSlider.value = voiceGain;
     updateEqSliderValueDisplay(voiceSliderValue, voiceGain);
+    voiceSlider.setAttribute('aria-valuetext', voiceSliderValue.textContent);
   }
 
   // Sync speed slider from currentSpeedLevel
@@ -975,6 +978,7 @@ function updateSpeedUI() {
   const pos = speedRateToPosition(rate);
   speedSlider.value = Math.round(pos);
   speedSlider.title = `Speed: ${rate.toFixed(2)}x`;
+  speedSlider.setAttribute('aria-valuetext', `${rate.toFixed(2)}x`);
   speedValueEl.textContent = `${rate.toFixed(2)}x`;
 
   // Color class: slow (<0.9), normal (0.9-1.1), fast (>1.1)
@@ -1089,6 +1093,7 @@ function updateCompressorSliderFromPreset(preset) {
   if (index === -1) return;
   compressorSlider.value = index;
   compressorSlider.title = `Range: ${COMPRESSOR_SLIDER_LABELS[preset]}`;
+  compressorSlider.setAttribute('aria-valuetext', COMPRESSOR_SLIDER_LABELS[preset]);
   compressorSliderValue.textContent = COMPRESSOR_SLIDER_LABELS[preset];
 
   // Apply color class
