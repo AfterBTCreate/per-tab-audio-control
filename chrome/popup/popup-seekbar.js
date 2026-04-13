@@ -56,6 +56,8 @@ async function pollMediaPosition() {
           seekbarCurrentTime.textContent = '0:00';
           seekbarDuration.textContent = 'LIVE';
           seekbarDuration.classList.remove('seekbar-duration-toggle');
+          seekbarDuration.setAttribute('aria-disabled', 'true');
+          seekbarDuration.setAttribute('tabindex', '-1');
           seekbarSlider.value = 0;
           seekbarSlider.disabled = true;
           seekbarFill.style.width = '0%';
@@ -70,6 +72,8 @@ async function pollMediaPosition() {
       seekbarSlider.disabled = false;
       if (!seekbarDuration.classList.contains('seekbar-duration-toggle')) {
         seekbarDuration.classList.add('seekbar-duration-toggle');
+        seekbarDuration.removeAttribute('aria-disabled');
+        seekbarDuration.setAttribute('tabindex', '0');
         updateDurationTooltip();
       }
       // Floor elapsed time once, then derive remaining from it so both labels
@@ -170,9 +174,11 @@ seekbarSlider.addEventListener('change', () => {
 // ==================== Time Display Toggle ====================
 
 function updateDurationTooltip() {
-  seekbarDuration.title = showRemaining
+  const desc = showRemaining
     ? 'Click to show current time'
     : 'Click to show time remaining';
+  seekbarDuration.title = desc;
+  seekbarDuration.setAttribute('aria-label', desc);
 }
 
 // Load preference on init
@@ -183,8 +189,8 @@ browserAPI.storage.sync.get(['seekbarTimeDisplay']).then(result => {
   updateDurationTooltip();
 });
 
-// Click handler: toggle between total and remaining (skip for live streams)
-seekbarDuration.addEventListener('click', () => {
+// Toggle handler: between total and remaining (skip for live streams)
+function toggleDurationDisplay() {
   if (seekbarDuration.textContent === 'LIVE') return;
   showRemaining = !showRemaining;
   browserAPI.storage.sync.set({
@@ -192,6 +198,14 @@ seekbarDuration.addEventListener('click', () => {
   });
   updateDurationTooltip();
   pollMediaPosition();
+}
+
+seekbarDuration.addEventListener('click', toggleDurationDisplay);
+seekbarDuration.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+    e.preventDefault();
+    toggleDurationDisplay();
+  }
 });
 
 // Live sync from options page changes
