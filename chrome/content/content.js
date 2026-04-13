@@ -376,6 +376,16 @@
           // Sleep timer + context menu use this type — must handle on disabled domains too
           const result = toggleMediaPlayPause();
           sendResponse({ success: result.success, action: result.isPlaying ? 'playing' : 'paused' });
+        } else if (request.type === 'PAUSE') {
+          // Pause-only: skip if already paused. Used by the sleep timer so
+          // already-paused tabs don't get flipped back to playing. (#29)
+          const el = findPrimaryMediaElement();
+          if (!el || el.paused) {
+            sendResponse({ success: true, action: 'already-paused' });
+          } else {
+            const result = toggleMediaPlayPause();
+            sendResponse({ success: result.success, action: result.isPlaying ? 'playing' : 'paused' });
+          }
         } else if (request.type === 'GET_MEDIA_POSITION') {
           const el = findPrimaryMediaElement();
           const sitePosition = getPositionFromSiteUI();

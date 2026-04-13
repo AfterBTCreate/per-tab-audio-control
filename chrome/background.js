@@ -1792,7 +1792,7 @@ async function handleSleepTimerExpiry(tabId, state) {
       const tabs = await browserAPI.tabs.query({});
       for (const tab of tabs) {
         try {
-          await browserAPI.tabs.sendMessage(tab.id, { type: 'TOGGLE_PLAYBACK' });
+          await browserAPI.tabs.sendMessage(tab.id, { type: 'PAUSE' });
         } catch (e) { /* tab may not have content script */ }
       }
     } else {
