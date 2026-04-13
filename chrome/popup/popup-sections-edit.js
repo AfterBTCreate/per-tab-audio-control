@@ -150,6 +150,8 @@ function buildSectionsEditor() {
       sBtn.className = 'section-edit-sp-btn' + (mode === 'sliders' ? ' active' : '');
       sBtn.textContent = 'Slider';
       sBtn.title = 'Sliders mode';
+      sBtn.setAttribute('aria-pressed', mode === 'sliders' ? 'true' : 'false');
+      sBtn.setAttribute('aria-label', `Sliders mode for ${name.textContent || sectionId}`);
       sBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         setSectionEditMode(sectionId, 'sliders');
@@ -160,6 +162,8 @@ function buildSectionsEditor() {
       pBtn.className = 'section-edit-sp-btn' + (mode === 'presets' ? ' active' : '');
       pBtn.textContent = 'Preset';
       pBtn.title = 'Presets mode';
+      pBtn.setAttribute('aria-pressed', mode === 'presets' ? 'true' : 'false');
+      pBtn.setAttribute('aria-label', `Presets mode for ${name.textContent || sectionId}`);
       pBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         setSectionEditMode(sectionId, 'presets');
