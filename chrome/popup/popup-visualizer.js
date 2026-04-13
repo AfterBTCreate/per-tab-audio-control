@@ -239,6 +239,18 @@ if (visualizerCanvas) {
       longPressTimer = null;
     }
   });
+
+  // Keyboard: Enter/Space → go to tab, C → cycle style
+  visualizerCanvas.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      goToCurrentTab();
+    } else if (e.key === 'c' || e.key === 'C') {
+      if ((isDomainDisabled && isFirefoxBrowser) || visualizerAutoDisabled || isRestrictedPage) return;
+      e.preventDefault();
+      cycleVisualizerType();
+    }
+  });
 }
 
 // ==================== Canvas Setup ====================
@@ -628,9 +640,13 @@ function updateVisualizerTooltip() {
   // Native mode on Chrome allows long-press since Tab Capture enables visualizer
   const longPressDisabled = (isDomainDisabled && isFirefoxBrowser) || visualizerAutoDisabled || isRestrictedPage;
 
-  visualizer.title = longPressDisabled
-    ? 'Click: Go to tab'
-    : 'Click: Go to tab | Long-press: Change style';
+  if (longPressDisabled) {
+    visualizer.title = 'Click: Go to tab';
+    visualizer.setAttribute('aria-label', 'Audio visualizer: Enter or Space to go to tab');
+  } else {
+    visualizer.title = 'Click: Go to tab | Long-press or C key: Change style';
+    visualizer.setAttribute('aria-label', 'Audio visualizer: Enter or Space to go to tab, C to cycle style');
+  }
 }
 
 // Update the visualizer status indicators visibility
