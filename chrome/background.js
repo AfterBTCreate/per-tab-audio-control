@@ -1783,31 +1783,24 @@ async function handleSleepTimerExpiry(tabId, state) {
   fadeAbortedTabs.add(tabId);
 
   try {
-    // Give the content script's fade-out animation time to complete and the
-    // pause message to settle before restoring the pre-timer volume. Matches
-    // the fade-out duration on the content side.
-    const PAUSE_SETTLE_MS = 3000;
+    // Just pause — do NOT restore volume. Restoring to state.originalVolume
+    // would clobber any per-tab volume change the user made mid-timer, because
+    // originalVolume was captured at timer start. The tab is paused now, so
+    // leaving volume where the fade left it is fine; the user will re-set
+    // volume when they resume playback. (#28)
     if (state.allTabs) {
-      // Pause all tabs
       const tabs = await browserAPI.tabs.query({});
       for (const tab of tabs) {
         try {
           await browserAPI.tabs.sendMessage(tab.id, { type: 'TOGGLE_PLAYBACK' });
         } catch (e) { /* tab may not have content script */ }
       }
-      await new Promise(resolve => setTimeout(resolve, PAUSE_SETTLE_MS));
-      for (const tab of tabs) {
-        await setTabVolume(tab.id, state.originalVolume);
-      }
     } else {
-      // Pause target tab
       try {
-        await browserAPI.tabs.sendMessage(state.tabId, { type: 'TOGGLE_PLAYBACK' });
+        await browserAPI.tabs.sendMessage(state.tabId, { type: 'PAUSE' });
       } catch (e) {
         console.error('[TabVolume] Could not pause tab:', e.message);
       }
-      await new Promise(resolve => setTimeout(resolve, PAUSE_SETTLE_MS));
-      await setTabVolume(state.tabId, state.originalVolume);
     }
   } catch (e) {
     console.error('[TabVolume] Sleep timer expiry handler failed:', e.message);
