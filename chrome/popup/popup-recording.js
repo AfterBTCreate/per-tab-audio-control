@@ -10,7 +10,11 @@ let recordingStartTime = 0;
 let recordingTimerInterval = null;
 let checkingRecordingStatus = false;
 
-// Tracks which tab IDs have accepted the recording disclaimer this session
+// Tracks which tab IDs have accepted the recording disclaimer this popup
+// session. Acceptance is INTENTIONALLY not persisted across popup opens: the
+// disclaimer is a legal-compliance surface and we want the user to see it
+// fresh each time the popup opens rather than defaulting to their historical
+// consent. This is a product decision, not an oversight. (#27)
 const recordingConsentedTabs = new Set();
 
 // ==================== DOM References ====================
