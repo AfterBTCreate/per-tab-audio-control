@@ -316,6 +316,12 @@ if (recordBtn) {
 // We observe currentTabId changes since it's set asynchronously
 let lastCheckedTabId = null;
 const recordingStatusChecker = setInterval(() => {
+  // Defense-in-depth against rapid popup open/close: skip if the popup DOM
+  // is no longer connected. (#33)
+  if (!document.body || !document.body.isConnected) {
+    clearInterval(recordingStatusChecker);
+    return;
+  }
   if (currentTabId && currentTabId !== lastCheckedTabId) {
     lastCheckedTabId = currentTabId;
     checkRecordingStatus();
@@ -325,3 +331,7 @@ const recordingStatusChecker = setInterval(() => {
 
 // Clear interval after 5 seconds if tab never loaded
 setTimeout(() => clearInterval(recordingStatusChecker), 5000);
+
+// Also clear on popup unload as a belt-and-suspenders measure. Chrome tears
+// down popup state on close, but this is explicit. (#33)
+window.addEventListener('pagehide', () => clearInterval(recordingStatusChecker), { once: true });
