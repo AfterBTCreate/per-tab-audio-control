@@ -1874,7 +1874,9 @@ const VALID_MESSAGE_TYPES = [
   'START_SLEEP_TIMER', 'CANCEL_SLEEP_TIMER', 'GET_SLEEP_TIMER', 'UPDATE_SLEEP_TIMER',
   // Recording (from popup)
   'START_RECORDING', 'STOP_RECORDING', 'CANCEL_RECORDING', 'GET_RECORDING_STATUS',
-  'GET_ANY_RECORDING_STATUS', 'DOWNLOAD_RECORDING', 'REVOKE_BLOB_URL'
+  'GET_ANY_RECORDING_STATUS', 'DOWNLOAD_RECORDING', 'REVOKE_BLOB_URL',
+  // Recording (from offscreen, unsolicited)
+  'RECORDING_AUTO_STOPPED'
 ];
 
 function isValidMessageType(type) {
@@ -3017,6 +3019,39 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     })();
     return true;
+  }
+
+  // Offscreen → background: recording auto-stopped (size limit, etc.)
+  // Download the audio to preserve UX, then revoke the blob URL to free memory.
+  // Either path revokes — the leak from #21 was because the URL was never
+  // revoked and never delivered.
+  if (request.type === 'RECORDING_AUTO_STOPPED') {
+    const { blobUrl, format, reason, tabId: recTabId } = request;
+    if (!blobUrl || typeof blobUrl !== 'string' ||
+        !blobUrl.startsWith('blob:chrome-extension://')) {
+      return false;
+    }
+    const ext = format === 'mp3' ? 'mp3' : (format === 'wav' ? 'wav' : 'webm');
+    const safeFilename = `per-tab-audio-recording-${Date.now()}.${ext}`;
+    (async () => {
+      try {
+        await chrome.downloads.download({
+          url: blobUrl,
+          filename: safeFilename,
+          saveAs: true
+        });
+      } catch (e) {
+        console.debug('[Background] Auto-stop download failed:', e.message, 'reason:', reason);
+      } finally {
+        try {
+          await chrome.runtime.sendMessage({
+            type: 'REVOKE_BLOB_URL',
+            blobUrl: blobUrl
+          });
+        } catch (_) { /* offscreen may be closed */ }
+      }
+    })();
+    return false;
   }
 
   // Handle fullscreen workaround for Tab Capture mode (Chrome only)

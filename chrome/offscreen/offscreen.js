@@ -105,7 +105,7 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
           estimatedBytes += e.data.size;
           if (estimatedBytes > MAX_RECORDING_BYTES) {
             log('Recording size limit reached, stopping');
-            handleStopRecording(tabId);
+            autoStopRecording(tabId, 'size_limit');
             return;
           }
           chunks.push(e.data);
@@ -174,7 +174,7 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
           if (estimatedBytes > MAX_RECORDING_BYTES) {
             stopped = true;
             log('WAV recording size limit reached, stopping');
-            setTimeout(() => handleStopRecording(tabId), 0);
+            setTimeout(() => autoStopRecording(tabId, 'size_limit'), 0);
           }
         } else {
           // MP3: convert Float32 → Int16 → lamejs
@@ -187,7 +187,7 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
             if (estimatedBytes > MAX_RECORDING_BYTES) {
               stopped = true;
               log('MP3 recording size limit reached, stopping');
-              setTimeout(() => handleStopRecording(tabId), 0);
+              setTimeout(() => autoStopRecording(tabId, 'size_limit'), 0);
             }
           }
         }
@@ -221,6 +221,28 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
   } catch (e) {
     console.error('[Offscreen] Error starting recording:', e);
     return { success: false, error: e.message };
+  }
+}
+
+// Auto-stop path used by size-limit and error cleanup: produce the blob, hand
+// it to the background for download, and revoke if nobody takes it. This
+// prevents the blob URL leak that occurs when internal callers don't consume
+// handleStopRecording's return value.
+async function autoStopRecording(tabId, reason) {
+  const result = await handleStopRecording(tabId);
+  if (!result || !result.success || !result.blobUrl) return;
+  try {
+    await chrome.runtime.sendMessage({
+      type: 'RECORDING_AUTO_STOPPED',
+      tabId,
+      reason,
+      blobUrl: result.blobUrl,
+      size: result.size,
+      duration: result.duration,
+      format: result.format
+    });
+  } catch (e) {
+    try { URL.revokeObjectURL(result.blobUrl); } catch (_) { /* ignore */ }
   }
 }
 
