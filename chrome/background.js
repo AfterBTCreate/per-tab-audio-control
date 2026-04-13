@@ -3260,6 +3260,23 @@ browserAPI.commands.onCommand.addListener(async (command) => {
 //   offDefault_tabCaptureSites: []         - Tab Capture overrides when Off is default
 //   offDefault_webAudioSites: []           - Web Audio overrides when Off is default
 
+// Audio mode string reference — keep in sync with content/content.js translations. (#54)
+//
+//   Storage  | Runtime      | Meaning
+//   -------- | ------------ | --------------------------------------------------
+//   'auto'   | 'webaudio'   | Web Audio API processing (legacy storage name —
+//                           | 'auto' predates 'webaudio', kept for backwards
+//                           | compatibility with existing chrome.storage.sync
+//                           | values. Do NOT rename without a migration path.)
+//   'tabcap* | 'tabcapture' | Tab Capture pipeline
+//   'off'    | 'native'     | Pass-through / disabled (content.js line ~495
+//                           | maps 'off' → 'native' for its internal state)
+//
+// Mapping happens in:
+//   - background.js  getEffectiveModeForDomain (storage → runtime)
+//   - content.js     line ~495 (storage 'off' → runtime 'native')
+//   - content.js     line ~2162 (compares raw storage 'native' to runtime)
+//
 // Get the effective audio mode for a domain based on current default mode
 async function getEffectiveModeForDomain(hostname) {
   if (!hostname || typeof hostname !== 'string') return null;
