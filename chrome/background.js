@@ -3637,8 +3637,8 @@ async function createContextMenus() {
     });
 
     sleepTimerPresets.forEach((minutes) => {
-      const validMin = Math.max(1, Math.min(120, Math.round(minutes)));
       if (typeof minutes !== 'number' || isNaN(minutes)) return;
+      const validMin = Math.max(1, Math.min(120, Math.round(minutes)));
       contextMenusAPI.create({
         id: `sleepTimer_${validMin}`,
         parentId: 'sleepTimerSubmenu',
