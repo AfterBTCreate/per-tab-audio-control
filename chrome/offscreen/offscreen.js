@@ -39,6 +39,11 @@ const COMPRESSOR_COMPENSATION = {
 
 // ==================== Recording State ====================
 const activeRecordings = new Map(); // tabId -> { recorder/scriptNode, chunks, startTime, format, ... }
+// tabIds currently in the "starting" state (atomically transitioning from
+// not-recording to recording). Prevents a TOCTOU race where two concurrent
+// START_RECORDING messages both pass the activeRecordings check before either
+// call has populated the map. See #22.
+const startingRecordings = new Set();
 
 // Maximum recording size (2GB - safety margin for ArrayBuffer limits)
 const MAX_RECORDING_BYTES = 2 * 1024 * 1024 * 1024 - 1024;
@@ -72,13 +77,16 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
     return { success: false, error: 'Invalid sample rate' };
   }
 
-  // Check if already recording this tab
-  if (activeRecordings.has(tabId)) {
+  // Check if already recording OR starting — atomically claim the "starting"
+  // state before any async work to close the TOCTOU window (#22).
+  if (activeRecordings.has(tabId) || startingRecordings.has(tabId)) {
     return { success: false, error: 'Already recording this tab' };
   }
+  startingRecordings.add(tabId);
 
   const capture = visualizerCaptures.get(tabId);
   if (!capture || !capture.audioContext || !capture.limiter) {
+    startingRecordings.delete(tabId);
     return { success: false, error: 'No active audio capture for this tab. Open the popup on the tab first.' };
   }
 
@@ -221,6 +229,10 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
   } catch (e) {
     console.error('[Offscreen] Error starting recording:', e);
     return { success: false, error: e.message };
+  } finally {
+    // Release the "starting" claim either way — either we're in
+    // activeRecordings now or we failed and freed the slot.
+    startingRecordings.delete(tabId);
   }
 }
 
