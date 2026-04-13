@@ -889,6 +889,10 @@ function updateChannelModeUI() {
 // Apply channel mode to content script
 async function applyChannelMode(mode) {
   if (!currentTabId) return;
+  // No-op if the mode didn't actually change — prevents tearing down and
+  // recreating content-script audio nodes for the same mode, which caused
+  // brief audio glitches. (#34)
+  if (mode === currentChannelMode) return;
 
   currentChannelMode = mode;
   updateChannelModeUI();
