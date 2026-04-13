@@ -2970,9 +2970,12 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'DOWNLOAD_RECORDING') {
     const { blobUrl, filename } = request;
-    // Security: Only accept blob URLs from our extension origin
+    // Security: Only accept blob URLs from *this* extension's origin.
+    // Pin to chrome.runtime.id so a foreign extension page can't submit a
+    // blob URL bound to some other origin (#24).
+    const ownOrigin = `blob:chrome-extension://${chrome.runtime.id}/`;
     if (!blobUrl || typeof blobUrl !== 'string' ||
-        !blobUrl.startsWith('blob:chrome-extension://')) {
+        !blobUrl.startsWith(ownOrigin)) {
       sendResponse({ success: false, error: 'Invalid blob URL' });
       return false;
     }
@@ -3027,8 +3030,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // revoked and never delivered.
   if (request.type === 'RECORDING_AUTO_STOPPED') {
     const { blobUrl, format, reason, tabId: recTabId } = request;
+    const ownOrigin = `blob:chrome-extension://${chrome.runtime.id}/`;
     if (!blobUrl || typeof blobUrl !== 'string' ||
-        !blobUrl.startsWith('blob:chrome-extension://')) {
+        !blobUrl.startsWith(ownOrigin)) {
       return false;
     }
     const ext = format === 'mp3' ? 'mp3' : (format === 'wav' ? 'wav' : 'webm');
