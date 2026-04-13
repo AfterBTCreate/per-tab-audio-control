@@ -274,6 +274,10 @@ async function switchToTab(tabIndex) {
   // Immediately clear UI state from previous tab
   clearStatus();
   document.body.classList.remove('audio-blocked');
+  // Stop the recording timer — it tracked the previous tab's recording (if
+  // any). checkRecordingStatus below will restart it if the new tab is
+  // recording. (#31)
+  if (typeof stopRecordingTimer === 'function') stopRecordingTimer();
 
   // Reset seekbar and immediately start polling for new tab
   if (typeof resetSeekbar === 'function') resetSeekbar();
