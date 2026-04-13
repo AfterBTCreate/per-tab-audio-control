@@ -254,11 +254,13 @@ function positionToVolume(position) {
   return Math.min(VOLUME_MAX, Math.max(VOLUME_MIN, Math.round(vol)));
 }
 
-// Extract domain from URL (returns null on invalid URL instead of raw input)
+// Extract domain from URL (returns null on invalid URL instead of raw input).
+// Always routes through sanitizeHostname() from shared/validation.js so callers
+// get a value that is safe to use as a storage key or in site-rule matching.
 function extractDomain(url) {
   try {
     const urlObj = new URL(url);
-    return urlObj.hostname;
+    return sanitizeHostname(urlObj.hostname);
   } catch (e) {
     return null;
   }
