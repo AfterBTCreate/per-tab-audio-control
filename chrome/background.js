@@ -2672,7 +2672,8 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // When activating from dormant, send saved effects (bass, treble, voice, etc.)
       // The CONTENT_READY response only carries volume and device — effects need separate messages
       if (request.activating) {
-        sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLabel);
+        sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLabel)
+          .catch((e) => console.error('[TabVolume] sendTabSettingsToContentScript failed:', e.message));
       }
     }).catch((e) => {
       console.error('[TabVolume] CONTENT_READY failed:', e);
