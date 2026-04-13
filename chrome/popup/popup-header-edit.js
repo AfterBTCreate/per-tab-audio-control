@@ -263,15 +263,23 @@ function createEditPanel() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = String(i);
+    btn.setAttribute('aria-label', `Set header spacer count to ${i}`);
     if (i < MIN_SPACERS) {
       btn.className = 'header-edit-spacer-btn disabled';
+      btn.setAttribute('aria-disabled', 'true');
+      btn.tabIndex = -1;
     } else {
       btn.className = 'header-edit-spacer-btn' + (i === currentCount ? ' active' : '');
+      btn.setAttribute('aria-pressed', i === currentCount ? 'true' : 'false');
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         setSpacerCount(i);
         spBtns.querySelectorAll('.header-edit-spacer-btn').forEach(b => {
-          b.classList.toggle('active', b.textContent === String(i));
+          const match = b.textContent === String(i);
+          b.classList.toggle('active', match);
+          if (b.hasAttribute('aria-pressed')) {
+            b.setAttribute('aria-pressed', match ? 'true' : 'false');
+          }
         });
       });
     }
@@ -310,12 +318,21 @@ function createEditPanel() {
         + (currentLoc === opt.value ? ' active' : '')
         + (isDisabled ? ' disabled' : '');
       btn.textContent = opt.label;
+      btn.setAttribute('aria-label', `Tab title location: ${opt.label}`);
+      btn.setAttribute('aria-pressed', currentLoc === opt.value ? 'true' : 'false');
+      if (isDisabled) {
+        btn.setAttribute('aria-disabled', 'true');
+        btn.tabIndex = -1;
+      }
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (btn.classList.contains('disabled')) return;
         browserAPI.storage.sync.set({ tabInfoLocation: opt.value });
-        titleBtns.querySelectorAll('.header-edit-title-btn').forEach(b =>
-          b.classList.toggle('active', b === btn));
+        titleBtns.querySelectorAll('.header-edit-title-btn').forEach(b => {
+          const isMatch = b === btn;
+          b.classList.toggle('active', isMatch);
+          b.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+        });
       });
       titleBtns.appendChild(btn);
     }
