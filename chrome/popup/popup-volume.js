@@ -176,6 +176,7 @@ function updateUI(volume) {
   const position = volumeToPosition(volume);
   volumeSlider.value = position;
   volumeSlider.setAttribute('aria-valuenow', volume);
+  volumeSlider.setAttribute('aria-valuetext', `${volume}%`);
   volumeValue.textContent = `${volume}%`;
 
   // Update slider fill using position percentage
