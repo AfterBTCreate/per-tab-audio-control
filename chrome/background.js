@@ -2009,12 +2009,26 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: false, error: 'Invalid volume' });
       return false;
     }
-    setTabVolume(tabId, volume).then(() => {
-      sendResponse({ success: true });
-    }).catch(e => {
-      console.error('[TabVolume] Failed to set volume:', e.message);
-      sendResponse({ success: false, error: e.message });
-    });
+    (async () => {
+      // If a sleep-timer fade is in progress for this tab (or an allTabs
+      // timer that covers it), the user-initiated volume change signals
+      // intent to keep listening. Cancel the fade so popup input doesn't
+      // fight the animation. (#30)
+      try {
+        const timerState = await getSleepTimerState(tabId);
+        if (timerState && timerState.fadeStarted) {
+          await cancelSleepTimer(tabId, /* restoreVolume */ false);
+        }
+      } catch (e) { /* best-effort */ }
+
+      try {
+        await setTabVolume(tabId, volume);
+        sendResponse({ success: true });
+      } catch (e) {
+        console.error('[TabVolume] Failed to set volume:', e.message);
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
     return true;
   }
 
