@@ -1580,8 +1580,10 @@ async function checkValentineOverlay() {
     const result = await browserAPI.storage.session.get('valentineReady');
     if (result.valentineReady) {
       const overlay = document.getElementById('valentineOverlay');
+      const dismissBtn = document.getElementById('valentineDismiss');
       if (overlay) {
         overlay.classList.remove('hidden');
+        openDialog(overlay, { initialFocus: dismissBtn });
         await browserAPI.storage.session.remove('valentineReady');
       }
     }
@@ -1590,14 +1592,27 @@ async function checkValentineOverlay() {
   }
 }
 
+function dismissValentineOverlay() {
+  const overlay = document.getElementById('valentineOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+  closeDialog(overlay);
+}
+
 // Valentine dismiss button
 const valentineDismissBtn = document.getElementById('valentineDismiss');
 if (valentineDismissBtn) {
-  valentineDismissBtn.addEventListener('click', () => {
-    const overlay = document.getElementById('valentineOverlay');
-    if (overlay) overlay.classList.add('hidden');
-  });
+  valentineDismissBtn.addEventListener('click', dismissValentineOverlay);
 }
+
+// Escape key dismissal for valentine overlay
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const overlay = document.getElementById('valentineOverlay');
+  if (overlay && !overlay.classList.contains('hidden')) {
+    dismissValentineOverlay();
+  }
+});
 
 // Initialize
 init();

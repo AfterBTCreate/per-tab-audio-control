@@ -117,24 +117,37 @@ function showDisclaimerIfNeeded() {
     }
 
     disclaimerOverlay.classList.add('visible');
+    openDialog(disclaimerOverlay, {
+      initialFocus: disclaimerCancelBtn,
+      returnFocusTo: recordBtn
+    });
 
-    const handleAccept = () => {
+    const cleanup = () => {
       disclaimerOverlay.classList.remove('visible');
       disclaimerAcceptBtn.removeEventListener('click', handleAccept);
       disclaimerCancelBtn.removeEventListener('click', handleCancel);
+      disclaimerOverlay.removeEventListener('keydown', handleEscape);
+      closeDialog(disclaimerOverlay);
+    };
+
+    const handleAccept = () => {
+      cleanup();
       if (currentTabId) recordingConsentedTabs.add(currentTabId);
       resolve(true);
     };
 
     const handleCancel = () => {
-      disclaimerOverlay.classList.remove('visible');
-      disclaimerAcceptBtn.removeEventListener('click', handleAccept);
-      disclaimerCancelBtn.removeEventListener('click', handleCancel);
+      cleanup();
       resolve(false);
+    };
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') handleCancel();
     };
 
     disclaimerAcceptBtn.addEventListener('click', handleAccept);
     disclaimerCancelBtn.addEventListener('click', handleCancel);
+    disclaimerOverlay.addEventListener('keydown', handleEscape);
   });
 }
 
