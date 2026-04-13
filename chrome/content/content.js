@@ -860,7 +860,7 @@
       // Validate and clamp values to prevent non-finite or out-of-range errors
       const safeBassGain = Math.max(-24, Math.min(24, Number.isFinite(currentBassGain) ? currentBassGain : 0));
       const safeTrebleGain = Math.max(-24, Math.min(24, Number.isFinite(currentTrebleGain) ? currentTrebleGain : 0));
-      const safeVoiceGain = Math.max(0, Math.min(18, Number.isFinite(currentVoiceGain) ? currentVoiceGain : 0));
+      const safeVoiceGain = Math.max(-18, Math.min(18, Number.isFinite(currentVoiceGain) ? currentVoiceGain : 0));
       const safePan = Math.max(-1, Math.min(1, Number.isFinite(currentPan) ? currentPan : 0));
       const safeVolume = Math.max(0, Math.min(500, Number.isFinite(currentVolume) ? currentVolume : 100));
 
