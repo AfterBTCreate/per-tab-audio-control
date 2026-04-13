@@ -1236,7 +1236,12 @@ const sleepSliderValue = document.getElementById('sleepSliderValue');
 const sleepGoBtn = document.getElementById('sleepGoBtn');
 const sleepAllTabsCheckbox = document.getElementById('sleepAllTabsCheckbox');
 const sleepCountdownEl = document.getElementById('sleepTimerCountdown');
+const sleepCountdownTextEl = document.getElementById('sleepTimerCountdownText');
 const sleepTimerSection = document.querySelector('.sleep-timer-section');
+
+function setSleepCountdownText(text) {
+  if (sleepCountdownTextEl) sleepCountdownTextEl.textContent = text;
+}
 const sleepTimerButtons = document.querySelectorAll('.sleep-timer-buttons .sleep-btn');
 let sleepCountdownInterval = null;
 let sleepSaveTimeout = null;
@@ -1304,13 +1309,13 @@ function updateSleepCountdownDisplay(endTime) {
   if (!sleepCountdownEl) return;
   const remaining = endTime - Date.now();
   if (remaining <= 0) {
-    sleepCountdownEl.textContent = '';
+    setSleepCountdownText('');
     clearSleepCountdownInterval();
     setSleepTimerActive(false);
     setSleepButtonActive(0);
     return;
   }
-  sleepCountdownEl.textContent = `Sleep: ${formatSleepCountdown(remaining)} remaining — cancel`;
+  setSleepCountdownText(`Sleep: ${formatSleepCountdown(remaining)} remaining — cancel`);
 }
 
 // Start countdown interval
@@ -1340,7 +1345,7 @@ async function cancelSleepTimerUI() {
   clearSleepCountdownInterval();
   setSleepTimerActive(false);
   setSleepButtonActive(0);
-  if (sleepCountdownEl) sleepCountdownEl.textContent = '';
+  if (sleepCountdownEl) setSleepCountdownText('');
 }
 
 // Click countdown bar to cancel timer
@@ -1432,7 +1437,7 @@ async function loadSleepTimerState() {
   // Clear previous countdown immediately (prevents stale UI from lingering)
   clearSleepCountdownInterval();
   setSleepTimerActive(false);
-  if (sleepCountdownEl) sleepCountdownEl.textContent = '';
+  if (sleepCountdownEl) setSleepCountdownText('');
 
   // Capture tab ID before async call to detect stale responses
   const requestTabId = currentTabId;
@@ -1458,7 +1463,7 @@ async function loadSleepTimerState() {
     // No active timer (only update if still on same tab)
     setSleepTimerActive(false);
     setSleepButtonActive(0);
-    if (sleepCountdownEl) sleepCountdownEl.textContent = '';
+    if (sleepCountdownEl) setSleepCountdownText('');
   } catch (e) {
     console.debug('[TabVolume] Could not load sleep timer state:', e.message);
   }
