@@ -115,7 +115,7 @@ body.initializing .status-message {
   background: transparent;
   border: 1px solid #5a7a9a;
   border-radius: 6px;
-  padding: 4px;
+  padding: 8px;
   cursor: pointer;
   color: #7a8fa5;
   display: flex;
