@@ -308,10 +308,6 @@ if (recordBtn) {
   recordBtn.addEventListener('click', toggleRecording);
 }
 
-// Check recording status once tab info is loaded
-// This is called after popup-core initializes currentTabId
-const originalOnTabLoaded = typeof onTabLoaded === 'function' ? onTabLoaded : null;
-
 // Hook into popup initialization to check recording status
 // We observe currentTabId changes since it's set asynchronously
 let lastCheckedTabId = null;
