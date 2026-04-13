@@ -224,10 +224,10 @@
       <div class="disabled-status" id="disabledStatus" role="status" aria-live="polite"></div>
     </div>
 
-    <div class="tab-list-overlay" id="tabListOverlay">
+    <div class="tab-list-overlay" id="tabListOverlay" role="dialog" aria-label="Audio tabs">
       <div class="tab-list-dropdown" id="tabListDropdown">
-        <div class="tab-list-header">Audio Tabs</div>
-        <div class="tab-list-items" id="tabListItems"></div>
+        <div class="tab-list-header" id="tabListHeader">Audio Tabs</div>
+        <div class="tab-list-items" id="tabListItems" role="listbox" aria-labelledby="tabListHeader"></div>
       </div>
     </div>
 

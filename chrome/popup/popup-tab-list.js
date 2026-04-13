@@ -80,6 +80,11 @@ function showTabList() {
     const item = document.createElement('div');
     item.className = 'tab-list-item' + (i === currentTabIndex ? ' active' : '');
     item.dataset.index = i;
+    item.setAttribute('role', 'option');
+    item.setAttribute('tabindex', '0');
+    if (i === currentTabIndex) {
+      item.setAttribute('aria-selected', 'true');
+    }
 
     // Favicon
     if (tab.favIconUrl) {
@@ -101,6 +106,10 @@ function showTabList() {
     title.textContent = tab.title || 'Unknown Tab';
     item.appendChild(title);
 
+    // Accessible name: indicate current tab via aria-label
+    const label = (i === currentTabIndex ? 'Current tab: ' : 'Switch to: ') + (tab.title || 'Unknown Tab');
+    item.setAttribute('aria-label', label);
+
     // Speaker icon for active tab
     if (i === currentTabIndex) {
       const speaker = document.createElement('span');
@@ -109,11 +118,34 @@ function showTabList() {
       item.appendChild(speaker);
     }
 
-    // Click handler - switch to tab and close overlay
-    item.addEventListener('click', () => {
+    const activate = () => {
       hideTabList();
       if (i !== currentTabIndex) {
         switchToTab(i);
+      }
+    };
+
+    item.addEventListener('click', activate);
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        activate();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = item.nextElementSibling;
+        if (next && next.classList.contains('tab-list-item')) next.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = item.previousElementSibling;
+        if (prev && prev.classList.contains('tab-list-item')) prev.focus();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        const first = tabListItems.firstElementChild;
+        if (first) first.focus();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        const last = tabListItems.lastElementChild;
+        if (last) last.focus();
       }
     });
 
@@ -121,11 +153,20 @@ function showTabList() {
   });
 
   tabListOverlay.classList.add('visible');
+
+  // Focus first item (or the currently-active one, if present)
+  const activeItem = tabListItems.querySelector('.tab-list-item.active');
+  const firstItem = activeItem || tabListItems.firstElementChild;
+  openDialog(tabListOverlay, {
+    initialFocus: firstItem,
+    returnFocusTo: tabListBtn
+  });
 }
 
 // Hide the tab list overlay
 function hideTabList() {
   tabListOverlay.classList.remove('visible');
+  closeDialog(tabListOverlay);
 }
 
 // Tab list button click handler
