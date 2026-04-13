@@ -13,6 +13,10 @@ const seekbarDuration = document.getElementById('seekbarDuration');
 let seekbarInterval = null;
 let isSeeking = false;  // True while user is dragging or seek is in flight
 let showRemaining = false;  // True = show "-M:SS" remaining, false = show total duration
+// Track the previous poll's duration. If it jumps to a different finite value
+// (media element swap), reset the seekbar display for one tick to avoid showing
+// the stale duration next to the new elapsed value. (#32)
+let lastPollDuration = 0;
 
 // Play/pause icon state (driven by seekbar poll, not by click)
 const _mediaBtn = document.getElementById('mediaToggleBtn');
@@ -58,6 +62,21 @@ async function pollMediaPosition() {
     });
     if (response?.success && response.position) {
       const { currentTime, duration } = response.position;
+
+      // Media element swap detection: if duration changed significantly
+      // between polls, reset display this tick so we don't paint the old
+      // duration next to the new elapsed value. (#32)
+      if (
+        isFinite(duration) && duration > 0 &&
+        isFinite(lastPollDuration) && lastPollDuration > 0 &&
+        Math.abs(duration - lastPollDuration) > 1
+      ) {
+        seekbarSlider.value = 0;
+        seekbarFill.style.width = '0%';
+        seekbarCurrentTime.textContent = '0:00';
+        seekbarDuration.textContent = formatTime(duration);
+      }
+      lastPollDuration = duration;
 
       // Update play/pause icon from media state
       updatePlayPauseIcon(!!response.position.paused);
@@ -139,6 +158,7 @@ function resetSeekbar() {
   seekbarFill.style.width = '0%';
   seekbarCurrentTime.textContent = '0:00';
   seekbarDuration.textContent = '0:00';
+  lastPollDuration = 0;
   updatePlayPauseIcon(false);
 }
 
