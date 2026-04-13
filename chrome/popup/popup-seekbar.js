@@ -37,6 +37,19 @@ function formatTime(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+// Human-readable time for screen readers: "2 minutes 15 seconds"
+function formatTimeSpoken(seconds) {
+  if (!isFinite(seconds) || seconds < 0) return '0 seconds';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const parts = [];
+  if (h > 0) parts.push(`${h} hour${h === 1 ? '' : 's'}`);
+  if (m > 0) parts.push(`${m} minute${m === 1 ? '' : 's'}`);
+  parts.push(`${s} second${s === 1 ? '' : 's'}`);
+  return parts.join(' ');
+}
+
 async function pollMediaPosition() {
   if (!currentTabId || isSeeking) return;
   try {
@@ -89,6 +102,10 @@ async function pollMediaPosition() {
       seekbarSlider.value = pct;
       seekbarFill.style.width = `${pct}%`;
       seekbarSlider.setAttribute('aria-valuenow', Math.round(pct));
+      seekbarSlider.setAttribute(
+        'aria-valuetext',
+        `${formatTimeSpoken(elapsed)} of ${formatTimeSpoken(duration)}`
+      );
     } else {
       seekbarRow.classList.remove('has-media');
       seekbarSlider.disabled = true;
