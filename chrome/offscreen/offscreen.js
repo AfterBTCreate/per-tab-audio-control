@@ -129,7 +129,6 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
         chunks,
         startTime,
         format,
-        estimatedBytes: 0,
         get currentBytes() { return chunks.reduce((sum, c) => sum + c.size, 0); }
       };
 
