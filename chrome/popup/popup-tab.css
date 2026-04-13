@@ -35,6 +35,11 @@ body.visualizer-hidden .tab-info-wrapper {
   cursor: default;
 }
 
+.tab-nav-btn:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
 .tab-nav-btn svg {
   width: 14px;
   height: 14px;
@@ -192,6 +197,10 @@ body.light-mode .tab-nav-btn:hover:not(:disabled) {
   background: #e8f0f8;
   color: #1a2a3a;
   border-color: #a0b8d0;
+}
+
+body.light-mode .tab-nav-btn:focus-visible {
+  outline-color: #2563eb;
 }
 
 body.light-mode .tab-info {

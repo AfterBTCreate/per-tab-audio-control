@@ -295,6 +295,11 @@
   transform: scale(0.95);
 }
 
+.eq-reset-btn:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
 /* ==================== Light Mode: Effects (Morning Theme) ==================== */
 
 body.light-mode .enhancements-section {
@@ -500,6 +505,10 @@ body.light-mode .eq-reset-btn:hover {
   background: #d0e0ee;
   border-color: #a0b8d0;
   color: #1a2a3a;
+}
+
+body.light-mode .eq-reset-btn:focus-visible {
+  outline-color: #2563eb;
 }
 
 /* ==================== EQ Sliders (Bass/Treble) ==================== */

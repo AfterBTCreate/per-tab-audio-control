@@ -130,6 +130,11 @@ body.initializing .status-message {
   border-color: #7a9ab8;
 }
 
+.header-btn:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
 /* All utility buttons - muted gray (focus, basic/advanced, theme, settings) */
 #focusBtn,
 #modeToggle,
@@ -223,6 +228,10 @@ body.light-mode .header-btn:hover {
   background: #e8f0f8;
   color: #1a2a3a;
   border-color: #a0b8d0;
+}
+
+body.light-mode .header-btn:focus-visible {
+  outline-color: #2563eb;
 }
 
 /* Light mode: All utility buttons - translucent with muted icons */
