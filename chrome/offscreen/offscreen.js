@@ -164,22 +164,42 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
       let mp3Encoder = null;
       const dataChunks = []; // WAV: {left, right} objects | MP3: Uint8Array frames
       let estimatedBytes = 0;
-      let stopped = false;
 
       if (format === 'mp3') {
         const mp3Bitrate = bitrate || 192;
         mp3Encoder = new lamejs.Mp3Encoder(2, actualSampleRate, mp3Bitrate);
       }
 
+      // Build recordingState first so `stopped` lives on the state object.
+      // This lets stop/cancel handlers set recordingState.stopped = true and
+      // guarantees the port.onmessage guard sees it from any cleanup path. (#25)
+      recordingState = {
+        type: format, // 'wav' or 'mp3'
+        workletNode,
+        dataChunks,
+        mp3Encoder,
+        startTime,
+        format,
+        sampleRate: actualSampleRate,
+        bitrate: bitrate || 192,
+        stopped: false,
+        get currentBytes() {
+          if (format === 'wav') {
+            return dataChunks.reduce((sum, c) => sum + c.left.length, 0) * 4;
+          }
+          return dataChunks.reduce((sum, c) => sum + c.length, 0);
+        }
+      };
+
       // Handle PCM data arriving from the worklet thread
       workletNode.port.onmessage = (e) => {
-        if (stopped || e.data.type !== 'pcm') return;
+        if (recordingState.stopped || e.data.type !== 'pcm') return;
 
         if (format === 'wav') {
           dataChunks.push({ left: e.data.left, right: e.data.right });
           estimatedBytes += e.data.left.length * 4; // 2ch * 16-bit = 4 bytes/frame
           if (estimatedBytes > MAX_RECORDING_BYTES) {
-            stopped = true;
+            recordingState.stopped = true;
             log('WAV recording size limit reached, stopping');
             setTimeout(() => autoStopRecording(tabId, 'size_limit'), 0);
           }
@@ -192,7 +212,7 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
             dataChunks.push(mp3Data);
             estimatedBytes += mp3Data.length;
             if (estimatedBytes > MAX_RECORDING_BYTES) {
-              stopped = true;
+              recordingState.stopped = true;
               log('MP3 recording size limit reached, stopping');
               setTimeout(() => autoStopRecording(tabId, 'size_limit'), 0);
             }
@@ -202,23 +222,6 @@ async function handleStartRecording(tabId, format, bitrate, sampleRate) {
 
       // Connect: limiter → workletNode (no output, no signal doubling)
       capture.limiter.connect(workletNode);
-
-      recordingState = {
-        type: format, // 'wav' or 'mp3'
-        workletNode,
-        dataChunks,
-        mp3Encoder,
-        startTime,
-        format,
-        sampleRate: actualSampleRate,
-        bitrate: bitrate || 192,
-        get currentBytes() {
-          if (format === 'wav') {
-            return dataChunks.reduce((sum, c) => sum + c.left.length, 0) * 4;
-          }
-          return dataChunks.reduce((sum, c) => sum + c.length, 0);
-        }
-      };
     }
 
     activeRecordings.set(tabId, recordingState);
@@ -289,6 +292,9 @@ async function handleStopRecording(tabId) {
       blob = new Blob(recording.chunks, { type: 'audio/webm;codecs=opus' });
 
     } else if (recording.type === 'wav' || recording.type === 'mp3') {
+      // Flag the worklet's port.onmessage guard before disconnect so any
+      // in-flight PCM messages are discarded even if disconnect is racy. (#25)
+      recording.stopped = true;
       // Stop the worklet processor and disconnect
       try {
         recording.workletNode.port.postMessage({ type: 'stop' });
@@ -370,6 +376,7 @@ function handleCancelRecording(tabId) {
         }
       } catch (e) { /* ignore */ }
     } else if (recording.type === 'wav' || recording.type === 'mp3') {
+      recording.stopped = true;
       try {
         recording.workletNode.port.postMessage({ type: 'stop' });
         recording.workletNode.disconnect();
