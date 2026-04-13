@@ -111,8 +111,12 @@ function showDisclaimerIfNeeded() {
 
   // Show dialog
   return new Promise((resolve) => {
-    if (!disclaimerOverlay) {
-      resolve(true); // No dialog element, proceed
+    // Fail closed: if the disclaimer DOM is missing for any reason, do NOT
+    // start recording. Better to surface a visible failure than to silently
+    // bypass consent. (#23)
+    if (!disclaimerOverlay || !disclaimerAcceptBtn || !disclaimerCancelBtn) {
+      console.error('[TabVolume] Recording disclaimer DOM missing — refusing to record.');
+      resolve(false);
       return;
     }
 
