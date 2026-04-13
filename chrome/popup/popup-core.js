@@ -772,7 +772,7 @@ async function loadPopupMode() {
   const enhSection = document.querySelector('.enhancements-section');
   if (mode === 'basic') {
     document.body.classList.add('basic-mode');
-    modeToggle.title = 'Switch to Advanced mode';
+    setModeToggleAria(true);
     // Skip transition on initial load
     if (enhSection) {
       enhSection.style.transition = 'none';
@@ -782,16 +782,24 @@ async function loadPopupMode() {
     }
   } else {
     document.body.classList.remove('basic-mode');
-    modeToggle.title = 'Switch to Basic mode';
+    setModeToggleAria(false);
     if (enhSection) enhSection.classList.remove('mode-collapsed');
   }
+}
+
+function setModeToggleAria(isBasic) {
+  if (!modeToggle) return;
+  const label = isBasic ? 'Switch to Advanced mode' : 'Switch to Basic mode';
+  modeToggle.title = label;
+  modeToggle.setAttribute('aria-label', label);
+  modeToggle.setAttribute('aria-pressed', isBasic ? 'true' : 'false');
 }
 
 // Toggle between basic and advanced mode
 async function togglePopupMode() {
   const isBasic = document.body.classList.toggle('basic-mode');
   const mode = isBasic ? 'basic' : 'advanced';
-  modeToggle.title = isBasic ? 'Switch to Advanced mode' : 'Switch to Basic mode';
+  setModeToggleAria(isBasic);
   const enhSection = document.querySelector('.enhancements-section');
   if (enhSection) enhSection.classList.toggle('mode-collapsed', isBasic);
   await browserAPI.storage.sync.set({ popupMode: mode });
