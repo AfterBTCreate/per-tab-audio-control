@@ -150,6 +150,12 @@
   border-color: #dc2626;
 }
 
+.disclaimer-cancel-btn:focus-visible,
+.disclaimer-accept-btn:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
 /* ==================== Light Mode Recording ==================== */
 
 body.light-mode .record-btn {
@@ -194,4 +200,9 @@ body.light-mode .disclaimer-cancel-btn {
 body.light-mode .disclaimer-cancel-btn:hover {
   background: #dce8f2;
   color: #1a2a3a;
+}
+
+body.light-mode .disclaimer-cancel-btn:focus-visible,
+body.light-mode .disclaimer-accept-btn:focus-visible {
+  outline-color: #2563eb;
 }

@@ -496,6 +496,11 @@ body.audio-blocked .header.edit-mode ~ .header-edit-done-bar {
   color: #ffffff;
 }
 
+.valentine-dismiss:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
 /* Light mode valentine overlay */
 body.light-mode .valentine-overlay {
   background: rgba(245, 230, 220, 0.97);
@@ -521,5 +526,9 @@ body.light-mode .valentine-dismiss {
 body.light-mode .valentine-dismiss:hover {
   background: #c93060;
   color: #ffffff;
+}
+
+body.light-mode .valentine-dismiss:focus-visible {
+  outline-color: #2563eb;
 }
 
