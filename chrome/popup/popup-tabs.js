@@ -7,14 +7,23 @@ const focusBtn = document.getElementById('focusBtn');
 let isFocusActive = false;
 
 // Check and restore focus state on popup open
+function setFocusBtnState(active) {
+  if (!focusBtn) return;
+  focusBtn.classList.toggle('active', active);
+  focusBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  const label = active
+    ? 'Focus mode on — click to unmute other tabs'
+    : 'Focus: Mute other tabs';
+  focusBtn.setAttribute('aria-label', label);
+  focusBtn.title = label;
+}
+
 async function checkFocusState() {
   try {
     const result = await browserAPI.runtime.sendMessage({ type: 'GET_FOCUS_STATE' });
     if (result && result.success && result.active) {
       isFocusActive = true;
-      if (focusBtn) {
-        focusBtn.classList.add('active');
-      }
+      setFocusBtnState(true);
       // Show permanent status reminder
       showFocusReminder();
     }
@@ -53,7 +62,7 @@ async function toggleFocusMode() {
       });
       if (result && result.success) {
         isFocusActive = true;
-        focusBtn.classList.add('active');
+        setFocusBtnState(true);
         if (result.mutedCount > 0) {
           showStatus(`Muted ${result.mutedCount} other tab${result.mutedCount !== 1 ? 's' : ''}`, 'success', 2000);
         } else {
@@ -74,7 +83,7 @@ async function toggleFocusMode() {
       });
       if (result && result.success) {
         isFocusActive = false;
-        focusBtn.classList.remove('active');
+        setFocusBtnState(false);
         clearFocusReminder();
         if (result.unmutedCount > 0) {
           showStatus(`Unmuted ${result.unmutedCount} tab${result.unmutedCount !== 1 ? 's' : ''}`, 'success', 2000);
@@ -333,13 +342,13 @@ async function switchToTab(tabIndex) {
       if (!result || !result.success) {
         console.debug('[TabVolume] MUTE_OTHER_TABS returned failure, disabling focus mode');
         isFocusActive = false;
-        if (focusBtn) focusBtn.classList.remove('active');
+        setFocusBtnState(false);
         clearFocusReminder();
       }
     } catch (e) {
       console.debug('[TabVolume] MUTE_OTHER_TABS failed:', e);
       isFocusActive = false;
-      if (focusBtn) focusBtn.classList.remove('active');
+      setFocusBtnState(false);
       clearFocusReminder();
     }
   }
