@@ -2328,14 +2328,14 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return false;
     }
     (async () => {
-      // If a sleep-timer fade is in progress for this tab (or an allTabs
-      // timer that covers it), the user-initiated volume change signals
-      // intent to keep listening. Cancel the fade so popup input doesn't
-      // fight the animation. (#30)
+      // If a sleep-timer fade is in progress for this tab — either a per-tab
+      // timer OR an allTabs timer that covers it — the user-initiated volume
+      // change signals intent to keep listening. Cancel the fade so popup
+      // input doesn't fight the animation. (#30, #118)
       try {
-        const timerState = await getSleepTimerState(tabId);
-        if (timerState && timerState.fadeStarted) {
-          await cancelSleepTimer(tabId, /* restoreVolume */ false);
+        const found = await findActiveTimerStateForTab(tabId);
+        if (found && found.state && found.state.fadeStarted) {
+          await cancelSleepTimer(found.owningTabId, /* restoreVolume */ false);
         }
       } catch (e) { /* best-effort */ }
 
