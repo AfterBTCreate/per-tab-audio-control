@@ -126,6 +126,7 @@ button:disabled {
 }
 
 .close-hint {
+  display: none;
   margin-top: 24px;
   font-size: 15px;
   color: rgba(255, 255, 255, 0.5);
@@ -151,6 +152,7 @@ button:disabled {
 }
 
 .help-section.error-help {
+  display: none;
   background: rgba(239, 68, 68, 0.1);
   border-radius: 8px;
   padding: 16px;
@@ -208,4 +210,14 @@ button.secondary:hover {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.5);
   line-height: 1.6;
+}
+
+.note-small {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.note-smaller {
+  font-size: 11px;
+  opacity: 0.7;
 }
