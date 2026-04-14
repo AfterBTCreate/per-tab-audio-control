@@ -494,3 +494,20 @@ body.light-mode .header-edit-reorder-name {
   white-space: nowrap;
   border: 0;
 }
+
+/* ==================== Focus Indicators ==================== */
+
+.header-edit-spacer-btn:focus-visible,
+.header-edit-reset:focus-visible,
+.header-edit-title-btn:focus-visible,
+.header-edit-done:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
+body.light-mode .header-edit-spacer-btn:focus-visible,
+body.light-mode .header-edit-reset:focus-visible,
+body.light-mode .header-edit-title-btn:focus-visible,
+body.light-mode .header-edit-done:focus-visible {
+  outline-color: #2563eb;
+}
