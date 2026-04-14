@@ -1847,6 +1847,23 @@ function isValidSender(sender) {
   return true;
 }
 
+// Stricter sender check: only accepts popup/options extension pages.
+// Rejects content scripts (sender.tab is set) and contexts with no URL.
+function isFromExtensionPage(sender) {
+  if (sender.tab) return false;
+  if (!sender.url) return false;
+  const popup = browserAPI.runtime.getURL('popup/');
+  const options = browserAPI.runtime.getURL('options/');
+  return sender.url.startsWith(popup) || sender.url.startsWith(options);
+}
+
+// Stricter sender check: only the offscreen document.
+function isFromOffscreen(sender) {
+  if (sender.tab) return false;
+  if (!sender.url) return false;
+  return sender.url === browserAPI.runtime.getURL('offscreen/offscreen.html');
+}
+
 // Validate message type is a known type
 const VALID_MESSAGE_TYPES = [
   'REQUEST_AUDIO_DEVICES', 'DEVICE_NOT_FOUND', 'GET_VOLUME', 'SET_VOLUME',
@@ -2334,6 +2351,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Start persistent visualizer capture (offscreen document manages the stream)
   if (request.type === 'START_PERSISTENT_VISUALIZER_CAPTURE') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ success: false, error: 'Rejected: not from extension page' });
+      return false;
+    }
     (async () => {
       const tabId = request.tabId;
       if (!isValidTabId(tabId)) {
@@ -2833,6 +2854,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // ==================== Recording Message Handlers ====================
 
   if (request.type === 'START_RECORDING') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ success: false, error: 'Rejected: not from extension page' });
+      return false;
+    }
     const tabId = request.tabId;
     if (!isValidTabId(tabId)) {
       sendResponse({ success: false, error: 'Invalid tab ID' });
@@ -2868,6 +2893,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'STOP_RECORDING') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ success: false, error: 'Rejected: not from extension page' });
+      return false;
+    }
     const tabId = request.tabId;
     if (!isValidTabId(tabId)) {
       sendResponse({ success: false, error: 'Invalid tab ID' });
@@ -2898,6 +2927,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'CANCEL_RECORDING') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ success: false, error: 'Rejected: not from extension page' });
+      return false;
+    }
     const tabId = request.tabId;
     if (!isValidTabId(tabId)) {
       sendResponse({ success: false, error: 'Invalid tab ID' });
@@ -2979,6 +3012,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'DOWNLOAD_RECORDING') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ success: false, error: 'Rejected: not from extension page' });
+      return false;
+    }
     const { blobUrl, filename } = request;
     // Security: Only accept blob URLs from *this* extension's origin.
     // Pin to chrome.runtime.id so a foreign extension page can't submit a
@@ -3039,6 +3076,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Either path revokes — the leak from #21 was because the URL was never
   // revoked and never delivered.
   if (request.type === 'RECORDING_AUTO_STOPPED') {
+    if (!isFromOffscreen(sender)) {
+      return false;
+    }
     const { blobUrl, format, reason, tabId: recTabId } = request;
     const ownOrigin = `blob:chrome-extension://${chrome.runtime.id}/`;
     if (!blobUrl || typeof blobUrl !== 'string' ||
