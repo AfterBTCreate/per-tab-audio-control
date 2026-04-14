@@ -140,14 +140,14 @@
 }
 
 .disclaimer-accept-btn {
-  background: #ef4444;
-  border-color: #ef4444;
+  background: #b91c1c; /* 7.12:1 — was #ef4444 (3.76:1, WCAG AA fail at 12px) (#108) */
+  border-color: #b91c1c;
   color: #ffffff;
 }
 
 .disclaimer-accept-btn:hover {
-  background: #dc2626;
-  border-color: #dc2626;
+  background: #991b1b;
+  border-color: #991b1b;
 }
 
 .disclaimer-cancel-btn:focus-visible,

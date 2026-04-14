@@ -577,9 +577,9 @@
     </div>
 
     <!-- Recording Disclaimer Dialog -->
-    <div class="recording-disclaimer-overlay" id="recordingDisclaimerOverlay" role="dialog" aria-label="Recording disclaimer">
+    <div class="recording-disclaimer-overlay" id="recordingDisclaimerOverlay" role="alertdialog" aria-labelledby="recordingDisclaimerTitle" aria-describedby="recordingDisclaimerBody">
       <div class="recording-disclaimer-dialog">
-        <h3>
+        <h3 id="recordingDisclaimerTitle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/>
@@ -587,7 +587,7 @@
           </svg>
           Recording Disclaimer
         </h3>
-        <p>This feature is intended for recording your own content, lectures, meetings (with consent), and other lawful purposes. You are responsible for compliance with applicable laws and third-party terms of service.</p>
+        <p id="recordingDisclaimerBody">This feature is intended for recording your own content, lectures, meetings (with consent), and other lawful purposes. You are responsible for compliance with applicable laws and third-party terms of service.</p>
         <div class="recording-disclaimer-buttons">
           <button class="disclaimer-cancel-btn" id="disclaimerCancelBtn">Cancel</button>
           <button class="disclaimer-accept-btn" id="disclaimerAcceptBtn">I Understand</button>
