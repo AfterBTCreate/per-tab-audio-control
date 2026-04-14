@@ -116,14 +116,6 @@ const EFFECT_RANGES = {
   speed: { min: 0.05, max: 5, default: 1 }
 };
 
-// Compressor presets
-const COMPRESSOR_PRESETS = {
-  off: { threshold: -50, knee: 40, ratio: 1, attack: 0, release: 0.25 },
-  podcast: { threshold: -24, knee: 20, ratio: 4, attack: 0.003, release: 0.25 },
-  movie: { threshold: -30, knee: 30, ratio: 8, attack: 0.001, release: 0.5 },
-  maximum: { threshold: -40, knee: 40, ratio: 20, attack: 0.001, release: 1.0 }
-};
-
 // Recording format constants
 // Note: OGG is not supported — Chrome's MediaRecorder does not support audio/ogg;codecs=opus,
 // so it would silently produce WebM bytes with a wrong .ogg extension.
