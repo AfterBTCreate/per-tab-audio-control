@@ -547,17 +547,28 @@ async function sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLab
     const compressorKey = getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR);
     const balanceKey = getTabStorageKey(tabId, TAB_STORAGE.BALANCE);
     const channelKey = getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE);
-    const effectResult = await browserAPI.storage.local.get([bassKey, trebleKey, voiceKey, compressorKey, balanceKey, channelKey]);
-    const bassBoostPresets = (await browserAPI.storage.sync.get(['bassBoostPresets'])).bassBoostPresets || DEFAULT_BASS_PRESETS;
-    const trebleBoostPresets = (await browserAPI.storage.sync.get(['trebleBoostPresets'])).trebleBoostPresets || DEFAULT_TREBLE_PRESETS;
-    const voiceBoostPresets = (await browserAPI.storage.sync.get(['voiceBoostPresets'])).voiceBoostPresets || DEFAULT_VOICE_PRESETS;
+    const speedKey = getTabStorageKey(tabId, TAB_STORAGE.SPEED);
+    // Batch local + sync reads: one round-trip each instead of up to 7
+    // sequential sync.get calls per tab navigation (#107).
+    const [effectResult, syncResult] = await Promise.all([
+      browserAPI.storage.local.get([bassKey, trebleKey, voiceKey, compressorKey, balanceKey, channelKey, speedKey]),
+      browserAPI.storage.sync.get([
+        'bassBoostPresets', 'bassCutPresets',
+        'trebleBoostPresets', 'trebleCutPresets',
+        'voiceBoostPresets', 'voiceCutPresets',
+        'speedSlowPresets', 'speedFastPresets'
+      ])
+    ]);
+    const bassBoostPresets = syncResult.bassBoostPresets || DEFAULT_BASS_PRESETS;
+    const trebleBoostPresets = syncResult.trebleBoostPresets || DEFAULT_TREBLE_PRESETS;
+    const voiceBoostPresets = syncResult.voiceBoostPresets || DEFAULT_VOICE_PRESETS;
 
     if (effectResult[bassKey] && effectResult[bassKey] !== 'off') {
       const bassLevel = effectResult[bassKey];
       if (typeof bassLevel === 'string') {
         let bassGain = 0;
         if (bassLevel.startsWith('cut-')) {
-          const bassCutPresets = (await browserAPI.storage.sync.get(['bassCutPresets'])).bassCutPresets || DEFAULT_BASS_CUT_PRESETS;
+          const bassCutPresets = syncResult.bassCutPresets || DEFAULT_BASS_CUT_PRESETS;
           const cutLevel = bassLevel.replace('cut-', '');
           bassGain = cutLevel === 'low' ? bassCutPresets[0] : cutLevel === 'medium' ? bassCutPresets[1] : cutLevel === 'high' ? bassCutPresets[2] : 0;
         } else if (bassLevel.startsWith('slider:')) {
@@ -576,7 +587,7 @@ async function sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLab
       if (typeof trebleLevel === 'string') {
         let trebleGain = 0;
         if (trebleLevel.startsWith('cut-')) {
-          const trebleCutPresets = (await browserAPI.storage.sync.get(['trebleCutPresets'])).trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
+          const trebleCutPresets = syncResult.trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
           const cutLevel = trebleLevel.replace('cut-', '');
           trebleGain = cutLevel === 'low' ? trebleCutPresets[0] : cutLevel === 'medium' ? trebleCutPresets[1] : cutLevel === 'high' ? trebleCutPresets[2] : 0;
         } else if (trebleLevel.startsWith('slider:')) {
@@ -595,7 +606,7 @@ async function sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLab
       if (typeof voiceLevel === 'string') {
         let voiceGain = 0;
         if (voiceLevel.startsWith('cut-')) {
-          const voiceCutPresetsData = (await browserAPI.storage.sync.get(['voiceCutPresets'])).voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS;
+          const voiceCutPresetsData = syncResult.voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS;
           const cutLevel = voiceLevel.replace('cut-', '');
           voiceGain = cutLevel === 'low' ? voiceCutPresetsData[0] : cutLevel === 'medium' ? voiceCutPresetsData[1] : cutLevel === 'high' ? voiceCutPresetsData[2] : 0;
         } else if (voiceLevel.startsWith('slider:')) {
@@ -622,18 +633,15 @@ async function sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLab
     }
 
     // Send playback speed if saved for this tab
-    const speedKey = getTabStorageKey(tabId, TAB_STORAGE.SPEED);
-    const speedResult = await browserAPI.storage.local.get([speedKey]);
-    const speedLevel = speedResult[speedKey];
+    const speedLevel = effectResult[speedKey];
     if (speedLevel && typeof speedLevel === 'string' && speedLevel !== 'off') {
       let rate = 1;
       if (speedLevel.startsWith('slider:')) {
         rate = parseFloat(speedLevel.split(':')[1]) || 1;
         if (!Number.isFinite(rate) || rate < EFFECT_RANGES.speed.min || rate > EFFECT_RANGES.speed.max) rate = 1;
       } else {
-        const speedPresets = await browserAPI.storage.sync.get(['speedSlowPresets', 'speedFastPresets']);
-        const slow = speedPresets.speedSlowPresets || DEFAULT_SPEED_SLOW_PRESETS;
-        const fast = speedPresets.speedFastPresets || DEFAULT_SPEED_FAST_PRESETS;
+        const slow = syncResult.speedSlowPresets || DEFAULT_SPEED_SLOW_PRESETS;
+        const fast = syncResult.speedFastPresets || DEFAULT_SPEED_FAST_PRESETS;
         const speedMap = {
           'slow-low': slow[0], 'slow-medium': slow[1], 'slow-high': slow[2],
           'fast-low': fast[0], 'fast-medium': fast[1], 'fast-high': fast[2]
@@ -663,23 +671,32 @@ async function syncStoredSettingsToTabCapture(tabId) {
     const compressorKey = getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR);
     const balanceKey = getTabStorageKey(tabId, TAB_STORAGE.BALANCE);
     const channelKey = getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE);
-    const result = await browserAPI.storage.local.get([volKey, bassKey, trebleKey, voiceKey, compressorKey, balanceKey, channelKey]);
+    // Batch local + sync reads in parallel: one round-trip each instead of
+    // up to 7 sequential sync.get calls per Tab Capture start (#107).
+    const [result, syncResult] = await Promise.all([
+      browserAPI.storage.local.get([volKey, bassKey, trebleKey, voiceKey, compressorKey, balanceKey, channelKey]),
+      browserAPI.storage.sync.get([
+        'bassBoostPresets', 'bassCutPresets',
+        'trebleBoostPresets', 'trebleCutPresets',
+        'voiceBoostPresets', 'voiceCutPresets'
+      ])
+    ]);
 
     // Volume — always send (default 100 if not stored)
     const volume = result[volKey] !== undefined ? result[volKey] : 100;
     chrome.runtime.sendMessage({ type: 'SET_TAB_CAPTURE_VOLUME', tabId, volume }).catch(() => {});
 
     // Effects — only send if stored (non-default)
-    const bassBoostPresets = (await browserAPI.storage.sync.get(['bassBoostPresets'])).bassBoostPresets || DEFAULT_BASS_PRESETS;
-    const trebleBoostPresets = (await browserAPI.storage.sync.get(['trebleBoostPresets'])).trebleBoostPresets || DEFAULT_TREBLE_PRESETS;
-    const voiceBoostPresets = (await browserAPI.storage.sync.get(['voiceBoostPresets'])).voiceBoostPresets || DEFAULT_VOICE_PRESETS;
+    const bassBoostPresets = syncResult.bassBoostPresets || DEFAULT_BASS_PRESETS;
+    const trebleBoostPresets = syncResult.trebleBoostPresets || DEFAULT_TREBLE_PRESETS;
+    const voiceBoostPresets = syncResult.voiceBoostPresets || DEFAULT_VOICE_PRESETS;
 
     if (result[bassKey] && result[bassKey] !== 'off') {
       const level = result[bassKey];
       if (typeof level === 'string') {
         let gain = 0;
         if (level.startsWith('cut-')) {
-          const bassCutPresets = (await browserAPI.storage.sync.get(['bassCutPresets'])).bassCutPresets || DEFAULT_BASS_CUT_PRESETS;
+          const bassCutPresets = syncResult.bassCutPresets || DEFAULT_BASS_CUT_PRESETS;
           const cutLevel = level.replace('cut-', '');
           gain = cutLevel === 'low' ? bassCutPresets[0] : cutLevel === 'medium' ? bassCutPresets[1] : cutLevel === 'high' ? bassCutPresets[2] : 0;
         } else if (level.startsWith('slider:')) {
@@ -698,7 +715,7 @@ async function syncStoredSettingsToTabCapture(tabId) {
       if (typeof level === 'string') {
         let gain = 0;
         if (level.startsWith('cut-')) {
-          const trebleCutPresets = (await browserAPI.storage.sync.get(['trebleCutPresets'])).trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
+          const trebleCutPresets = syncResult.trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
           const cutLevel = level.replace('cut-', '');
           gain = cutLevel === 'low' ? trebleCutPresets[0] : cutLevel === 'medium' ? trebleCutPresets[1] : cutLevel === 'high' ? trebleCutPresets[2] : 0;
         } else if (level.startsWith('slider:')) {
@@ -717,7 +734,7 @@ async function syncStoredSettingsToTabCapture(tabId) {
       if (typeof level === 'string') {
         let gain = 0;
         if (level.startsWith('cut-')) {
-          const voiceCutPresetsData = (await browserAPI.storage.sync.get(['voiceCutPresets'])).voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS;
+          const voiceCutPresetsData = syncResult.voiceCutPresets || DEFAULT_VOICE_CUT_PRESETS;
           const cutLevel = level.replace('cut-', '');
           gain = cutLevel === 'low' ? voiceCutPresetsData[0] : cutLevel === 'medium' ? voiceCutPresetsData[1] : cutLevel === 'high' ? voiceCutPresetsData[2] : 0;
         } else if (level.startsWith('slider:')) {
