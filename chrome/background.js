@@ -4670,6 +4670,27 @@ if (contextMenusAPI) {
       return;
     }
 
+    // EQ actions below share a lockout: bass/treble/voice boost/cut cannot be
+    // applied while a compressor preset is active, mirroring the popup UI
+    // which disables those controls when the compressor is on. Context-menu
+    // paths would otherwise produce a state the popup can't express. (#110)
+    const isEqMenu = (
+      menuItemId.startsWith('voiceBoost_') || menuItemId.startsWith('voiceCut_') ||
+      menuItemId.startsWith('bassBoost_') || menuItemId.startsWith('bassCut_') ||
+      menuItemId.startsWith('trebleBoost_') || menuItemId.startsWith('trebleCut_')
+    );
+    if (isEqMenu) {
+      try {
+        const compKey = getTabStorageKey(tab.id, TAB_STORAGE.COMPRESSOR);
+        const stored = await browserAPI.storage.local.get([compKey]);
+        const currentCompressor = stored[compKey];
+        if (currentCompressor && currentCompressor !== 'off') {
+          console.log('[TabVolume] Context menu EQ change ignored — compressor is active:', currentCompressor);
+          return;
+        }
+      } catch (_) { /* if the lookup fails, allow through */ }
+    }
+
     // ========== Voice Boost ==========
     if (menuItemId.startsWith('voiceBoost_')) {
       const level = menuItemId.replace('voiceBoost_', '');
