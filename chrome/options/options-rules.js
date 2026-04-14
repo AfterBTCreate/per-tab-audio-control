@@ -189,6 +189,9 @@ async function loadRules() {
     deleteBtn.className = 'rule-delete';
     deleteBtn.dataset.index = index;
     deleteBtn.textContent = 'Delete';
+    // Screen readers hear the pattern alongside "Delete" so users can
+    // tell which rule they're removing without re-reading context (#105).
+    deleteBtn.setAttribute('aria-label', `Delete rule for ${rule.pattern}`);
 
     item.appendChild(ruleInfo);
     item.appendChild(volumeDiv);
@@ -238,6 +241,21 @@ async function deleteRule(index) {
 
     await loadRules();
     await updateQuotaDisplay();
+
+    // Restore focus after the list rebuild so keyboard users don't jump to
+    // document.body. Prefer the rule that slid into this index, fall back to
+    // the last rule, then to the Clear All button, then the section header (#105).
+    const items = rulesListContent.children;
+    let focusTarget = null;
+    if (items.length > 0) {
+      const targetIndex = Math.min(index, items.length - 1);
+      focusTarget = items[targetIndex]?.querySelector('.rule-delete') || null;
+    }
+    if (!focusTarget) {
+      focusTarget = document.getElementById('clearAllRulesBtn') ||
+                    document.getElementById('siteRulesHeader');
+    }
+    focusTarget?.focus();
   } catch (e) {
     console.error('[TabVolume Options] Failed to delete rule:', e);
     alert('Failed to delete rule. Please try again.');
