@@ -42,6 +42,16 @@ function initHeaderEditMode() {
   brandLogo.addEventListener('pointerleave', cancelPress);
   brandLogo.addEventListener('pointercancel', cancelPress);
 
+  // Keyboard entry: Shift+Enter on the logo toggles edit mode (#97).
+  // Preserves plain Enter/Space for link navigation.
+  brandLogo.addEventListener('keydown', (e) => {
+    if (e.shiftKey && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!headerEditMode) enterEditMode();
+    }
+  });
+
   // Prevent link navigation during edit mode
   brandLogo.addEventListener('click', (e) => {
     if (headerEditMode) {
