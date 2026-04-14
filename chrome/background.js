@@ -985,8 +985,22 @@ async function activateTab(tabId) {
   await updateBadge(tabId, volume);
 }
 
-// Set volume for a tab
-async function setTabVolume(tabId, volume) {
+// Set volume for a tab. Pass { cancelFade: false } when called from
+// cancelSleepTimer's own volume-restore path so we don't recurse; all other
+// callers — keyboard shortcut, context menu, popup slider, site rules —
+// implicitly cancel any in-progress sleep-timer fade on this tab so the
+// user's volume change sticks. (#125)
+async function setTabVolume(tabId, volume, opts = {}) {
+  const { cancelFade = true } = opts;
+  if (cancelFade) {
+    try {
+      const found = await findActiveTimerStateForTab(tabId);
+      if (found && found.state && found.state.fadeStarted) {
+        await cancelSleepTimer(found.owningTabId, /* restoreVolume */ false);
+      }
+    } catch (_) { /* best-effort */ }
+  }
+
   const key = getTabStorageKey(tabId);
   const validatedVolume = validateVolume(volume);
   await browserAPI.storage.local.set({ [key]: validatedVolume });
@@ -2028,7 +2042,8 @@ async function cancelSleepTimer(tabId, restoreVolume = true) {
   const state = await getSleepTimerState(tabId);
   await clearSleepTimerAlarms(tabId);
 
-  // If fade was in progress, restore original volume
+  // If fade was in progress, restore original volume. Pass cancelFade: false
+  // so setTabVolume doesn't try to re-cancel this very timer (#125).
   if (state && state.fadeStarted && restoreVolume) {
     try {
       if (state.allTabs) {
@@ -2037,11 +2052,11 @@ async function cancelSleepTimer(tabId, restoreVolume = true) {
         for (const tab of tabs) {
           // Tabs opened after the timer started have no snapshot — leave them alone.
           if (Object.prototype.hasOwnProperty.call(perTab, tab.id)) {
-            await setTabVolume(tab.id, perTab[tab.id]);
+            await setTabVolume(tab.id, perTab[tab.id], { cancelFade: false });
           }
         }
       } else {
-        await setTabVolume(state.tabId, state.originalVolume);
+        await setTabVolume(state.tabId, state.originalVolume, { cancelFade: false });
       }
     } catch (e) {
       console.error('[TabVolume] Failed to restore volume after cancel:', e.message);
