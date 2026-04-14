@@ -269,30 +269,24 @@ function createEditPanel() {
   spBtns.className = 'header-edit-spacer-btns';
 
   const currentCount = currentEditLayout.spacerCount || 4;
-  for (let i = 1; i <= MAX_SPACERS; i++) {
+  for (let i = MIN_SPACERS; i <= MAX_SPACERS; i++) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = String(i);
     btn.setAttribute('aria-label', `Set header spacer count to ${i}`);
-    if (i < MIN_SPACERS) {
-      btn.className = 'header-edit-spacer-btn disabled';
-      btn.setAttribute('aria-disabled', 'true');
-      btn.tabIndex = -1;
-    } else {
-      btn.className = 'header-edit-spacer-btn' + (i === currentCount ? ' active' : '');
-      btn.setAttribute('aria-pressed', i === currentCount ? 'true' : 'false');
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setSpacerCount(i);
-        spBtns.querySelectorAll('.header-edit-spacer-btn').forEach(b => {
-          const match = b.textContent === String(i);
-          b.classList.toggle('active', match);
-          if (b.hasAttribute('aria-pressed')) {
-            b.setAttribute('aria-pressed', match ? 'true' : 'false');
-          }
-        });
+    btn.className = 'header-edit-spacer-btn' + (i === currentCount ? ' active' : '');
+    btn.setAttribute('aria-pressed', i === currentCount ? 'true' : 'false');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setSpacerCount(i);
+      spBtns.querySelectorAll('.header-edit-spacer-btn').forEach(b => {
+        const match = b.textContent === String(i);
+        b.classList.toggle('active', match);
+        if (b.hasAttribute('aria-pressed')) {
+          b.setAttribute('aria-pressed', match ? 'true' : 'false');
+        }
       });
-    }
+    });
     spBtns.appendChild(btn);
   }
   spacerSec.appendChild(spBtns);
