@@ -16,7 +16,15 @@
 }
 
 .visualizer-option input[type="radio"] {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .visualizer-option-content {
@@ -124,7 +132,15 @@ body.light-mode .visualizer-color-setting input[type="color"]:hover:not(:disable
 }
 
 .setting-option input[type="radio"] {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .setting-option-content {
@@ -186,7 +202,15 @@ body.light-mode .visualizer-color-setting input[type="color"]:hover:not(:disable
 }
 
 .toggle-option input[type="radio"] {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .toggle-option span {
@@ -440,7 +464,15 @@ body.light-mode .device-mode-note {
 }
 
 .toggle-setting input[type="checkbox"] {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .toggle-setting .toggle-slider {
