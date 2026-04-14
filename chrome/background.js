@@ -2143,7 +2143,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     }
     sendResponse({ success: true });
-    return true;
+    return false;
   }
 
   if (request.type === 'GET_VOLUME') {
@@ -2421,7 +2421,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       persistTabsWithMedia();
     }
     sendResponse({ success: true });
-    return true;
+    return false;
   }
 
   // Get per-site tabCapture preference
@@ -3001,7 +3001,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const tabId = request.tabId;
     if (!isValidTabId(tabId)) {
       sendResponse({ success: false, error: 'Invalid tab ID' });
-      return true;
+      return false;
     }
     (async () => {
       const state = await getSleepTimerState(tabId);
