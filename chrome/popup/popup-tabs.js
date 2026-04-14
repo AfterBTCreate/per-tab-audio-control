@@ -1578,10 +1578,31 @@ browserAPI.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
-// Listen for tab close to clean up blocked state cache
-browserAPI.tabs.onRemoved.addListener((tabId) => {
+// Listen for tab close to clean up blocked state cache, and — if the closed
+// tab is the one this popup is controlling — refresh the tab list and switch
+// to another audible tab, or close the popup if no audio tabs remain (#124).
+browserAPI.tabs.onRemoved.addListener(async (tabId) => {
   if (typeof window.clearBlockedTabCache === 'function') {
     window.clearBlockedTabCache(tabId);
+  }
+  if (tabId !== currentTabId) return;
+
+  try {
+    audibleTabs = await getAudibleTabs();
+  } catch (_) {
+    audibleTabs = [];
+  }
+  if (!audibleTabs || audibleTabs.length === 0) {
+    // No audible tabs left — dismiss the orphaned popup.
+    window.close();
+    return;
+  }
+  // Switch to the first remaining audible tab so controls become live again.
+  try {
+    await switchToTab(0);
+  } catch (e) {
+    // If switch fails for any reason, dismiss rather than leave a broken UI.
+    window.close();
   }
 });
 
