@@ -183,8 +183,8 @@
 }
 
 .section-edit-hide-label {
-  font-size: 9px;
-  color: #64748b;
+  font-size: 10px; /* bump from 9px to reduce 1.4.4 Resize Text concern (#95) */
+  color: #94a3b8; /* 5.76:1 on dark modal — was #64748b (3.11:1, AA fail) (#95) */
   font-weight: 500;
 }
 
@@ -262,8 +262,8 @@
 /* ==================== Warning ==================== */
 
 .sections-edit-warning {
-  font-size: 8px;
-  color: #fbbf24;
+  font-size: 10px; /* bump from 8px to meet WCAG 1.4.4 Resize Text (#95) */
+  color: #fbbf24; /* contrast ratio is already strong (8.87:1 on body) */
   text-align: center;
   padding: 2px;
   opacity: 0;
@@ -350,8 +350,8 @@
 }
 
 .sections-edit-appearance-hide-text {
-  font-size: 9px;
-  color: #64748b;
+  font-size: 10px; /* bump from 9px to reduce 1.4.4 concern (#95) */
+  color: #94a3b8; /* 5.76:1 on dark — was #64748b (3.11:1, AA fail) (#95) */
   font-weight: 500;
 }
 
@@ -405,7 +405,7 @@ body.light-mode .section-edit-sp-btn.active {
 }
 
 body.light-mode .section-edit-hide-label {
-  color: #94a3b8;
+  color: #475569; /* ~7:1 on light modal — was #94a3b8 (~4.28:1, borderline) (#95) */
 }
 
 body.light-mode .sections-edit-bulk-btn {
@@ -466,7 +466,7 @@ body.light-mode .sections-edit-warning {
 }
 
 body.light-mode .sections-edit-appearance-hide-text {
-  color: #94a3b8;
+  color: #475569; /* ~7:1 on light bg — align with section-edit-hide-label (#95) */
 }
 
 /* ==================== Focus Indicators ==================== */

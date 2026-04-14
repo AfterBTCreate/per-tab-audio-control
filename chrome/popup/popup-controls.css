@@ -615,9 +615,9 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
 }
 
 .shortcut-action {
-  font-size: 9px;
+  font-size: 10px; /* bump from 9px to reduce WCAG 1.4.4 Resize Text concern (#95) */
   font-weight: 500;
-  color: #5a7a9a;
+  color: #89a3c0; /* 4.8:1 on dark body — was #5a7a9a (3.30:1, AA fail) (#95) */
 }
 
 .shortcut-key {
@@ -924,7 +924,7 @@ body.light-mode .shortcuts-footer {
 }
 
 body.light-mode .shortcut-action {
-  color: #6a8298;
+  color: #51718d; /* 5.0:1 on light bg (#95) */
 }
 
 body.light-mode .shortcut-key {
