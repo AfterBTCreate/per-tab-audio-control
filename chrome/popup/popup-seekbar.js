@@ -162,11 +162,20 @@ function resetSeekbar() {
   updatePlayPauseIcon(false);
 }
 
-// Drag handling
-seekbarSlider.addEventListener('mousedown', () => { isSeeking = true; });
+// Drag handling. Commit only on mouseup (on the slider or anywhere on the
+// document); mouseleave during drag used to commit a premature seek when
+// users crossed the row boundary while still pressing, producing jump-to-
+// wrong-position behavior. (#78)
+function handleDocumentMouseUp() {
+  if (isSeeking) commitSeek();
+  document.removeEventListener('mouseup', handleDocumentMouseUp);
+}
+seekbarSlider.addEventListener('mousedown', () => {
+  isSeeking = true;
+  // Ensure release-outside-the-slider still finalizes the seek.
+  document.addEventListener('mouseup', handleDocumentMouseUp);
+});
 seekbarSlider.addEventListener('touchstart', () => { isSeeking = true; }, { passive: true });
-// Clear stuck flag if mouse leaves slider during drag
-seekbarSlider.addEventListener('mouseleave', () => { if (isSeeking) commitSeek(); });
 
 seekbarSlider.addEventListener('input', () => {
   // Update fill visually while dragging
