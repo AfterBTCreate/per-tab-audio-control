@@ -1478,7 +1478,7 @@ async function setupOffscreenDocument() {
     await chrome.offscreen.createDocument({
       url: offscreenUrl,
       reasons: ['USER_MEDIA'],
-      justification: 'Enumerate audio output devices and Tab Capture for visualizer'
+      justification: 'Enumerate audio output devices, Tab Capture for visualizer/EQ processing, and record tab audio locally to user-chosen files (MP3/WAV/WebM)'
     });
     // Small delay to ensure the offscreen JS has loaded and registered its listeners
     await new Promise(resolve => setTimeout(resolve, 100));
