@@ -2960,6 +2960,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'GET_RECORDING_STATUS') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ recording: false });
+      return false;
+    }
     const tabId = request.tabId;
     if (!isValidTabId(tabId)) {
       sendResponse({ recording: false });
@@ -2989,6 +2993,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'GET_ANY_RECORDING_STATUS') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ recording: false });
+      return false;
+    }
     (async () => {
       try {
         const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
