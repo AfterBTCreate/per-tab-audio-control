@@ -468,3 +468,26 @@ body.light-mode .sections-edit-warning {
 body.light-mode .sections-edit-appearance-hide-text {
   color: #94a3b8;
 }
+
+/* ==================== Focus Indicators ==================== */
+
+.section-edit-sp-btn:focus-visible,
+.sections-edit-bulk-btn:focus-visible,
+.sections-edit-badge-btn:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
+.section-edit-visibility input[type="checkbox"]:focus-visible,
+.sections-edit-appearance-check input[type="checkbox"]:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
+body.light-mode .section-edit-sp-btn:focus-visible,
+body.light-mode .sections-edit-bulk-btn:focus-visible,
+body.light-mode .sections-edit-badge-btn:focus-visible,
+body.light-mode .section-edit-visibility input[type="checkbox"]:focus-visible,
+body.light-mode .sections-edit-appearance-check input[type="checkbox"]:focus-visible {
+  outline-color: #2563eb;
+}
