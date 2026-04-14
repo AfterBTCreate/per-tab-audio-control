@@ -3666,11 +3666,24 @@ async function cleanupStaleTabKeys() {
     const tabs = await browserAPI.tabs.query({});
     const validTabIds = new Set(tabs.map(t => t.id));
 
-    const allStorage = await browserAPI.storage.local.get(null);
-    const keysToRemove = [];
+    // Prefer storage.local.getKeys() (Chrome 130+) to avoid hydrating every
+    // stored value into memory just to enumerate keys. Fall back to get(null)
+    // with a size cap when getKeys is unavailable.
+    let storageKeys;
+    if (typeof browserAPI.storage.local.getKeys === 'function') {
+      storageKeys = await browserAPI.storage.local.getKeys();
+    } else {
+      const allStorage = await browserAPI.storage.local.get(null);
+      storageKeys = Object.keys(allStorage);
+      if (storageKeys.length > 5000) {
+        console.warn('[TabVolume] Skipping stale-key cleanup: storage.local has', storageKeys.length, 'keys');
+        return;
+      }
+    }
 
+    const keysToRemove = [];
     // Find all tab_* keys that don't belong to open tabs
-    for (const key of Object.keys(allStorage)) {
+    for (const key of storageKeys) {
       if (key.startsWith('tab_')) {
         // Extract tab ID from key (handles tab_123, tab_123_prev, tab_123_device, etc.)
         const match = key.match(/^tab_(\d+)/);
