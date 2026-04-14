@@ -2043,11 +2043,14 @@
       const data = mediaGainNodes.get(element);
       if (data && data.analyser && !element.paused) {
         const bufferLength = data.analyser.frequencyBinCount;
+        const waveLength = data.analyser.fftSize;
 
         // Reuse arrays to avoid allocation
         if (!freqArrayBuffer || freqArrayBuffer.length !== bufferLength) {
           freqArrayBuffer = new Uint8Array(bufferLength);
-          waveArrayBuffer = new Uint8Array(bufferLength);
+        }
+        if (!waveArrayBuffer || waveArrayBuffer.length !== waveLength) {
+          waveArrayBuffer = new Uint8Array(waveLength);
         }
 
         data.analyser.getByteFrequencyData(freqArrayBuffer);

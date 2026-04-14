@@ -740,7 +740,7 @@
           }
           const bufferLength = data.analyser.frequencyBinCount;
           const freqArray = new Uint8Array(bufferLength);
-          const waveArray = new Uint8Array(bufferLength);
+          const waveArray = new Uint8Array(data.analyser.fftSize);
           data.analyser.getByteFrequencyData(freqArray);
           data.analyser.getByteTimeDomainData(waveArray);
           // Only use if there's actual data (not all zeros)
