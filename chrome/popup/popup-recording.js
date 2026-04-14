@@ -247,11 +247,13 @@ async function stopRecording() {
       const ext = response.format || 'mp3';
       const filename = `${sanitized}_${dateStr}_${timeStr}.${ext}`;
 
-      // Trigger download via background
+      // Trigger download via background. Pass format so background can enforce
+      // the filename extension matches the blob MIME (#84).
       const dlResponse = await browserAPI.runtime.sendMessage({
         type: 'DOWNLOAD_RECORDING',
         blobUrl: response.blobUrl,
-        filename: filename
+        filename: filename,
+        format: ext
       });
 
       if (dlResponse && dlResponse.success) {

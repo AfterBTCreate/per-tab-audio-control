@@ -3207,7 +3207,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: false, error: 'Rejected: not from extension page' });
       return false;
     }
-    const { blobUrl, filename } = request;
+    const { blobUrl, filename, format } = request;
     // Security: Only accept blob URLs from *this* extension's origin.
     // Pin to chrome.runtime.id so a foreign extension page can't submit a
     // blob URL bound to some other origin (#24).
@@ -3221,8 +3221,15 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: false, error: 'Invalid filename' });
       return false;
     }
+    // Security: format must be one of the recognised recording formats so the
+    // saved file's extension can't be spoofed (#84).
+    const VALID_FORMATS = ['mp3', 'wav', 'webm'];
+    if (!format || !VALID_FORMATS.includes(format)) {
+      sendResponse({ success: false, error: 'Invalid format' });
+      return false;
+    }
     // Security: Re-sanitize filename at the trust boundary (defense-in-depth)
-    const safeFilename = filename
+    let safeFilename = filename
       .replace(/[<>:"/\\|?*\x00-\x1f]/g, '') // Remove filesystem-unsafe chars
       .replace(/\.\./g, '') // Prevent path traversal
       .replace(/^[/\\]+/, '') // No leading path separators
@@ -3232,6 +3239,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: false, error: 'Invalid filename after sanitization' });
       return false;
     }
+    // Enforce that the saved extension matches the blob format (#84). Strip
+    // any trailing .mp3/.wav/.webm (case-insensitive) and append the correct
+    // one.
+    safeFilename = safeFilename.replace(/\.(mp3|wav|webm)$/i, '') + '.' + format;
     (async () => {
       try {
         // Pause the offscreen safety-net timer while the user sits in the
