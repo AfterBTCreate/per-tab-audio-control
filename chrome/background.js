@@ -1778,6 +1778,45 @@ async function getSleepTimerState(tabId) {
   }
 }
 
+// Find the sleep-timer state that currently governs `tabId`, considering
+// allTabs timers hosted on a different tab. Returns { owningTabId, state }
+// or null. Used by user-initiated volume changes so an allTabs fade can be
+// cancelled from any tab it covers (#118), not just its trigger tab.
+async function findActiveTimerStateForTab(tabId) {
+  try {
+    const result = await browserAPI.storage.session.get(['sleepTimers']);
+    const timers = result.sleepTimers || {};
+    // Prefer a per-tab timer on this tab if one exists.
+    if (timers[tabId]) {
+      return { owningTabId: tabId, state: timers[tabId] };
+    }
+    // Otherwise look for any allTabs timer — singleton after #114.
+    for (const [ownerKey, state] of Object.entries(timers)) {
+      if (state && state.allTabs) {
+        return { owningTabId: parseInt(ownerKey, 10), state };
+      }
+    }
+  } catch (_) { /* session storage unavailable */ }
+  return null;
+}
+
+// Return all allTabs timer entries currently in session storage.
+async function getAllTabsTimers() {
+  try {
+    const result = await browserAPI.storage.session.get(['sleepTimers']);
+    const timers = result.sleepTimers || {};
+    const out = [];
+    for (const [ownerKey, state] of Object.entries(timers)) {
+      if (state && state.allTabs) {
+        out.push({ owningTabId: parseInt(ownerKey, 10), state });
+      }
+    }
+    return out;
+  } catch (_) {
+    return [];
+  }
+}
+
 // Serialize sleep timer state writes to prevent read-modify-write races
 let sleepTimerWriteQueue = Promise.resolve();
 
@@ -1820,6 +1859,18 @@ async function clearSleepTimerAlarms(tabId) {
 
 // Start sleep timer for a specific tab
 async function startSleepTimer(minutes, tabId, allTabs) {
+  // allTabs is a singleton — cancel any existing allTabs timer regardless of
+  // which tab hosts it, so we can't end up with two fade loops racing on the
+  // same tab set. (#114)
+  if (allTabs) {
+    const existing = await getAllTabsTimers();
+    for (const { owningTabId } of existing) {
+      if (owningTabId !== tabId) {
+        await cancelSleepTimer(owningTabId, /* restoreVolume */ false);
+      }
+    }
+  }
+
   // Clear any existing timer for THIS tab only
   await clearSleepTimerAlarms(tabId);
 
