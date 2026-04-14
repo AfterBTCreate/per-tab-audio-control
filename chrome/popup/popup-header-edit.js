@@ -416,11 +416,22 @@ function updateEditTitleBtnsState(vizHidden) {
     const val = btn.dataset.titleValue;
     if (val === 'inside' || val === 'below') {
       btn.classList.toggle('disabled', vizHidden);
+      if (vizHidden) {
+        btn.setAttribute('aria-disabled', 'true');
+        btn.tabIndex = -1;
+      } else {
+        btn.removeAttribute('aria-disabled');
+        btn.tabIndex = 0;
+      }
       // If a disabled option is currently active, switch to "above"
       if (vizHidden && btn.classList.contains('active')) {
         btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
         const aboveBtn = editPanel.querySelector('.header-edit-title-btn[data-title-value="above"]');
-        if (aboveBtn) aboveBtn.classList.add('active');
+        if (aboveBtn) {
+          aboveBtn.classList.add('active');
+          aboveBtn.setAttribute('aria-pressed', 'true');
+        }
         browserAPI.storage.sync.set({ tabInfoLocation: 'above' });
       }
     }
