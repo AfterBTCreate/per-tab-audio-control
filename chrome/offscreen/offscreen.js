@@ -48,6 +48,14 @@ const startingRecordings = new Set();
 // Maximum recording size (2GB - safety margin for ArrayBuffer limits)
 const MAX_RECORDING_BYTES = 2 * 1024 * 1024 * 1024 - 1024;
 
+// Safety-net revoke for blob URLs handed to the popup. If the popup closes
+// between STOP_RECORDING and DOWNLOAD_RECORDING, background never sends the
+// REVOKE_BLOB_URL that normally follows a successful download, and the blob
+// lingers in offscreen memory. A timer revokes it after the window below;
+// the normal success path cancels the timer via REVOKE_BLOB_URL. (#102)
+const STOP_BLOB_REVOKE_MS = 30000;
+const pendingStopBlobTimers = new Map(); // blobUrl -> timeoutId
+
 // ==================== Recording Functions ====================
 
 function isValidRecordingFormat(format) {
@@ -340,6 +348,15 @@ async function handleStopRecording(tabId) {
     // Create blob URL for download
     const blobUrl = URL.createObjectURL(blob);
 
+    // Safety-net: if the popup closes before DOWNLOAD_RECORDING fires,
+    // the normal REVOKE_BLOB_URL round-trip never happens. Revoke locally
+    // after STOP_BLOB_REVOKE_MS so the blob doesn't leak. (#102)
+    const timerId = setTimeout(() => {
+      pendingStopBlobTimers.delete(blobUrl);
+      try { URL.revokeObjectURL(blobUrl); } catch (_) { /* ignore */ }
+    }, STOP_BLOB_REVOKE_MS);
+    pendingStopBlobTimers.set(blobUrl, timerId);
+
     log('Recording stopped for tab', tabId, 'size:', blob.size, 'duration:', duration);
     return {
       success: true,
@@ -556,7 +573,28 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'REVOKE_BLOB_URL':
       if (message.blobUrl && typeof message.blobUrl === 'string' &&
           message.blobUrl.startsWith('blob:')) {
+        const pendingTimer = pendingStopBlobTimers.get(message.blobUrl);
+        if (pendingTimer !== undefined) {
+          clearTimeout(pendingTimer);
+          pendingStopBlobTimers.delete(message.blobUrl);
+        }
         try { URL.revokeObjectURL(message.blobUrl); } catch (e) { /* ignore */ }
+      }
+      return false;
+
+    // Background has accepted a DOWNLOAD_RECORDING and is about to hand the
+    // blob URL to chrome.downloads.download(). Disable the safety-net timer
+    // so a long Save As dialog cannot revoke the URL out from under the
+    // pending download. Background will send REVOKE_BLOB_URL when the
+    // download resolves. (#102)
+    case 'CANCEL_STOP_BLOB_TIMER':
+      if (message.blobUrl && typeof message.blobUrl === 'string' &&
+          message.blobUrl.startsWith('blob:')) {
+        const pendingTimer = pendingStopBlobTimers.get(message.blobUrl);
+        if (pendingTimer !== undefined) {
+          clearTimeout(pendingTimer);
+          pendingStopBlobTimers.delete(message.blobUrl);
+        }
       }
       return false;
 

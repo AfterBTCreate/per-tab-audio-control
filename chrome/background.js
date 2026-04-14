@@ -3227,6 +3227,15 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     (async () => {
       try {
+        // Pause the offscreen safety-net timer while the user sits in the
+        // Save As dialog (may take minutes). Background will send the real
+        // REVOKE_BLOB_URL once the download resolves. (#102)
+        try {
+          await chrome.runtime.sendMessage({
+            type: 'CANCEL_STOP_BLOB_TIMER',
+            blobUrl: blobUrl
+          });
+        } catch (e) { /* offscreen may already be closed */ }
         const downloadId = await chrome.downloads.download({
           url: blobUrl,
           filename: safeFilename,
