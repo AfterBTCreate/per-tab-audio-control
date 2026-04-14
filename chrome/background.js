@@ -111,6 +111,9 @@ let focusModeState = {
   focusMutedTabIds: new Set()
 };
 
+// Tabs with an active recording; Focus mode must not silence these (#99).
+const recordingTabIds = new Set();
+
 async function saveFocusMutedTabIds() {
   try {
     await browserAPI.storage.session.set({
@@ -1025,6 +1028,7 @@ browserAPI.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   if (focusModeState.focusMutedTabIds.delete(tabId)) {
     await saveFocusMutedTabIds();
   }
+  recordingTabIds.delete(tabId);
 
   // Notify offscreen to clean up all captures for this tab (Chrome only)
   // TAB_REMOVED cleans up both visualizer and Tab Capture audio pipelines
@@ -1082,8 +1086,9 @@ browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
     await loadFocusMutedTabIds();
   }
 
-  // Mute the previous active tab (if different and exists)
-  if (previousTabId && previousTabId !== newActiveTabId) {
+  // Mute the previous active tab (if different and exists).
+  // Skip if the tab has an active recording — muting would silence the recording (#99).
+  if (previousTabId && previousTabId !== newActiveTabId && !recordingTabIds.has(previousTabId)) {
     try {
       // Only track tabs that weren't already muted by the user.
       let wasUserMuted = false;
@@ -1197,8 +1202,9 @@ browserAPI.windows.onFocusChanged.addListener(async (windowId) => {
       await loadFocusMutedTabIds();
     }
 
-    // Mute the previous active tab
-    if (previousTabId) {
+    // Mute the previous active tab.
+    // Skip if it has an active recording (#99).
+    if (previousTabId && !recordingTabIds.has(previousTabId)) {
       try {
         let wasUserMuted = false;
         try {
@@ -2193,11 +2199,14 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         // Mute all other tabs that aren't already muted, and track which
         // tabs we newly muted so we can restore user-initiated mutes on toggle-off.
+        // Skip tabs that have an active recording — muting them would silence
+        // the recording output (#99).
         focusModeState.focusMutedTabIds.clear();
         let mutedCount = 0;
         for (const tab of tabs) {
           if (tab.id === currentTabId) continue;
           if (tab.mutedInfo?.muted) continue;
+          if (recordingTabIds.has(tab.id)) continue;
           try {
             await browserAPI.tabs.update(tab.id, { muted: true });
             focusModeState.focusMutedTabIds.add(tab.id);
@@ -2967,6 +2976,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           bitrate,
           sampleRate
         });
+        if (result && result.success) {
+          recordingTabIds.add(tabId);
+        }
         sendResponse(result);
       } catch (e) {
         sendResponse({ success: false, error: e.message });
@@ -2994,6 +3006,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           documentUrls: [offscreenUrl]
         });
         if (contexts.length === 0) {
+          recordingTabIds.delete(tabId);
           sendResponse({ success: false, error: 'Recording lost: audio context was recycled' });
           return;
         }
@@ -3001,8 +3014,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           type: 'STOP_RECORDING',
           tabId: tabId
         });
+        recordingTabIds.delete(tabId);
         sendResponse(result);
       } catch (e) {
+        recordingTabIds.delete(tabId);
         sendResponse({ success: false, error: e.message });
       }
     })();
@@ -3027,6 +3042,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           documentUrls: [offscreenUrl]
         });
         if (contexts.length === 0) {
+          recordingTabIds.delete(tabId);
           sendResponse({ success: true }); // Nothing to cancel
           return;
         }
@@ -3034,8 +3050,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           type: 'CANCEL_RECORDING',
           tabId: tabId
         });
+        recordingTabIds.delete(tabId);
         sendResponse(result);
       } catch (e) {
+        recordingTabIds.delete(tabId);
         sendResponse({ success: false, error: e.message });
       }
     })();
@@ -3171,6 +3189,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return false;
     }
     const { blobUrl, format, reason, tabId: recTabId } = request;
+    if (isValidTabId(recTabId)) {
+      recordingTabIds.delete(recTabId);
+    }
     const ownOrigin = `blob:chrome-extension://${chrome.runtime.id}/`;
     if (!blobUrl || typeof blobUrl !== 'string' ||
         !blobUrl.startsWith(ownOrigin)) {
@@ -4621,10 +4642,12 @@ if (contextMenusAPI) {
             console.log('[TabVolume] Focus Mode disabled via context menu');
           } else {
             // Enable Focus Mode - mute all other tabs, track which we muted.
+            // Skip tabs with active recording (#99).
             focusModeState.focusMutedTabIds.clear();
             for (const otherTab of allTabs) {
               if (otherTab.id === currentTabId) continue;
               if (otherTab.mutedInfo?.muted) continue;
+              if (recordingTabIds.has(otherTab.id)) continue;
               try {
                 await browserAPI.tabs.update(otherTab.id, { muted: true });
                 focusModeState.focusMutedTabIds.add(otherTab.id);
