@@ -1813,15 +1813,19 @@
         const deviceLabel = request.deviceLabel || '';
         console.log('[TabVolume] Starting device resolution...');
 
-        // If we have a device label, resolve it to a local device ID
-        // Device IDs from offscreen document don't work in content script context
-        if (request.deviceLabel && request.deviceId) {
+        // If we have a device label, resolve it to a local device ID.
+        // Device IDs from the offscreen document don't work in content script
+        // context, and site rules store deviceLabel only (no deviceId) — so
+        // the resolution branch must run when deviceLabel is set regardless
+        // of whether deviceId is also present. (#126)
+        if (request.deviceLabel) {
           const localDeviceId = await resolveDeviceByLabel(request.deviceLabel);
           if (localDeviceId) {
             deviceIdToUse = localDeviceId;
             console.log('[TabVolume] Using locally-resolved device ID:', deviceIdToUse);
           } else {
-            // Couldn't find device by label, try original ID as fallback
+            // Couldn't find device by label, fall back to the original ID
+            // (may be empty for label-only rules, meaning default device).
             console.log('[TabVolume] Label resolution failed, trying original ID');
           }
         }
