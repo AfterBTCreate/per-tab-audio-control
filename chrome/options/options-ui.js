@@ -31,6 +31,10 @@ async function loadCollapsedSections() {
     const section = document.querySelector(`[data-section="${sectionId}"]`);
     if (section) {
       section.classList.add('expanded');
+      const header = section.querySelector('.section-header');
+      if (header) {
+        header.setAttribute('aria-expanded', 'true');
+      }
     }
   });
 
@@ -53,6 +57,11 @@ async function saveCollapsedSections() {
 // Toggle section collapse
 function toggleSection(section) {
   section.classList.toggle('expanded');
+  const sectionHeader = section.querySelector('.section-header');
+  if (sectionHeader) {
+    sectionHeader.setAttribute('aria-expanded',
+      section.classList.contains('expanded') ? 'true' : 'false');
+  }
   saveCollapsedSections();
   updateExpandAllButton();
 
@@ -81,6 +90,7 @@ function updateExpandAllButton() {
     expandAllToggle.classList.remove('all-expanded');
     expandAllToggle.title = 'Expand all sections';
   }
+  expandAllToggle.setAttribute('aria-expanded', anyExpanded ? 'true' : 'false');
 }
 
 // Toggle all sections
@@ -90,12 +100,15 @@ function toggleAllSections() {
   const anyExpanded = expandedSections.length > 0;
 
   allSections.forEach(section => {
+    const header = section.querySelector('.section-header');
     if (anyExpanded) {
       // Collapse all
       section.classList.remove('expanded');
+      if (header) header.setAttribute('aria-expanded', 'false');
     } else {
       // Expand all
       section.classList.add('expanded');
+      if (header) header.setAttribute('aria-expanded', 'true');
     }
   });
 
@@ -109,6 +122,14 @@ document.querySelectorAll('.section.collapsible .section-header').forEach(header
     const section = header.closest('.section.collapsible');
     if (section) {
       toggleSection(section);
+    }
+  });
+
+  // Keyboard support: <h2 role="button"> does not fire synthetic click on Space
+  header.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      header.click();
     }
   });
 });
