@@ -103,10 +103,36 @@ let keyboardStep = 1;
 
 // Active Tab Audio mode - only the active tab plays audio
 // Audio automatically follows the active tab when switching
+// focusMutedTabIds tracks tabs PTAC muted so Focus toggle-off only unmutes
+// those — user-initiated mutes are preserved (#69).
 let focusModeState = {
   active: false,
-  lastActiveTabId: null  // Track last active tab to mute when switching
+  lastActiveTabId: null,
+  focusMutedTabIds: new Set()
 };
+
+async function saveFocusMutedTabIds() {
+  try {
+    await browserAPI.storage.session.set({
+      activeTabAudioMutedIds: Array.from(focusModeState.focusMutedTabIds)
+    });
+  } catch (e) {
+    // Session storage may be unavailable
+  }
+}
+
+async function loadFocusMutedTabIds() {
+  try {
+    const stored = await browserAPI.storage.session.get(['activeTabAudioMutedIds']);
+    if (Array.isArray(stored.activeTabAudioMutedIds)) {
+      focusModeState.focusMutedTabIds = new Set(
+        stored.activeTabAudioMutedIds.filter(id => isValidTabId(id))
+      );
+    }
+  } catch (e) {
+    // Session storage may be unavailable
+  }
+}
 
 // Load keyboard step from storage
 async function loadKeyboardStep() {
@@ -996,6 +1022,9 @@ browserAPI.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
     }
     // onActivated will handle unmuting the next active tab
   }
+  if (focusModeState.focusMutedTabIds.delete(tabId)) {
+    await saveFocusMutedTabIds();
+  }
 
   // Notify offscreen to clean up all captures for this tab (Chrome only)
   // TAB_REMOVED cleans up both visualizer and Tab Capture audio pipelines
@@ -1048,10 +1077,25 @@ browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
   // conditions when multiple onActivated events fire in rapid succession
   focusModeState.lastActiveTabId = newActiveTabId;
 
+  // Ensure tracked set is hydrated (service worker may have restarted).
+  if (focusModeState.focusMutedTabIds.size === 0) {
+    await loadFocusMutedTabIds();
+  }
+
   // Mute the previous active tab (if different and exists)
   if (previousTabId && previousTabId !== newActiveTabId) {
     try {
+      // Only track tabs that weren't already muted by the user.
+      let wasUserMuted = false;
+      try {
+        const prevTab = await browserAPI.tabs.get(previousTabId);
+        wasUserMuted = !!(prevTab && prevTab.mutedInfo?.muted);
+      } catch (_) {}
       await browserAPI.tabs.update(previousTabId, { muted: true });
+      if (!wasUserMuted) {
+        focusModeState.focusMutedTabIds.add(previousTabId);
+        await saveFocusMutedTabIds();
+      }
       // Also mute Tab Capture (bypasses browser mute)
       if (!isFirefox) {
         try {
@@ -1072,6 +1116,10 @@ browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
   // Unmute the new active tab
   try {
     await browserAPI.tabs.update(newActiveTabId, { muted: false });
+    // The newly-active tab is no longer PTAC-muted.
+    if (focusModeState.focusMutedTabIds.delete(newActiveTabId)) {
+      await saveFocusMutedTabIds();
+    }
     // Also restore Tab Capture volume
     if (!isFirefox) {
       try {
@@ -1144,10 +1192,24 @@ browserAPI.windows.onFocusChanged.addListener(async (windowId) => {
     // Skip if it's the same tab (user just clicked the same window again)
     if (newActiveTabId === previousTabId) return;
 
+    // Ensure tracked set is hydrated (service worker may have restarted).
+    if (focusModeState.focusMutedTabIds.size === 0) {
+      await loadFocusMutedTabIds();
+    }
+
     // Mute the previous active tab
     if (previousTabId) {
       try {
+        let wasUserMuted = false;
+        try {
+          const prevTab = await browserAPI.tabs.get(previousTabId);
+          wasUserMuted = !!(prevTab && prevTab.mutedInfo?.muted);
+        } catch (_) {}
         await browserAPI.tabs.update(previousTabId, { muted: true });
+        if (!wasUserMuted) {
+          focusModeState.focusMutedTabIds.add(previousTabId);
+          await saveFocusMutedTabIds();
+        }
         if (!isFirefox) {
           try {
             await chrome.runtime.sendMessage({
@@ -1167,6 +1229,9 @@ browserAPI.windows.onFocusChanged.addListener(async (windowId) => {
     // Unmute the new active tab
     try {
       await browserAPI.tabs.update(newActiveTabId, { muted: false });
+      if (focusModeState.focusMutedTabIds.delete(newActiveTabId)) {
+        await saveFocusMutedTabIds();
+      }
       if (!isFirefox) {
         try {
           const savedVolume = await getTabVolume(newActiveTabId);
@@ -2126,13 +2191,16 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         const tabs = await browserAPI.tabs.query({});
 
-        // Mute all other tabs that aren't already muted
+        // Mute all other tabs that aren't already muted, and track which
+        // tabs we newly muted so we can restore user-initiated mutes on toggle-off.
+        focusModeState.focusMutedTabIds.clear();
         let mutedCount = 0;
         for (const tab of tabs) {
           if (tab.id === currentTabId) continue;
           if (tab.mutedInfo?.muted) continue;
           try {
             await browserAPI.tabs.update(tab.id, { muted: true });
+            focusModeState.focusMutedTabIds.add(tab.id);
             mutedCount++;
             // Also mute Tab Capture session if active (Tab Capture audio bypasses browser mute)
             if (!isFirefox) {
@@ -2162,6 +2230,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         } catch (e) {
           // Session storage error
         }
+        await saveFocusMutedTabIds();
 
         sendResponse({ success: true, mutedCount });
       } catch (e) {
@@ -2203,21 +2272,30 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         const tabs = await browserAPI.tabs.query({});
 
-        // Unmute all other tabs that are muted and restore saved volumes
+        // Ensure the tracked set is hydrated from session storage in case the
+        // service worker restarted between enable and disable.
+        if (focusModeState.focusMutedTabIds.size === 0) {
+          await loadFocusMutedTabIds();
+        }
+
+        // Only unmute tabs PTAC originally muted — preserves user-initiated mutes.
+        const tabsById = new Map(tabs.map(t => [t.id, t]));
         let unmutedCount = 0;
-        for (const tab of tabs) {
-          if (tab.id === currentTabId) continue;
+        for (const trackedId of focusModeState.focusMutedTabIds) {
+          if (trackedId === currentTabId) continue;
+          const tab = tabsById.get(trackedId);
+          if (!tab) continue;
           if (!tab.mutedInfo?.muted) continue;
           try {
-            await browserAPI.tabs.update(tab.id, { muted: false });
+            await browserAPI.tabs.update(trackedId, { muted: false });
             unmutedCount++;
             // Also restore Tab Capture volume if active
             if (!isFirefox) {
               try {
-                const savedVolume = await getTabVolume(tab.id);
+                const savedVolume = await getTabVolume(trackedId);
                 await chrome.runtime.sendMessage({
                   type: 'SET_TAB_CAPTURE_VOLUME',
-                  tabId: tab.id,
+                  tabId: trackedId,
                   volume: savedVolume
                 });
               } catch (tcErr) {
@@ -2232,8 +2310,13 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Clear Active Tab Audio mode state (local and session storage)
         focusModeState.active = false;
         focusModeState.lastActiveTabId = null;
+        focusModeState.focusMutedTabIds.clear();
         try {
-          await browserAPI.storage.session.remove(['activeTabAudioMode', 'activeTabAudioLastTabId']);
+          await browserAPI.storage.session.remove([
+            'activeTabAudioMode',
+            'activeTabAudioLastTabId',
+            'activeTabAudioMutedIds'
+          ]);
         } catch (e) {
           // Session storage error
         }
@@ -4500,18 +4583,24 @@ if (contextMenusAPI) {
           const allTabs = await browserAPI.tabs.query({});
 
           if (isActive) {
-            // Disable Focus Mode - unmute all other tabs and restore saved volumes
-            for (const otherTab of allTabs) {
-              if (otherTab.id === currentTabId) continue;
+            // Disable Focus Mode - unmute only tabs PTAC muted, preserving user-muted tabs.
+            if (focusModeState.focusMutedTabIds.size === 0) {
+              await loadFocusMutedTabIds();
+            }
+            const tabsById = new Map(allTabs.map(t => [t.id, t]));
+            for (const trackedId of focusModeState.focusMutedTabIds) {
+              if (trackedId === currentTabId) continue;
+              const otherTab = tabsById.get(trackedId);
+              if (!otherTab) continue;
               if (!otherTab.mutedInfo?.muted) continue;
               try {
-                await browserAPI.tabs.update(otherTab.id, { muted: false });
+                await browserAPI.tabs.update(trackedId, { muted: false });
                 if (!isFirefox) {
                   try {
-                    const savedVolume = await getTabVolume(otherTab.id);
+                    const savedVolume = await getTabVolume(trackedId);
                     await chrome.runtime.sendMessage({
                       type: 'SET_TAB_CAPTURE_VOLUME',
-                      tabId: otherTab.id,
+                      tabId: trackedId,
                       volume: savedVolume
                     });
                   } catch (tcErr) {}
@@ -4521,17 +4610,24 @@ if (contextMenusAPI) {
             // Clear state
             focusModeState.active = false;
             focusModeState.lastActiveTabId = null;
+            focusModeState.focusMutedTabIds.clear();
             try {
-              await browserAPI.storage.session.remove(['activeTabAudioMode', 'activeTabAudioLastTabId']);
+              await browserAPI.storage.session.remove([
+                'activeTabAudioMode',
+                'activeTabAudioLastTabId',
+                'activeTabAudioMutedIds'
+              ]);
             } catch (e) {}
             console.log('[TabVolume] Focus Mode disabled via context menu');
           } else {
-            // Enable Focus Mode - mute all other tabs
+            // Enable Focus Mode - mute all other tabs, track which we muted.
+            focusModeState.focusMutedTabIds.clear();
             for (const otherTab of allTabs) {
               if (otherTab.id === currentTabId) continue;
               if (otherTab.mutedInfo?.muted) continue;
               try {
                 await browserAPI.tabs.update(otherTab.id, { muted: true });
+                focusModeState.focusMutedTabIds.add(otherTab.id);
                 if (!isFirefox) {
                   try {
                     await chrome.runtime.sendMessage({
@@ -4552,6 +4648,7 @@ if (contextMenusAPI) {
                 activeTabAudioLastTabId: currentTabId
               });
             } catch (e) {}
+            await saveFocusMutedTabIds();
             console.log('[TabVolume] Focus Mode enabled via context menu, tracking tab:', currentTabId);
           }
         }
