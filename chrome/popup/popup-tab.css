@@ -68,6 +68,22 @@ body.visualizer-hidden .tab-info-wrapper {
   cursor: pointer;
 }
 
+/* Keyboard focus ring for the visualizer canvas (#96). The canvas is a
+   keyboard-operable control (Enter/Space to go to tab, C to cycle style),
+   so it needs a visible focus indicator. Drawn inward with outline-offset
+   so it sits inside the absolutely-positioned canvas rather than outside
+   its 35%-opacity container. */
+.visualizer-canvas:focus {
+  outline: none;
+}
+.visualizer-canvas:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.9);
+  outline-offset: -2px;
+}
+body.light-mode .visualizer-canvas:focus-visible {
+  outline-color: #2563eb;
+}
+
 /* Visualizer Unavailable Indicator */
 .visualizer-unavailable {
   display: none;
