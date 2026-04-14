@@ -1074,8 +1074,12 @@ browserAPI.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   }
 
   // Cancel any sleep timer for this tab, then drop the fade-abort marker
-  // so the Set doesn't grow unbounded over the browser session (#80).
-  cancelSleepTimer(tabId, false).catch(() => {}).finally(() => {
+  // so the Set doesn't grow unbounded over the browser session (#80). If
+  // this tab was hosting an allTabs timer, migrate it to another live tab
+  // before cancelling so the bedtime fade keeps running for the other
+  // tabs — silent cancellation was the worst outcome for the feature's
+  // named use case. (#121)
+  handleSleepTimerOnTabRemove(tabId).catch(() => {}).finally(() => {
     fadeAbortedTabs.delete(tabId);
   });
 
@@ -1942,6 +1946,81 @@ async function startSleepTimer(minutes, tabId, allTabs) {
   browserAPI.alarms.create(`sleepTimer_${tabId}`, { when: endTime });
 
   return { success: true, endTime: endTime };
+}
+
+// Handle sleep-timer lifecycle when a tab closes. For allTabs timers, this
+// migrates the timer to another live tab so the fade keeps running for the
+// remaining tabs — the bedtime use case would otherwise fail silently. For
+// per-tab timers, this is identical to cancelSleepTimer(tabId, false). (#121)
+async function handleSleepTimerOnTabRemove(closedTabId) {
+  const state = await getSleepTimerState(closedTabId);
+  if (!state) return { success: true, migrated: false };
+
+  if (!state.allTabs) {
+    // Per-tab timer — just cancel like before.
+    return cancelSleepTimer(closedTabId, /* restoreVolume */ false);
+  }
+
+  // allTabs timer hosted on the closing tab. Pick a live tab to re-host on.
+  let hostTabId = null;
+  try {
+    const tabs = await browserAPI.tabs.query({});
+    // Prefer an audible tab in the user's current window, then any audible
+    // tab, then any tab that isn't the one closing. A snapshot entry in
+    // state.originalVolumes is a good signal that the tab was covered at
+    // timer start; prefer those candidates so the fade curve still matches
+    // the tab's captured baseline.
+    const perTab = state.originalVolumes || {};
+    const covered = tabs.filter(t => t.id !== closedTabId && Object.prototype.hasOwnProperty.call(perTab, t.id));
+    const fallback = tabs.filter(t => t.id !== closedTabId);
+    hostTabId = (covered.find(t => t.audible)?.id)
+      || (covered[0]?.id)
+      || (fallback.find(t => t.audible)?.id)
+      || (fallback[0]?.id)
+      || null;
+  } catch (_) { /* query may fail during shutdown */ }
+
+  if (!hostTabId) {
+    // No other tabs to migrate to — nothing audible to fade. Just clean up.
+    await cancelSleepTimer(closedTabId, /* restoreVolume */ false);
+    return { success: true, migrated: false };
+  }
+
+  // Move the timer record to the new host and recreate alarms. endTime and
+  // originalVolumes are preserved so the fade curve continues uninterrupted.
+  const newState = { ...state, tabId: hostTabId };
+  const fadeWasRunning = !!state.fadeStarted;
+  try {
+    // Clear old-host alarms + state. clearSleepTimerAlarms sets the
+    // fadeAbortedTabs flag for closedTabId, which aborts any in-flight
+    // startFadeSequence loop keyed to the old host.
+    await clearSleepTimerAlarms(closedTabId);
+    await clearSleepTimerState(closedTabId);
+    // Install under the new owning tab.
+    await setSleepTimerState(hostTabId, newState);
+    // Schedule the final-expiry alarm against the new host key.
+    browserAPI.alarms.create(`sleepTimer_${hostTabId}`, { when: newState.endTime });
+    if (fadeWasRunning) {
+      // Fade was in progress against the old host; continue it in-place on the
+      // new host so tabs keep fading without pausing for the alarm roundtrip.
+      startFadeSequence(hostTabId, newState).catch(() => {});
+    } else {
+      // Fade hadn't started yet — schedule its kick-off alarm on the new host.
+      const now = Date.now();
+      const effectiveSec = newState.fadeDurationSec || SLEEP_TIMER_FADE_DURATION;
+      const fadeStartTime = newState.endTime - (effectiveSec * 1000);
+      browserAPI.alarms.create(`sleepTimerFade_${hostTabId}`, {
+        when: fadeStartTime > now ? fadeStartTime : now + 100
+      });
+    }
+    console.log('[TabVolume] Migrated allTabs sleep timer from closed tab', closedTabId, 'to tab', hostTabId);
+  } catch (e) {
+    console.error('[TabVolume] Failed to migrate sleep timer:', e.message);
+    // Fall back to cancel so we don't leave orphan state on error.
+    await clearSleepTimerState(closedTabId).catch(() => {});
+  }
+  fadeAbortedTabs.delete(closedTabId);
+  return { success: true, migrated: true, hostTabId };
 }
 
 // Cancel sleep timer for a specific tab and optionally restore volume
