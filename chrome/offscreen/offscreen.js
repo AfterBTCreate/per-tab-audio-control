@@ -329,8 +329,15 @@ async function handleStopRecording(tabId) {
           recording.dataChunks.push(finalData);
         }
 
-        // Combine all MP3 chunks
+        // Combine all MP3 chunks. Guard allocation against MAX_RECORDING_BYTES
+        // — the PCM data handler caps mid-recording but the lamejs flush can
+        // emit extra bytes past that cap, potentially throwing RangeError on
+        // ArrayBuffer allocation near the 2GB boundary. (#87)
         const totalLength = recording.dataChunks.reduce((sum, c) => sum + c.length, 0);
+        if (totalLength > MAX_RECORDING_BYTES) {
+          activeRecordings.delete(tabId);
+          return { success: false, error: 'Recording too large to save as MP3' };
+        }
         const mp3Data = new Uint8Array(totalLength);
         let offset = 0;
         for (const chunk of recording.dataChunks) {
