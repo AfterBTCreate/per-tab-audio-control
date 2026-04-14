@@ -379,6 +379,12 @@ async function getMatchingSiteRule(url) {
       return null;
     }
 
+    // Collect every matching rule rather than returning the first, so we
+    // can prefer URL-specific rules over domain rules regardless of
+    // declaration order. Among URL matches, the longest path wins.
+    // Among domain matches, the longest hostname wins (subdomain beats
+    // parent domain). (#111)
+    const matches = [];
     for (let i = 0; i < rules.length; i++) {
       const rule = rules[i];
       log('getMatchingSiteRule: Checking rule', i, ':', rule.pattern, 'isDomain:', rule.isDomain, 'volume:', rule.volume);
@@ -416,17 +422,31 @@ async function getMatchingSiteRule(url) {
       }
 
       if (matched) {
-        log('getMatchingSiteRule: MATCHED! Returning rule with volume:', rule.volume);
-        // Update lastUsed timestamp (debounced - only if more than 1 hour since last update)
-        const now = Date.now();
-        const oneHour = 60 * 60 * 1000;
-        if (!rule.lastUsed || (now - rule.lastUsed) > oneHour) {
-          rules[i].lastUsed = now;
-          // Save updated rules (async, don't wait)
-          browserAPI.storage.sync.set({ siteVolumeRules: rules }).catch(() => {});
-        }
-        return rule;
+        matches.push({ rule, index: i });
       }
+    }
+
+    if (matches.length > 0) {
+      // Rank: URL rules beat domain rules; within a class, longer pattern wins.
+      matches.sort((a, b) => {
+        const aIsUrl = !a.rule.isDomain;
+        const bIsUrl = !b.rule.isDomain;
+        if (aIsUrl !== bIsUrl) return aIsUrl ? -1 : 1;
+        const aLen = (a.rule.pattern || '').length;
+        const bLen = (b.rule.pattern || '').length;
+        return bLen - aLen;
+      });
+      const winner = matches[0];
+      log('getMatchingSiteRule: MATCHED! Returning rule with volume:', winner.rule.volume);
+      // Update lastUsed timestamp (debounced - only if more than 1 hour since last update)
+      const now = Date.now();
+      const oneHour = 60 * 60 * 1000;
+      if (!winner.rule.lastUsed || (now - winner.rule.lastUsed) > oneHour) {
+        rules[winner.index].lastUsed = now;
+        // Save updated rules (async, don't wait)
+        browserAPI.storage.sync.set({ siteVolumeRules: rules }).catch(() => {});
+      }
+      return winner.rule;
     }
     log('getMatchingSiteRule: No rules matched');
   } catch (e) {
