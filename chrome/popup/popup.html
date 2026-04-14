@@ -522,7 +522,9 @@
             <input type="checkbox" id="sleepAllTabsCheckbox" aria-label="Apply to all tabs">
             <span>All Tabs</span>
           </label>
-          <div id="sleepTimerCountdown" class="sleep-status compact" role="button" tabindex="0" aria-label="Cancel sleep timer" title="Click to cancel sleep timer"><span id="sleepTimerCountdownText" aria-live="polite"></span></div>
+          <div id="sleepTimerCountdown" class="sleep-status compact" role="button" tabindex="0" aria-label="Cancel sleep timer" title="Click to cancel sleep timer"><span id="sleepTimerCountdownText"></span></div>
+          <!-- Sleep timer state announcements (start/milestone/end only, not every tick) -->
+          <div id="sleepTimerLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
         </div>
       </div>
     </div>

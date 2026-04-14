@@ -1251,6 +1251,15 @@ const sleepTimerSection = document.querySelector('.sleep-timer-section');
 function setSleepCountdownText(text) {
   if (sleepCountdownTextEl) sleepCountdownTextEl.textContent = text;
 }
+
+// #85: announce sleep-timer state changes only (start/milestone/end),
+// never per-second ticks, via a single hidden aria-live region.
+const sleepTimerLiveEl = document.getElementById('sleepTimerLive');
+const sleepMilestoneThresholds = [300, 60, 10]; // 5min, 1min, final 10s
+let sleepAnnouncedMilestones = new Set();
+function announceSleepTimer(msg) {
+  if (sleepTimerLiveEl) sleepTimerLiveEl.textContent = msg;
+}
 const sleepTimerButtons = document.querySelectorAll('.sleep-timer-buttons .sleep-btn');
 let sleepCountdownInterval = null;
 let sleepSaveTimeout = null;
@@ -1285,6 +1294,7 @@ sleepTimerButtons.forEach(btn => {
         startSleepCountdownInterval(response.endTime);
         setSleepTimerActive(true);
         setSleepButtonActive(minutes);
+        announceSleepTimer(`Sleep timer started, ${minutes} minute${minutes === 1 ? '' : 's'}`);
       }
     } catch (e) {
       console.error('[TabVolume] Start sleep timer failed:', e.message);
@@ -1322,14 +1332,31 @@ function updateSleepCountdownDisplay(endTime) {
     clearSleepCountdownInterval();
     setSleepTimerActive(false);
     setSleepButtonActive(0);
+    announceSleepTimer('Sleep timer ended, tab paused');
     return;
   }
   setSleepCountdownText(`Sleep: ${formatSleepCountdown(remaining)} remaining — cancel`);
+
+  // Announce milestones once as they cross threshold (#85)
+  const remainingSec = Math.ceil(remaining / 1000);
+  for (const threshold of sleepMilestoneThresholds) {
+    if (remainingSec <= threshold && !sleepAnnouncedMilestones.has(threshold)) {
+      sleepAnnouncedMilestones.add(threshold);
+      if (threshold >= 60) {
+        const mins = Math.round(threshold / 60);
+        announceSleepTimer(`Sleep timer: ${mins} minute${mins === 1 ? '' : 's'} remaining`);
+      } else {
+        announceSleepTimer(`Sleep timer: ${threshold} seconds remaining`);
+      }
+      break;
+    }
+  }
 }
 
 // Start countdown interval
 function startSleepCountdownInterval(endTime) {
   clearSleepCountdownInterval();
+  sleepAnnouncedMilestones = new Set();
   updateSleepCountdownDisplay(endTime);
   sleepCountdownInterval = setInterval(() => {
     updateSleepCountdownDisplay(endTime);
@@ -1355,6 +1382,7 @@ async function cancelSleepTimerUI() {
   setSleepTimerActive(false);
   setSleepButtonActive(0);
   if (sleepCountdownEl) setSleepCountdownText('');
+  announceSleepTimer('Sleep timer cancelled');
 }
 
 // Click countdown bar to cancel timer
@@ -1432,6 +1460,7 @@ if (sleepGoBtn) {
       if (response && response.success) {
         startSleepCountdownInterval(response.endTime);
         setSleepTimerActive(true);
+        announceSleepTimer(`Sleep timer started, ${minutes} minute${minutes === 1 ? '' : 's'}`);
       }
     } catch (e) {
       console.error('[TabVolume] Start sleep timer failed:', e.message);
