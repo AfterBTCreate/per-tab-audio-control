@@ -3650,7 +3650,10 @@ async function isDomainDisabled(hostname) {
   return effectiveMode === 'off';
 }
 
-// Inject page-script.js into a tab
+// Inject page-script.js into a tab. Used only for tabs that were already
+// open when the extension was installed/updated — future navigations are
+// covered by the declarative content_scripts entry in manifest.json, so the
+// tabs.onUpdated injection that used to live here was redundant. (#76)
 async function injectPageScript(tabId, frameId = 0) {
   try {
     await browserAPI.scripting.executeScript({
@@ -3664,33 +3667,6 @@ async function injectPageScript(tabId, frameId = 0) {
     // This is expected and can be silently ignored
   }
 }
-
-// Listen for navigation to inject page-script.js early
-browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Inject on 'loading' status to catch audio APIs as early as possible
-  if (changeInfo.status !== 'loading') return;
-
-  // Skip restricted URLs
-  const url = tab.url || tab.pendingUrl;
-  if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://') ||
-      url.startsWith('about:') || url.startsWith('moz-extension://') ||
-      url.startsWith('edge://') || url.startsWith('file://')) {
-    return;
-  }
-
-  // Get hostname and check if disabled
-  const hostname = getValidatedHostname(url);
-  if (!hostname) return;
-
-  const disabled = await isDomainDisabled(hostname);
-  if (disabled) {
-    console.log('[TabVolume] Domain disabled, skipping page-script injection:', hostname);
-    return;
-  }
-
-  // Inject page-script.js
-  await injectPageScript(tabId);
-});
 
 // Chrome-only: Close any existing offscreen document
 async function closeOffscreenDocument() {
@@ -3839,8 +3815,22 @@ browserAPI.runtime.onInstalled.addListener(async (details) => {
   // Clean up stale tab storage keys from previous sessions
   await cleanupStaleTabKeys();
 
-  // Update badge for existing tabs (only for active/non-dormant tabs)
+  // Inject page-script.js into tabs that were already open before the
+  // extension was installed/updated — the declarative content_scripts entry
+  // only covers future navigations. (#76)
   const tabs = await browserAPI.tabs.query({});
+  for (const tab of tabs) {
+    const url = tab.url || tab.pendingUrl;
+    if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://') ||
+        url.startsWith('about:') || url.startsWith('moz-extension://') ||
+        url.startsWith('edge://') || url.startsWith('file://')) continue;
+    const hostname = getValidatedHostname(url);
+    if (!hostname) continue;
+    if (await isDomainDisabled(hostname)) continue;
+    await injectPageScript(tab.id);
+  }
+
+  // Update badge for existing tabs (only for active/non-dormant tabs)
   for (const tab of tabs) {
     const active = await isTabActive(tab.id);
     if (active) {
