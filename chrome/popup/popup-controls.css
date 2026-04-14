@@ -481,6 +481,18 @@ body.light-mode .balance-presets .effect-btn[data-level="right"].active {
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+/* Recording timer bar — same visual as error/warn but semantically a timer (#91) */
+.status-message.recording {
+  display: none;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-message.recording.active {
+  display: block;
+}
+
 /* Cleanup Rules Button (shown when storage quota warning) */
 .cleanup-rules-btn {
   display: flex;

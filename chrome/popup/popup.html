@@ -532,6 +532,11 @@
     <!-- Global status message area for error feedback -->
     <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
 
+    <!-- Recording timer bar: non-live, updated every 1s, hidden from ATs to avoid spam (#91) -->
+    <div id="recordingTimerBar" class="status-message recording" aria-hidden="true"></div>
+    <!-- Recording state announcements: start/stop/error only -->
+    <div id="recordingLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
     <!-- Cleanup button for old rules (hidden by default, shown when storage quota warning) -->
     <button id="cleanupRulesBtn" class="cleanup-rules-btn hidden" title="Remove site rules unused for 90+ days" aria-label="Clean up old site rules">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

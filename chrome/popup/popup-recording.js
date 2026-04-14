@@ -22,6 +22,19 @@ const recordBtn = document.getElementById('recordBtn');
 const disclaimerOverlay = document.getElementById('recordingDisclaimerOverlay');
 const disclaimerAcceptBtn = document.getElementById('disclaimerAcceptBtn');
 const disclaimerCancelBtn = document.getElementById('disclaimerCancelBtn');
+const recordingTimerBar = document.getElementById('recordingTimerBar');
+const recordingLive = document.getElementById('recordingLive');
+
+// #91: write only state transitions (not every tick) to the live region.
+function announceRecording(msg) {
+  if (recordingLive) recordingLive.textContent = msg;
+}
+
+function setRecordingTimerBar(text) {
+  if (!recordingTimerBar) return;
+  recordingTimerBar.textContent = text;
+  recordingTimerBar.classList.toggle('active', !!text);
+}
 
 // ==================== Recording Functions ====================
 
@@ -55,8 +68,8 @@ function sanitizeFilename(title) {
     || 'recording'; // Fallback
 }
 
-// Start recording timer display via status bar
-// If resumeFromMs is provided, the timer starts from that elapsed time (popup reopen case)
+// Start recording timer display via dedicated non-live bar (#91).
+// If resumeFromMs is provided, the timer starts from that elapsed time (popup reopen case).
 function startRecordingTimer(resumeFromMs) {
   if (resumeFromMs) {
     recordingStartTime = Date.now() - resumeFromMs;
@@ -64,11 +77,11 @@ function startRecordingTimer(resumeFromMs) {
     recordingStartTime = Date.now();
   }
 
-  showStatus(`Recording  ●  ${formatRecordingDuration(Date.now() - recordingStartTime)}`, 'error', 0);
+  setRecordingTimerBar(`Recording  \u25CF  ${formatRecordingDuration(Date.now() - recordingStartTime)}`);
 
   recordingTimerInterval = setInterval(() => {
     const elapsed = Date.now() - recordingStartTime;
-    showStatus(`Recording  ●  ${formatRecordingDuration(elapsed)}`, 'error', 0);
+    setRecordingTimerBar(`Recording  \u25CF  ${formatRecordingDuration(elapsed)}`);
   }, 1000);
 }
 
@@ -78,6 +91,7 @@ function stopRecordingTimer() {
     clearInterval(recordingTimerInterval);
     recordingTimerInterval = null;
   }
+  setRecordingTimerBar('');
   // Restore focus mode reminder if active (onStatusExpiredCallback = showFocusReminder)
   if (typeof onStatusExpiredCallback === 'function') {
     onStatusExpiredCallback();
@@ -188,6 +202,7 @@ async function startRecording() {
       recordingTabId = currentTabId;
       updateRecordButtonState(true);
       startRecordingTimer();
+      announceRecording('Recording started');
     } else {
       const errorMsg = response?.error || 'Failed to start recording';
       showStatus(errorMsg, 'error', 4000);
@@ -243,6 +258,7 @@ async function stopRecording() {
         const sizeStr = formatFileSize(response.size);
         const durStr = formatRecordingDuration(response.duration);
         showStatus(`Saved ${durStr} (${sizeStr})`, 'success', 5000);
+        announceRecording(`Recording stopped. Saved ${durStr}, ${sizeStr}.`);
       } else {
         showStatus('Download failed: ' + (dlResponse?.error || 'unknown'), 'error', 5000);
       }
