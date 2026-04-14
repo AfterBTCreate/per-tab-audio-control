@@ -887,10 +887,12 @@
       trebleFilter.gain.value = safeTrebleGain;
 
       // Create voice filter (peaking at 3kHz)
+      // Q widens to 0.35 when cutting to cover full vocal range (~700Hz–12kHz);
+      // narrow 1.0 for focused presence boost.
       const voiceFilter = ctx.createBiquadFilter();
       voiceFilter.type = 'peaking';
       voiceFilter.frequency.value = 3000;
-      voiceFilter.Q.value = 1.0;
+      voiceFilter.Q.value = safeVoiceGain < 0 ? 0.35 : 1.0;
       voiceFilter.gain.value = safeVoiceGain;
 
       // Create stereo panner
@@ -1183,16 +1185,24 @@
   }
 
   function applyVoiceBoostToMedia(gainDb) {
+    // Widen Q to 0.35 on cut (full vocal range), narrow to 1.0 on boost
+    const targetQ = gainDb < 0 ? 0.35 : 1.0;
     document.querySelectorAll('audio, video').forEach(element => {
       const data = mediaGainNodes.get(element);
       if (data && data.voiceFilter) {
         try {
+          data.voiceFilter.Q.setTargetAtTime(
+            targetQ,
+            data.context.currentTime,
+            0.03
+          );
           data.voiceFilter.gain.setTargetAtTime(
             gainDb,
             data.context.currentTime,
             0.03
           );
         } catch (e) {
+          data.voiceFilter.Q.value = targetQ;
           data.voiceFilter.gain.value = gainDb;
         }
       }
