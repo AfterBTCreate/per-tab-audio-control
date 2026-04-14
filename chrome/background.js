@@ -1794,7 +1794,15 @@ async function startSleepTimer(minutes, tabId, allTabs) {
 
   const now = Date.now();
   const endTime = now + (minutes * 60 * 1000);
-  const fadeStartTime = endTime - (SLEEP_TIMER_FADE_DURATION * 1000);
+  // For timers shorter than the default 30s fade window, compress the fade
+  // to fit inside the timer so it completes before pause instead of cliffing
+  // at ~67% volume. (#90) Reserve a 100ms startup budget for the fade alarm.
+  const totalMs = endTime - now;
+  const fadeDurationSec = Math.min(
+    SLEEP_TIMER_FADE_DURATION,
+    Math.max(0, (totalMs - 100) / 1000)
+  );
+  const fadeStartTime = endTime - (fadeDurationSec * 1000);
 
   // Get current volume for the target tab(s) to restore after pause.
   // In all-tabs mode, capture each tab's own volume so fades respect
@@ -1832,7 +1840,10 @@ async function startSleepTimer(minutes, tabId, allTabs) {
     originalVolume: originalVolume,
     originalVolumes: originalVolumes,
     fadeStarted: false,
-    currentFadeStep: 0
+    currentFadeStep: 0,
+    // Effective fade duration in seconds — may be smaller than the default
+    // SLEEP_TIMER_FADE_DURATION for short timers. (#90)
+    fadeDurationSec: fadeDurationSec
   };
   await setSleepTimerState(tabId, state);
   fadeAbortedTabs.delete(tabId);
@@ -1936,15 +1947,21 @@ async function startFadeSequence(tabId, state) {
   await setSleepTimerState(tabId, state);
   fadeAbortedTabs.delete(tabId);
 
-  const fadeStartTime = state.endTime - (SLEEP_TIMER_FADE_DURATION * 1000);
-  const stepDelay = (SLEEP_TIMER_FADE_DURATION * 1000) / SLEEP_TIMER_FADE_STEPS;
+  // Short timers use a compressed fade window; fall back to the default
+  // for any older persisted state that lacks fadeDurationSec. (#90)
+  const effectiveFadeSec = (typeof state.fadeDurationSec === 'number' && state.fadeDurationSec > 0)
+    ? state.fadeDurationSec
+    : SLEEP_TIMER_FADE_DURATION;
+  const fadeDurationMs = effectiveFadeSec * 1000;
+  const fadeStartTime = state.endTime - fadeDurationMs;
+  const stepDelay = fadeDurationMs / SLEEP_TIMER_FADE_STEPS;
 
   for (let step = 0; step < SLEEP_TIMER_FADE_STEPS; step++) {
     if (fadeAbortedTabs.has(tabId)) return;
 
     // Time-based volume: always reflects real elapsed time
     const elapsed = Date.now() - fadeStartTime;
-    const progress = Math.min(1, Math.max(0, elapsed / (SLEEP_TIMER_FADE_DURATION * 1000)));
+    const progress = Math.min(1, Math.max(0, elapsed / fadeDurationMs));
 
     try {
       if (state.allTabs) {
