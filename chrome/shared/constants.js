@@ -150,7 +150,6 @@ const STORAGE_KEYS = {
   RECORDING_FORMAT: 'recordingFormat',
   RECORDING_BITRATE: 'recordingBitrate',
   RECORDING_SAMPLE_RATE: 'recordingSampleRate',
-  RECORDING_DISCLAIMER_ACCEPTED: 'recordingDisclaimerAccepted',
 
   // Local storage (per-tab)
   TAB_PREFIX: 'tab_'
