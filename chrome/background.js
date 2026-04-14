@@ -1555,11 +1555,18 @@ async function initiateTabCaptureFromKeyboard(tabId) {
         return false;
       }
 
+      // Read stored volume BEFORE starting capture so offscreen can apply
+      // it before play(), preventing a volume burst at gainNode=1.0 (#117).
+      const volKey = getTabStorageKey(tabId, TAB_STORAGE.VOLUME);
+      const volResult = await browserAPI.storage.local.get([volKey]);
+      const initialVolume = volResult[volKey] !== undefined ? volResult[volKey] : 100;
+
       // Send to offscreen document to start capture
       const response = await chrome.runtime.sendMessage({
         type: 'START_VISUALIZER_CAPTURE',
         streamId: streamId,
-        tabId: tabId
+        tabId: tabId,
+        initialVolume: initialVolume
       });
 
       console.log('[TabVolume] Keyboard shortcut initiated Tab Capture for tab', tabId);
