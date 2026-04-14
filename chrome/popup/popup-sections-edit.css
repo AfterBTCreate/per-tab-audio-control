@@ -69,6 +69,61 @@
   border-radius: 1px;
 }
 
+/* ==================== Keyboard Move Buttons (#74) ==================== */
+
+.section-edit-move-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.section-edit-move-btn {
+  width: 18px;
+  height: 12px;
+  padding: 0;
+  font-size: 8px;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-edit-move-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+}
+
+.section-edit-move-btn:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+}
+
+.section-edit-move-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* Live region for screen-reader announcements (#74) */
+.sections-edit-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ==================== Section Name ==================== */
 
 .section-edit-name {

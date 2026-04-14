@@ -117,9 +117,12 @@ function buildSectionsEditor() {
 
   const hiddenSet = new Set(currentSectionsLayout.hidden);
 
-  for (const sectionId of currentSectionsLayout.order) {
+  const orderedIds = currentSectionsLayout.order.filter(id => POPUP_SECTION_DATA[id]);
+  const lastIndex = orderedIds.length - 1;
+
+  for (let idx = 0; idx < orderedIds.length; idx++) {
+    const sectionId = orderedIds[idx];
     const data = POPUP_SECTION_DATA[sectionId];
-    if (!data) continue;
 
     const isHidden = hiddenSet.has(sectionId);
 
@@ -132,6 +135,36 @@ function buildSectionsEditor() {
     handle.className = 'section-edit-drag-handle';
     for (let i = 0; i < 3; i++) handle.appendChild(document.createElement('span'));
     row.appendChild(handle);
+
+    // Keyboard-accessible move up / move down buttons (#74)
+    const moveBtns = document.createElement('div');
+    moveBtns.className = 'section-edit-move-btns';
+
+    const upBtn = document.createElement('button');
+    upBtn.type = 'button';
+    upBtn.className = 'section-edit-move-btn';
+    upBtn.setAttribute('aria-label', `Move ${data.name} up`);
+    upBtn.textContent = '\u25B2';
+    upBtn.disabled = idx === 0;
+    upBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveSectionEditItem(sectionId, -1);
+    });
+
+    const downBtn = document.createElement('button');
+    downBtn.type = 'button';
+    downBtn.className = 'section-edit-move-btn';
+    downBtn.setAttribute('aria-label', `Move ${data.name} down`);
+    downBtn.textContent = '\u25BC';
+    downBtn.disabled = idx === lastIndex;
+    downBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveSectionEditItem(sectionId, 1);
+    });
+
+    moveBtns.appendChild(upBtn);
+    moveBtns.appendChild(downBtn);
+    row.appendChild(moveBtns);
 
     // Name
     const name = document.createElement('div');
@@ -201,6 +234,13 @@ function buildSectionsEditor() {
   const warning = document.createElement('div');
   warning.className = 'sections-edit-warning';
   editor.appendChild(warning);
+
+  // Live region for keyboard reorder announcements (#74)
+  const live = document.createElement('div');
+  live.className = 'sections-edit-live';
+  live.setAttribute('aria-live', 'polite');
+  live.setAttribute('aria-atomic', 'true');
+  editor.appendChild(live);
 
   // Bulk action buttons
   const bulk = document.createElement('div');
@@ -372,6 +412,48 @@ function toggleSectionEditVisibility(sectionId, visible) {
   currentSectionsLayout.hidden = Array.from(hidden);
   saveSectionsEditLayout();
   buildSectionsEditor();
+}
+
+// ==================== Keyboard Reorder ====================
+
+function moveSectionEditItem(sectionId, delta) {
+  if (!currentSectionsLayout) return;
+  const order = [...currentSectionsLayout.order];
+  const idx = order.indexOf(sectionId);
+  if (idx < 0) return;
+  const newIdx = idx + delta;
+  if (newIdx < 0 || newIdx >= order.length) return;
+  order.splice(idx, 1);
+  order.splice(newIdx, 0, sectionId);
+  currentSectionsLayout.order = order;
+  saveSectionsEditLayout();
+  buildSectionsEditor();
+
+  const data = POPUP_SECTION_DATA[sectionId];
+  const name = data ? data.name : sectionId;
+  announceSectionsEditChange(`${name} moved to position ${newIdx + 1} of ${order.length}`);
+
+  // Return focus to the moved row's corresponding button so keyboard users can repeat
+  if (sectionsEditor) {
+    const row = sectionsEditor.querySelector(`.section-edit-item[data-section-id="${sectionId}"]`);
+    if (row) {
+      const focusBtn = row.querySelector(
+        delta < 0 ? '.section-edit-move-btn:first-of-type' : '.section-edit-move-btn:last-of-type'
+      );
+      if (focusBtn && !focusBtn.disabled) {
+        focusBtn.focus();
+      } else {
+        const fallback = row.querySelector('.section-edit-move-btn:not([disabled])');
+        if (fallback) fallback.focus();
+      }
+    }
+  }
+}
+
+function announceSectionsEditChange(msg) {
+  if (!sectionsEditor) return;
+  const live = sectionsEditor.querySelector('.sections-edit-live');
+  if (live) live.textContent = msg;
 }
 
 // ==================== Reset ====================

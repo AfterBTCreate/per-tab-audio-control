@@ -406,3 +406,91 @@ body.light-mode .header-edit-done-bar {
 .header-edit-done:hover {
   background: #16a34a;
 }
+
+/* ==================== Keyboard Reorder (#74) ==================== */
+
+.header-edit-reorder-section {
+  flex-basis: 100%;
+}
+
+.header-edit-reorder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-edit-reorder-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  border-radius: 4px;
+}
+
+body.light-mode .header-edit-reorder-item {
+  background: rgba(230, 240, 250, 0.6);
+  border-color: rgba(150, 170, 190, 0.4);
+}
+
+.header-edit-reorder-name {
+  flex: 1;
+  font-size: 10px;
+  color: #b8d4e8;
+}
+
+body.light-mode .header-edit-reorder-name {
+  color: #3a5a7a;
+}
+
+.header-edit-reorder-btns {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.header-edit-reorder-btn {
+  width: 20px;
+  height: 16px;
+  padding: 0;
+  font-size: 8px;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-edit-reorder-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+}
+
+.header-edit-reorder-btn:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+}
+
+.header-edit-reorder-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.header-edit-reorder-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

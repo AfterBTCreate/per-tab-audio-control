@@ -339,8 +339,30 @@ function createEditPanel() {
   });
   titleLocRow.appendChild(titleBtns);
 
+  // — Reorder section (keyboard-accessible alternative to drag) #74 —
+  const reorderSec = document.createElement('div');
+  reorderSec.className = 'header-edit-panel-section header-edit-reorder-section';
+
+  const reLabel = document.createElement('div');
+  reLabel.className = 'header-edit-panel-label';
+  reLabel.textContent = 'Reorder';
+  reorderSec.appendChild(reLabel);
+
+  const reList = document.createElement('div');
+  reList.className = 'header-edit-reorder-list';
+  reorderSec.appendChild(reList);
+  buildHeaderReorderList(reList);
+
+  // Live region for reorder announcements
+  const reLive = document.createElement('div');
+  reLive.className = 'header-edit-reorder-live';
+  reLive.setAttribute('aria-live', 'polite');
+  reLive.setAttribute('aria-atomic', 'true');
+  reorderSec.appendChild(reLive);
+
   panel.appendChild(showHide);
   panel.appendChild(spacerSec);
+  panel.appendChild(reorderSec);
   panel.appendChild(titleLocRow);
 
   // Insert after header
@@ -399,6 +421,134 @@ function updateEditTitleBtnsState(vizHidden) {
       }
     }
   });
+}
+
+// ==================== Keyboard Reorder (#74) ====================
+
+// Human-readable names for header items (matches options HEADER_ITEM_DATA).
+const HEADER_ITEM_NAMES = {
+  companyLogo: 'ABTC Logo',
+  brandText: 'Brand Text',
+  audioMode: 'Enable/Disable',
+  focus: 'Focus',
+  modeToggle: 'Basic/Advanced',
+  theme: 'Theme',
+  settings: 'Settings',
+  logo: 'Volume Icon'
+};
+
+function getHeaderItemDisplayName(id) {
+  if (!id) return 'Item';
+  if (HEADER_ITEM_NAMES[id]) return HEADER_ITEM_NAMES[id];
+  if (id.startsWith('spacer')) return 'Spacer ' + id.slice(6);
+  return id;
+}
+
+function getHeaderOrderFromDOM() {
+  const header = document.querySelector('.header');
+  if (!header) return [];
+  return Array.from(header.querySelectorAll('[data-header-item]'))
+    .map(el => el.dataset.headerItem)
+    .filter(Boolean);
+}
+
+function buildHeaderReorderList(container) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const order = getHeaderOrderFromDOM();
+  const lastIdx = order.length - 1;
+
+  for (let i = 0; i < order.length; i++) {
+    const id = order[i];
+    const row = document.createElement('div');
+    row.className = 'header-edit-reorder-item';
+    row.dataset.itemId = id;
+
+    const label = document.createElement('span');
+    label.className = 'header-edit-reorder-name';
+    label.textContent = getHeaderItemDisplayName(id);
+    row.appendChild(label);
+
+    const btns = document.createElement('div');
+    btns.className = 'header-edit-reorder-btns';
+
+    const leftBtn = document.createElement('button');
+    leftBtn.type = 'button';
+    leftBtn.className = 'header-edit-reorder-btn';
+    leftBtn.setAttribute('aria-label', `Move ${getHeaderItemDisplayName(id)} left`);
+    leftBtn.textContent = '\u25C0';
+    leftBtn.disabled = i === 0;
+    leftBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveHeaderItemByKeyboard(id, -1);
+    });
+
+    const rightBtn = document.createElement('button');
+    rightBtn.type = 'button';
+    rightBtn.className = 'header-edit-reorder-btn';
+    rightBtn.setAttribute('aria-label', `Move ${getHeaderItemDisplayName(id)} right`);
+    rightBtn.textContent = '\u25B6';
+    rightBtn.disabled = i === lastIdx;
+    rightBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveHeaderItemByKeyboard(id, 1);
+    });
+
+    btns.appendChild(leftBtn);
+    btns.appendChild(rightBtn);
+    row.appendChild(btns);
+
+    container.appendChild(row);
+  }
+}
+
+function moveHeaderItemByKeyboard(itemId, delta) {
+  const header = document.querySelector('.header');
+  if (!header) return;
+  const el = header.querySelector('[data-header-item="' + CSS.escape(itemId) + '"]');
+  if (!el) return;
+
+  const siblings = Array.from(header.querySelectorAll('[data-header-item]'));
+  const currentIdx = siblings.indexOf(el);
+  const newIdx = currentIdx + delta;
+  if (newIdx < 0 || newIdx >= siblings.length) return;
+
+  if (delta < 0) {
+    header.insertBefore(el, siblings[newIdx]);
+  } else {
+    header.insertBefore(el, siblings[newIdx].nextSibling);
+  }
+
+  // Update stored layout to match new DOM order
+  updateOrderFromDOM(header);
+  saveEditLayout();
+
+  // Rebuild reorder UI and preserve focus on the moved item's button
+  if (editPanel) {
+    const list = editPanel.querySelector('.header-edit-reorder-list');
+    if (list) {
+      buildHeaderReorderList(list);
+      const movedRow = list.querySelector(`.header-edit-reorder-item[data-item-id="${CSS.escape(itemId)}"]`);
+      if (movedRow) {
+        const btn = movedRow.querySelector(
+          delta < 0 ? '.header-edit-reorder-btn:first-of-type' : '.header-edit-reorder-btn:last-of-type'
+        );
+        if (btn && !btn.disabled) {
+          btn.focus();
+        } else {
+          const fallback = movedRow.querySelector('.header-edit-reorder-btn:not([disabled])');
+          if (fallback) fallback.focus();
+        }
+      }
+    }
+    const live = editPanel.querySelector('.header-edit-reorder-live');
+    if (live) {
+      const newOrder = getHeaderOrderFromDOM();
+      const pos = newOrder.indexOf(itemId) + 1;
+      live.textContent = `${getHeaderItemDisplayName(itemId)} moved to position ${pos} of ${newOrder.length}`;
+    }
+  }
 }
 
 // ==================== Save Layout ====================
@@ -672,6 +822,12 @@ function onDragEnd(e) {
     });
 
     setupDragListeners();
+
+    // Keep the keyboard reorder list in sync with the new DOM order (#74)
+    if (editPanel) {
+      const list = editPanel.querySelector('.header-edit-reorder-list');
+      if (list) buildHeaderReorderList(list);
+    }
   }
 
   dragState = null;
