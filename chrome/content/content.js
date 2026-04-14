@@ -266,6 +266,7 @@
     if (!hostname || typeof hostname !== 'string') return false;
     if (hostname.length > 253) return false;
     hostname = hostname.toLowerCase();
+    if (/\.\./.test(hostname)) return false;
     // Only allow valid hostname characters (alphanumeric, dots, hyphens)
     return /^[a-z0-9][a-z0-9.-]*[a-z0-9]$/.test(hostname) || /^[a-z0-9]$/.test(hostname);
   }
