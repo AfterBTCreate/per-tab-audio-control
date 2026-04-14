@@ -276,7 +276,8 @@ const restrictedUrlPatterns = [
   /^moz-extension:\/\//,
   /^file:\/\//,
   /^brave:\/\//,
-  /^vivaldi:\/\//
+  /^vivaldi:\/\//,
+  /^opera:\/\//
 ];
 
 function isRestrictedUrl(url) {
