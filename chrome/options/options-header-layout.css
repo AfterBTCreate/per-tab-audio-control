@@ -18,7 +18,7 @@
 
 .header-layout-label {
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8; /* 5.76:1 on #0c1929 — was #64748b (3.72:1, WCAG AA fail) (#116) */
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -415,5 +415,5 @@ body.light-mode .header-layout-hint {
 }
 
 body.light-mode .header-layout-label {
-  color: #64748b;
+  color: #475569; /* Raise light-mode contrast alongside the dark-mode fix (#116) */
 }
