@@ -1115,6 +1115,37 @@ browserAPI.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   }
 });
 
+// Focus mode: mute background-opened tabs so they don't break the invariant
+// "only the currently active tab plays audio". onActivated fires only on tab
+// switch, so background-opened tabs (middle-click, Ctrl+click) escaped the
+// one-shot MUTE_OTHER_TABS at activation time. (#123)
+browserAPI.tabs.onCreated.addListener(async (tab) => {
+  // Fall through to session storage if local state is stale
+  let isActive = focusModeState.active;
+  if (!isActive) {
+    try {
+      const stored = await browserAPI.storage.session.get(['activeTabAudioMode']);
+      isActive = !!stored.activeTabAudioMode;
+      if (isActive) focusModeState.active = true;
+    } catch (_) { /* session storage unavailable */ }
+  }
+  if (!isActive) return;
+
+  // Don't mute the tab that just became active (if onCreated fires before
+  // onActivated) or tabs with an active recording (#99).
+  if (!isValidTabId(tab.id)) return;
+  if (focusModeState.lastActiveTabId === tab.id) return;
+  if (recordingTabIds.has(tab.id)) return;
+
+  try {
+    await browserAPI.tabs.update(tab.id, { muted: true });
+    focusModeState.focusMutedTabIds.add(tab.id);
+    await saveFocusMutedTabIds();
+  } catch (e) {
+    // Tab might have been closed or be unmutable
+  }
+});
+
 // Active Tab Audio mode - mute previous tab, unmute new active tab
 browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
   // Always refresh the Tab Capture pending indicator for the newly-active
