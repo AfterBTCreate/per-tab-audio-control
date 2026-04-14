@@ -418,6 +418,23 @@ async function getMatchingSiteRule(url) {
   return null;
 }
 
+// Reset all per-tab effect storage keys to defaults. Used on cross-domain
+// navigation so a new site rule starts from a clean slate (#75).
+async function resetTabEffectsToDefaults(tabId) {
+  const keys = [
+    getTabStorageKey(tabId, TAB_STORAGE.BASS),
+    getTabStorageKey(tabId, TAB_STORAGE.TREBLE),
+    getTabStorageKey(tabId, TAB_STORAGE.VOICE),
+    getTabStorageKey(tabId, TAB_STORAGE.COMPRESSOR),
+    getTabStorageKey(tabId, TAB_STORAGE.BALANCE),
+    getTabStorageKey(tabId, TAB_STORAGE.CHANNEL_MODE),
+    getTabStorageKey(tabId, TAB_STORAGE.SPEED)
+  ];
+  try {
+    await browserAPI.storage.local.remove(keys);
+  } catch (e) { /* best effort */ }
+}
+
 // Apply a matching site rule to a tab — sets volume, device, effects, and marks domain as applied
 // Returns { rule, deviceLabel } if a rule was applied, null otherwise
 async function applyMatchingSiteRule(tabId, url) {
@@ -1327,6 +1344,12 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
           // Only apply rule if this is a new domain (not navigation within same site)
           if (lastAppliedDomain !== currentDomain) {
             log('Domain changed, checking for matching rule...');
+            // If the previous navigation applied a site rule, reset effect keys
+            // so leftover bass/balance/speed from the prior domain don't leak
+            // into the new one (#75).
+            if (lastAppliedDomain) {
+              await resetTabEffectsToDefaults(tabId);
+            }
             // If Tab Capture is pending, defer rule application — keep tab dormant
             // Red badge will show via hasPendingSiteRule(); user clicks popup to activate
             const tcPending = await isTabCapturePending(tabId);
@@ -1337,6 +1360,14 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
               if (matchedRule) {
                 volume = matchedRule.rule.volume;
                 ruleDeviceLabel = matchedRule.deviceLabel;
+              } else if (lastAppliedDomain) {
+                // Previous rule was applied but no rule matches the new domain —
+                // clear the RULE_APPLIED marker so future navigation back to a
+                // rule-covered domain re-applies cleanly.
+                const ruleAppliedKey = getTabStorageKey(tabId, TAB_STORAGE.RULE_APPLIED);
+                try {
+                  await browserAPI.storage.local.remove([ruleAppliedKey]);
+                } catch (_) {}
               }
             }
             // If no rule matched, don't store domain - allows rules added later to apply
