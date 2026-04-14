@@ -1098,7 +1098,12 @@ browserAPI.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 
 // Active Tab Audio mode - mute previous tab, unmute new active tab
 browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
-  // Check session storage for state (survives service worker restarts)
+  // Always refresh the Tab Capture pending indicator for the newly-active
+  // tab, regardless of focus-mode state. Previously this ran in a separate
+  // onActivated listener — merged here so handler ordering is explicit (#70).
+  await updateTabCaptureIndicator(activeInfo.tabId);
+
+  // Check session storage for focus-mode state (survives service worker restarts)
   let isActive = focusModeState.active;
   let previousTabId = focusModeState.lastActiveTabId;
 
@@ -1193,11 +1198,6 @@ browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
   } catch (e) {
     // Session storage error
   }
-});
-
-// Update Tab Capture pending indicator when switching tabs
-browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
-  await updateTabCaptureIndicator(activeInfo.tabId);
 });
 
 
