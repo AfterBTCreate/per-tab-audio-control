@@ -1459,9 +1459,10 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
-// Chrome-only: Offscreen document management for audio device enumeration
-// Uses a promise-based lock to prevent race conditions when multiple callers
-// try to create the offscreen document simultaneously
+// Chrome-only: Offscreen document management for audio device enumeration.
+// Coalesces concurrent callers onto one setup attempt. Not a mutex — callers
+// after the finally clears the lock start a fresh attempt, which is fine
+// because createDocument idempotently rejects duplicates.
 let offscreenDocumentLock = null;
 
 async function setupOffscreenDocument() {
@@ -1470,15 +1471,25 @@ async function setupOffscreenDocument() {
     return false;
   }
 
-  // If another call is in progress, wait for it and return its result
-  // This must be checked BEFORE any async operations to prevent race window
+  // If another call is in progress, wait for it and return its result (or
+  // re-throw its error). This must be checked BEFORE any async operations
+  // to prevent race window. (#71)
   if (offscreenDocumentLock) {
     return offscreenDocumentLock;
   }
 
-  // Create the lock immediately (synchronously) before any async work
-  let resolveLock;
-  offscreenDocumentLock = new Promise(resolve => { resolveLock = resolve; });
+  // Create the lock immediately (synchronously) before any async work. Use
+  // resolve/reject so the first caller and all coalesced waiters observe
+  // the same outcome — previously the first caller threw while waiters
+  // received false, producing divergent code paths for identical failures.
+  let resolveLock, rejectLock;
+  offscreenDocumentLock = new Promise((resolve, reject) => {
+    resolveLock = resolve;
+    rejectLock = reject;
+  });
+  // Swallow the unhandled-rejection warning from the lock promise itself;
+  // real callers await it and will observe the rejection.
+  offscreenDocumentLock.catch(() => {});
 
   try {
     const offscreenUrl = chrome.runtime.getURL('offscreen/offscreen.html');
@@ -1510,7 +1521,9 @@ async function setupOffscreenDocument() {
       resolveLock(true);
       return true;
     }
-    resolveLock(false);
+    // Propagate the same error to every waiter so all callers observe the
+    // same failure mode.
+    rejectLock(e);
     throw e;
   } finally {
     offscreenDocumentLock = null;
