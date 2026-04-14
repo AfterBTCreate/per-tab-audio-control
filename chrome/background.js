@@ -1698,12 +1698,31 @@ async function startSleepTimer(minutes, tabId, allTabs) {
   const endTime = now + (minutes * 60 * 1000);
   const fadeStartTime = endTime - (SLEEP_TIMER_FADE_DURATION * 1000);
 
-  // Get current volume for the target tab(s) to restore after pause
+  // Get current volume for the target tab(s) to restore after pause.
+  // In all-tabs mode, capture each tab's own volume so fades respect
+  // per-tab user settings (#112).
   let originalVolume = VOLUME_DEFAULT;
+  let originalVolumes = null;
   try {
     originalVolume = await getTabVolume(tabId);
   } catch (e) {
     originalVolume = VOLUME_DEFAULT;
+  }
+  if (allTabs) {
+    originalVolumes = {};
+    try {
+      const tabs = await browserAPI.tabs.query({});
+      await Promise.all(tabs.map(async (t) => {
+        try {
+          originalVolumes[t.id] = await getTabVolume(t.id);
+        } catch (_) {
+          originalVolumes[t.id] = VOLUME_DEFAULT;
+        }
+      }));
+    } catch (e) {
+      // Fall back to the trigger tab's volume if query fails
+      originalVolumes[tabId] = originalVolume;
+    }
   }
 
   // Save state
@@ -1713,6 +1732,7 @@ async function startSleepTimer(minutes, tabId, allTabs) {
     endTime: endTime,
     originalMinutes: minutes,
     originalVolume: originalVolume,
+    originalVolumes: originalVolumes,
     fadeStarted: false,
     currentFadeStep: 0
   };
@@ -1743,8 +1763,12 @@ async function cancelSleepTimer(tabId, restoreVolume = true) {
     try {
       if (state.allTabs) {
         const tabs = await browserAPI.tabs.query({});
+        const perTab = state.originalVolumes || {};
         for (const tab of tabs) {
-          await setTabVolume(tab.id, state.originalVolume);
+          // Tabs opened after the timer started have no snapshot — leave them alone.
+          if (Object.prototype.hasOwnProperty.call(perTab, tab.id)) {
+            await setTabVolume(tab.id, perTab[tab.id]);
+          }
         }
       } else {
         await setTabVolume(state.tabId, state.originalVolume);
@@ -1821,15 +1845,20 @@ async function startFadeSequence(tabId, state) {
     // Time-based volume: always reflects real elapsed time
     const elapsed = Date.now() - fadeStartTime;
     const progress = Math.min(1, Math.max(0, elapsed / (SLEEP_TIMER_FADE_DURATION * 1000)));
-    const newVolume = Math.max(0, Math.round(state.originalVolume * (1 - progress)));
 
     try {
       if (state.allTabs) {
         const tabs = await browserAPI.tabs.query({});
+        const perTab = state.originalVolumes || {};
         for (const tab of tabs) {
+          // Tabs opened after timer start have no snapshot — leave them alone.
+          if (!Object.prototype.hasOwnProperty.call(perTab, tab.id)) continue;
+          const base = perTab[tab.id];
+          const newVolume = Math.max(0, Math.round(base * (1 - progress)));
           await setFadeVolume(tab.id, newVolume);
         }
       } else {
+        const newVolume = Math.max(0, Math.round(state.originalVolume * (1 - progress)));
         await setFadeVolume(state.tabId, newVolume);
       }
     } catch (e) {
