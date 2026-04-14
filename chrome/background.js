@@ -337,6 +337,21 @@ log('Service worker starting - version', browserAPI.runtime.getManifest().versio
 // The offscreen document IS closed on extension update (see onInstalled handler)
 // to ensure fresh code is loaded.
 
+// Normalize a URL for site-rule matching: lowercase scheme and host, drop
+// a trailing slash on the whole URL. Preserves path/query/hash case because
+// those can be semantically significant. (#89)
+function normalizeSiteRuleUrl(u) {
+  if (!u || typeof u !== 'string') return null;
+  try {
+    const parsed = new URL(u);
+    parsed.protocol = parsed.protocol.toLowerCase();
+    parsed.hostname = parsed.hostname.toLowerCase();
+    return parsed.toString().replace(/\/$/, '');
+  } catch (_) {
+    return null;
+  }
+}
+
 // Check if a URL matches any site volume rule
 async function getMatchingSiteRule(url) {
   log('getMatchingSiteRule called with URL:', url);
@@ -387,9 +402,13 @@ async function getMatchingSiteRule(url) {
           matched = true;
         }
       } else {
-        // Exact URL match
+        // Exact URL match — normalize scheme+host case (RFC 3986 §3.2.2) but
+        // preserve path/query/hash case so path-case-sensitive sites still
+        // resolve correctly. (#89)
+        const normalizedUrl = normalizeSiteRuleUrl(url);
+        const normalizedPattern = normalizeSiteRuleUrl(sanitizedPattern);
         const exactMatch = url === sanitizedPattern;
-        const normalizedMatch = url.replace(/\/$/, '') === sanitizedPattern.replace(/\/$/, '');
+        const normalizedMatch = normalizedUrl && normalizedPattern && normalizedUrl === normalizedPattern;
         log('getMatchingSiteRule: URL check - exactMatch:', exactMatch, 'normalizedMatch:', normalizedMatch);
         if (exactMatch || normalizedMatch) {
           matched = true;
