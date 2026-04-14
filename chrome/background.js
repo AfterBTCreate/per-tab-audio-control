@@ -1037,8 +1037,11 @@ browserAPI.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
     restoreWindowState(fsState.windowId, fsState.previousState);
   }
 
-  // Cancel any sleep timer for this tab
-  cancelSleepTimer(tabId, false).catch(() => {});
+  // Cancel any sleep timer for this tab, then drop the fade-abort marker
+  // so the Set doesn't grow unbounded over the browser session (#80).
+  cancelSleepTimer(tabId, false).catch(() => {}).finally(() => {
+    fadeAbortedTabs.delete(tabId);
+  });
 
   // Clear tracked tab if it was closed (Active Tab Audio mode continues)
   if (focusModeState.active && focusModeState.lastActiveTabId === tabId) {
@@ -1825,6 +1828,8 @@ async function cancelSleepTimer(tabId, restoreVolume = true) {
   }
 
   await clearSleepTimerState(tabId);
+  // Drop the fade-abort marker now that all alarms/state are gone (#80).
+  fadeAbortedTabs.delete(tabId);
   return { success: true };
 }
 
@@ -1955,6 +1960,8 @@ async function handleSleepTimerExpiry(tabId, state) {
   // Clean up this tab's timer
   await clearSleepTimerAlarms(tabId);
   await clearSleepTimerState(tabId);
+  // Drop the fade-abort marker now that the timer is fully resolved (#80).
+  fadeAbortedTabs.delete(tabId);
 }
 
 // Parse tabId from per-tab alarm names (e.g., "sleepTimer_123" → 123)
