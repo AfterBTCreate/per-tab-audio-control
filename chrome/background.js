@@ -560,6 +560,8 @@ async function sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLab
           const bassCutPresets = (await browserAPI.storage.sync.get(['bassCutPresets'])).bassCutPresets || DEFAULT_BASS_CUT_PRESETS;
           const cutLevel = bassLevel.replace('cut-', '');
           bassGain = cutLevel === 'low' ? bassCutPresets[0] : cutLevel === 'medium' ? bassCutPresets[1] : cutLevel === 'high' ? bassCutPresets[2] : 0;
+        } else if (bassLevel.startsWith('slider:')) {
+          bassGain = parseInt(bassLevel.split(':')[1], 10) || 0;
         } else {
           bassGain = bassLevel === 'low' ? bassBoostPresets[0] : bassLevel === 'medium' ? bassBoostPresets[1] : bassLevel === 'high' ? bassBoostPresets[2] : 0;
         }
@@ -577,6 +579,8 @@ async function sendTabSettingsToContentScript(tabId, volume, deviceId, deviceLab
           const trebleCutPresets = (await browserAPI.storage.sync.get(['trebleCutPresets'])).trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
           const cutLevel = trebleLevel.replace('cut-', '');
           trebleGain = cutLevel === 'low' ? trebleCutPresets[0] : cutLevel === 'medium' ? trebleCutPresets[1] : cutLevel === 'high' ? trebleCutPresets[2] : 0;
+        } else if (trebleLevel.startsWith('slider:')) {
+          trebleGain = parseInt(trebleLevel.split(':')[1], 10) || 0;
         } else {
           trebleGain = trebleLevel === 'low' ? trebleBoostPresets[0] : trebleLevel === 'medium' ? trebleBoostPresets[1] : trebleLevel === 'high' ? trebleBoostPresets[2] : 0;
         }
@@ -678,6 +682,8 @@ async function syncStoredSettingsToTabCapture(tabId) {
           const bassCutPresets = (await browserAPI.storage.sync.get(['bassCutPresets'])).bassCutPresets || DEFAULT_BASS_CUT_PRESETS;
           const cutLevel = level.replace('cut-', '');
           gain = cutLevel === 'low' ? bassCutPresets[0] : cutLevel === 'medium' ? bassCutPresets[1] : cutLevel === 'high' ? bassCutPresets[2] : 0;
+        } else if (level.startsWith('slider:')) {
+          gain = parseInt(level.split(':')[1], 10) || 0;
         } else {
           gain = level === 'low' ? bassBoostPresets[0] : level === 'medium' ? bassBoostPresets[1] : level === 'high' ? bassBoostPresets[2] : 0;
         }
@@ -695,6 +701,8 @@ async function syncStoredSettingsToTabCapture(tabId) {
           const trebleCutPresets = (await browserAPI.storage.sync.get(['trebleCutPresets'])).trebleCutPresets || DEFAULT_TREBLE_CUT_PRESETS;
           const cutLevel = level.replace('cut-', '');
           gain = cutLevel === 'low' ? trebleCutPresets[0] : cutLevel === 'medium' ? trebleCutPresets[1] : cutLevel === 'high' ? trebleCutPresets[2] : 0;
+        } else if (level.startsWith('slider:')) {
+          gain = parseInt(level.split(':')[1], 10) || 0;
         } else {
           gain = level === 'low' ? trebleBoostPresets[0] : level === 'medium' ? trebleBoostPresets[1] : level === 'high' ? trebleBoostPresets[2] : 0;
         }
