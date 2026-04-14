@@ -1040,9 +1040,12 @@ async function restoreFromBackup(csvContent) {
               pattern = sanitizeHostname(pattern);
               if (!pattern) break; // Skip invalid hostname
             } else {
-              // URL patterns: validate length and basic format
+              // URL patterns: validate length and restrict to http/https
               if (pattern.length > 2048) break;
-              try { new URL(pattern); } catch { break; } // Skip invalid URLs
+              try {
+                const u = new URL(pattern);
+                if (u.protocol !== 'http:' && u.protocol !== 'https:') break;
+              } catch { break; }
             }
             if (!restoredData.sync.siteVolumeRules) {
               restoredData.sync.siteVolumeRules = [];
