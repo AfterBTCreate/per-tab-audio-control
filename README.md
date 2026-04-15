@@ -5,7 +5,7 @@
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/fhbglapkjnbiokdjlfbddcchakgpfijg?label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/per-tab-audio-control/fhbglapkjnbiokdjlfbddcchakgpfijg)
 [![License](https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-blue)](LICENSE)
 [![Privacy](https://img.shields.io/badge/privacy-no%20tracking-brightgreen)](#privacy)
-[![Audited](https://img.shields.io/badge/security-15%2B%20audits-success)](SECURITY.md)
+[![Audited](https://img.shields.io/badge/security-multi--agent%20audits-success)](SECURITY.md)
 
 Boost quiet videos up to 500%, adjust playback speed, fine-tune equalizer settings, set automatic volume rules per site, route audio to different output devices, and record tab audio — all from a single popup.
 
@@ -17,7 +17,7 @@ Boost quiet videos up to 500%, adjust playback speed, fine-tune equalizer settin
 
 ### Volume Control
 - **0–500% range** per tab with precision slider
-- **Five customizable presets** for quick volume switching
+- **Six customizable presets** for quick volume switching
 - **Built-in limiter** to prevent distortion when boosting
 - **Volume badge** on the extension icon showing current percentage
 - **Badge style toggle** light-on-dark, dark-on-light, or color matching volume level
@@ -134,7 +134,7 @@ The full source code is published in this repository for independent verificatio
 
 ## Security
 
-This project undergoes regular comprehensive security audits — 15+ documented audits as of v6.0+. See [`SECURITY.md`](SECURITY.md) for audit history and reporting instructions.
+This project undergoes continuous multi-agent security audits on every minor and patch release. See [`SECURITY.md`](SECURITY.md) for audit methodology and reporting instructions.
 
 Found a security issue? See [`SECURITY.md`](SECURITY.md) for the security policy and reporting instructions.
 

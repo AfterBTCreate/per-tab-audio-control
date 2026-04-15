@@ -11,9 +11,12 @@ logs/
 *.pem
 *.crx
 
-# Packaged outputs (zip files), but keep store-assets release zips
+# Packaged outputs (zip files)
 *.zip
-!store-assets/**/*.zip
+
+# Historical store-assets (release zips + marketing copy) live in
+# ~/work/after-bedtime/archives/ptac-store-assets/ — never in this repo
+store-assets/
 
 # Build artifacts (if ever introduced)
 dist/

@@ -48,7 +48,7 @@ Per-Tab Audio Control is a privacy-first browser extension. Its security posture
 
 ## Audit History
 
-As of April 2026, the codebase has undergone 18+ documented security audits across 4 months of active development covering security, accessibility, code quality, and feature behavior. Known issues are tracked in the GitHub issue tracker.
+The codebase undergoes continuous multi-agent security audits on every minor and patch release. Each release cycle runs parallel passes covering security code review, extension-platform review, recording-subsystem review, code quality, accessibility, and feature behavior. Known issues are tracked in the GitHub issue tracker.
 
 ## Acknowledgments
 
