@@ -2561,10 +2561,20 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // tabs we newly muted so we can restore user-initiated mutes on toggle-off.
         // Skip tabs that have an active recording — muting them would silence
         // the recording output (#99).
-        focusModeState.focusMutedTabIds.clear();
+        //
+        // When re-entering while Focus is already active (e.g., popup tab-list
+        // switch), don't clear the tracked set — add to it instead. Clearing
+        // would drop PTAC's own previous mutes from the set, stranding those
+        // tabs muted forever since UNMUTE_OTHER_TABS only unmutes tracked IDs. (#134)
+        if (!focusModeState.active) {
+          focusModeState.focusMutedTabIds.clear();
+        }
         let mutedCount = 0;
         for (const tab of tabs) {
           if (tab.id === currentTabId) continue;
+          // On re-entry, tabs we already muted are still in the tracked set
+          // and still browser-muted — skip them so we don't double-count.
+          if (focusModeState.focusMutedTabIds.has(tab.id)) continue;
           if (tab.mutedInfo?.muted) continue;
           if (recordingTabIds.has(tab.id)) continue;
           try {
