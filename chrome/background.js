@@ -1897,6 +1897,12 @@ async function clearSleepTimerAlarms(tabId) {
 
 // Start sleep timer for a specific tab
 async function startSleepTimer(minutes, tabId, allTabs) {
+  // Refuse per-tab sleep timers on tabs with active recordings — the fade
+  // would contaminate the recording output (#133, mirrors #99 Focus guard).
+  if (!allTabs && recordingTabIds.has(tabId)) {
+    return { success: false, error: 'Cannot start sleep timer on a recording tab' };
+  }
+
   // allTabs is a singleton — cancel any existing allTabs timer regardless of
   // which tab hosts it, so we can't end up with two fade loops racing on the
   // same tab set. (#114)
@@ -2092,7 +2098,11 @@ async function cancelSleepTimer(tabId, restoreVolume = true) {
 // Lightweight volume setter for fade steps only.
 // Skips storage writes, badge updates, and tab activation to avoid side effects.
 // Sends gain changes to the active audio pipeline and notifies the popup for visual feedback.
+// Tabs with an active recording are skipped — the gain change would be captured
+// into the recording, contaminating the output (mirror of #99 Focus guard). (#133)
 async function setFadeVolume(tabId, volume) {
+  if (recordingTabIds.has(tabId)) return;
+
   const validatedVolume = validateVolume(volume);
 
   // Send to content script (Web Audio mode gain)
@@ -2204,15 +2214,21 @@ async function handleSleepTimerExpiry(tabId, state) {
     if (state.allTabs) {
       const tabs = await browserAPI.tabs.query({});
       for (const tab of tabs) {
+        // Skip tabs with active recordings — pausing would stop the
+        // audio source, silencing the recording output (#133, mirrors #99).
+        if (recordingTabIds.has(tab.id)) continue;
         try {
           await browserAPI.tabs.sendMessage(tab.id, { type: 'PAUSE' });
         } catch (e) { /* tab may not have content script */ }
       }
     } else {
-      try {
-        await browserAPI.tabs.sendMessage(state.tabId, { type: 'PAUSE' });
-      } catch (e) {
-        console.error('[TabVolume] Could not pause tab:', e.message);
+      // Skip per-tab pause if the tab is recording (#133).
+      if (!recordingTabIds.has(state.tabId)) {
+        try {
+          await browserAPI.tabs.sendMessage(state.tabId, { type: 'PAUSE' });
+        } catch (e) {
+          console.error('[TabVolume] Could not pause tab:', e.message);
+        }
       }
     }
   } catch (e) {
