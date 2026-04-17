@@ -1038,14 +1038,35 @@ async function restoreFromBackup(csvContent) {
             let pattern = values[0];
             if (isDomain) {
               pattern = sanitizeHostname(pattern);
-              if (!pattern) break; // Skip invalid hostname
+              if (!pattern) {
+                // Track skipped rules so we can warn the user (#139)
+                if (!restoredData._skippedRules) restoredData._skippedRules = [];
+                restoredData._skippedRules.push({ pattern: values[0], reason: 'invalid hostname' });
+                console.warn('[Backup] Skipped site rule — invalid hostname:', values[0]);
+                break;
+              }
             } else {
               // URL patterns: validate length and restrict to http/https
-              if (pattern.length > 2048) break;
+              if (pattern.length > 2048) {
+                if (!restoredData._skippedRules) restoredData._skippedRules = [];
+                restoredData._skippedRules.push({ pattern: pattern.slice(0, 80) + '...', reason: 'URL too long' });
+                console.warn('[Backup] Skipped site rule — URL too long:', pattern.slice(0, 80));
+                break;
+              }
               try {
                 const u = new URL(pattern);
-                if (u.protocol !== 'http:' && u.protocol !== 'https:') break;
-              } catch { break; }
+                if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+                  if (!restoredData._skippedRules) restoredData._skippedRules = [];
+                  restoredData._skippedRules.push({ pattern, reason: 'invalid URL scheme (' + u.protocol + ')' });
+                  console.warn('[Backup] Skipped site rule — invalid URL scheme:', pattern);
+                  break;
+                }
+              } catch {
+                if (!restoredData._skippedRules) restoredData._skippedRules = [];
+                restoredData._skippedRules.push({ pattern, reason: 'invalid URL' });
+                console.warn('[Backup] Skipped site rule — invalid URL:', pattern);
+                break;
+              }
             }
             if (!restoredData.sync.siteVolumeRules) {
               restoredData.sync.siteVolumeRules = [];
@@ -1232,8 +1253,14 @@ restoreFileInput.addEventListener('change', async (e) => {
     if (restored.sync.recordingFormat) counts.push('recording settings');
 
     if (counts.length > 0) {
-      // Save restore flag to sessionStorage and reload immediately
+      // Save restore flag to sessionStorage and reload immediately.
+      // If any site rules were skipped, pass the count so the banner
+      // can warn the user instead of claiming full success (#139).
       sessionStorage.setItem('restoreSuccess', 'true');
+      const skipped = restored._skippedRules || [];
+      if (skipped.length > 0) {
+        sessionStorage.setItem('restoreSkippedCount', String(skipped.length));
+      }
       location.reload();
     } else {
       showResetStatus('No settings found in backup file', true);
@@ -1250,12 +1277,20 @@ restoreFileInput.addEventListener('change', async (e) => {
 (function checkRestoreMessage() {
   if (sessionStorage.getItem('restoreSuccess')) {
     sessionStorage.removeItem('restoreSuccess');
+    const skippedCount = parseInt(sessionStorage.getItem('restoreSkippedCount') || '0', 10);
+    sessionStorage.removeItem('restoreSkippedCount');
     const banner = document.getElementById('restoreBanner');
     if (banner) {
-      banner.textContent = 'Backup restored successfully!';
+      if (skippedCount > 0) {
+        // Warn user about skipped rules so the banner doesn't lie (#139)
+        const s = skippedCount === 1 ? '' : 's';
+        banner.textContent = `Backup restored \u2014 ${skippedCount} site rule${s} could not be imported (invalid URL schemes)`;
+      } else {
+        banner.textContent = 'Backup restored successfully!';
+      }
       banner.hidden = false;
-      // Auto-hide after 5 seconds
-      setTimeout(() => { banner.hidden = true; }, 5000);
+      // Auto-hide after 5 seconds (longer for warnings so user can read)
+      setTimeout(() => { banner.hidden = true; }, skippedCount > 0 ? 8000 : 5000);
     }
   }
 })();
