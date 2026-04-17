@@ -1476,6 +1476,10 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
               if (matchedRule) {
                 volume = matchedRule.rule.volume;
                 ruleDeviceLabel = matchedRule.deviceLabel;
+                // Propagate EQ/balance/compressor/speed/channel-mode to Tab
+                // Capture pipeline — applyMatchingSiteRule writes to storage
+                // but only volume reaches TC via setTabVolume. (#135)
+                await syncStoredSettingsToTabCapture(tabId);
               } else if (lastAppliedDomain) {
                 // Previous rule was applied but no rule matches the new domain —
                 // clear the RULE_APPLIED marker so future navigation back to a
@@ -3207,6 +3211,8 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (ruleResult) {
           // Send settings to content script so the audio pipeline reflects the rule
           await sendTabSettingsToContentScript(tabId, ruleResult.rule.volume, '', ruleResult.deviceLabel);
+          // Propagate EQ/balance/compressor/speed to Tab Capture pipeline (#135)
+          await syncStoredSettingsToTabCapture(tabId);
           await updateBadge(tabId, ruleResult.rule.volume, tab.url);
           sendResponse({ success: true, volume: ruleResult.rule.volume });
         } else {
