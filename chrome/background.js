@@ -3240,11 +3240,20 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: false, error: 'Invalid tab ID' });
       return false;
     }
-    cancelSleepTimer(tabId).then(result => {
-      sendResponse(result);
-    }).catch(e => {
-      sendResponse({ success: false, error: e.message });
-    });
+    // Resolve the owning tab for this timer — the popup sends the
+    // controlled tab's ID, which may not be the timer host after #121
+    // migration. Without this lookup, cancel from a non-owner tab
+    // silently no-ops because cancelSleepTimer finds no state. (#137)
+    (async () => {
+      try {
+        const found = await findActiveTimerStateForTab(tabId);
+        const owningId = found ? found.owningTabId : tabId;
+        const result = await cancelSleepTimer(owningId);
+        sendResponse(result);
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
     return true;
   }
 
@@ -4917,7 +4926,10 @@ if (contextMenusAPI) {
 
     // ========== Sleep Timer ==========
     if (menuItemId === 'sleepTimer_cancel') {
-      await cancelSleepTimer(tab.id);
+      // Resolve owning tab — the context-menu fires against the current tab,
+      // which may not be the timer host after #121 migration. (#137)
+      const found = await findActiveTimerStateForTab(tab.id);
+      await cancelSleepTimer(found ? found.owningTabId : tab.id);
       return;
     }
     if (menuItemId.startsWith('sleepTimer_')) {
