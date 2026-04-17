@@ -79,10 +79,10 @@
 }
 
 .section-edit-move-btn {
-  width: 18px;
-  height: 12px;
+  min-width: 24px;
+  min-height: 24px;
   padding: 0;
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1;
   background: transparent;
   border: 1px solid transparent;
