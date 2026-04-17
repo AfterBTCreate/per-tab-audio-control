@@ -2165,6 +2165,13 @@ async function startFadeSequence(tabId, state) {
   for (let step = 0; step < SLEEP_TIMER_FADE_STEPS; step++) {
     if (fadeAbortedTabs.has(tabId)) return;
 
+    // Re-read timer state each iteration — if the timer was cancelled
+    // between steps (state cleared), exit immediately. This is more
+    // robust than relying solely on fadeAbortedTabs, which can be
+    // deleted by the cancel path before this loop observes it. (#138)
+    const currentState = await getSleepTimerState(tabId);
+    if (!currentState) return;
+
     // Time-based volume: always reflects real elapsed time
     const elapsed = Date.now() - fadeStartTime;
     const progress = Math.min(1, Math.max(0, elapsed / fadeDurationMs));
