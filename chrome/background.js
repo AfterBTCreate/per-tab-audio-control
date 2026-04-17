@@ -2911,6 +2911,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Stop persistent visualizer capture
   if (request.type === 'STOP_PERSISTENT_VISUALIZER_CAPTURE') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ success: false, error: 'Rejected: not from extension page' });
+      return false;
+    }
     (async () => {
       const tabId = request.tabId;
       if (!isValidTabId(tabId)) {
@@ -2941,6 +2945,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Get visualizer data from persistent capture
   if (request.type === 'GET_PERSISTENT_VISUALIZER_DATA') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ success: false, frequencyData: null, waveformData: null });
+      return false;
+    }
     (async () => {
       const tabId = request.tabId;
       if (!isValidTabId(tabId)) {
@@ -2980,6 +2988,10 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Check if persistent visualizer capture is active for a tab
   if (request.type === 'GET_PERSISTENT_VISUALIZER_STATUS') {
+    if (!isFromExtensionPage(sender)) {
+      sendResponse({ isActive: false });
+      return false;
+    }
     (async () => {
       const tabId = request.tabId;
       if (!isValidTabId(tabId)) {
