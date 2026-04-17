@@ -1263,8 +1263,15 @@ browserAPI.tabs.onActivated.addListener(async (activeInfo) => {
     if (focusModeState.focusMutedTabIds.delete(newActiveTabId)) {
       await saveFocusMutedTabIds();
     }
-    // Also restore Tab Capture volume
+    // Also restore Tab Capture volume. Cancel any active sleep-timer fade
+    // first — a tab activation is a user-intent signal (#136, mirrors #118).
     if (!isFirefox) {
+      try {
+        const timerHit = await findActiveTimerStateForTab(newActiveTabId);
+        if (timerHit && timerHit.state && timerHit.state.fadeStarted) {
+          await cancelSleepTimer(timerHit.owningTabId, /* restoreVolume */ false);
+        }
+      } catch (_) { /* best-effort */ }
       try {
         const savedVolume = await getTabVolume(newActiveTabId);
         await chrome.runtime.sendMessage({
@@ -1371,7 +1378,15 @@ browserAPI.windows.onFocusChanged.addListener(async (windowId) => {
       if (focusModeState.focusMutedTabIds.delete(newActiveTabId)) {
         await saveFocusMutedTabIds();
       }
+      // Cancel any active sleep-timer fade before restoring Tab Capture
+      // volume — window focus change is a user-intent signal (#136).
       if (!isFirefox) {
+        try {
+          const timerHit = await findActiveTimerStateForTab(newActiveTabId);
+          if (timerHit && timerHit.state && timerHit.state.fadeStarted) {
+            await cancelSleepTimer(timerHit.owningTabId, /* restoreVolume */ false);
+          }
+        } catch (_) { /* best-effort */ }
         try {
           const savedVolume = await getTabVolume(newActiveTabId);
           await chrome.runtime.sendMessage({
@@ -2679,8 +2694,15 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
           try {
             await browserAPI.tabs.update(trackedId, { muted: false });
             unmutedCount++;
-            // Also restore Tab Capture volume if active
+            // Also restore Tab Capture volume if active. Cancel any active
+            // sleep-timer fade first — Focus disable is a user-intent signal (#136).
             if (!isFirefox) {
+              try {
+                const timerHit = await findActiveTimerStateForTab(trackedId);
+                if (timerHit && timerHit.state && timerHit.state.fadeStarted) {
+                  await cancelSleepTimer(timerHit.owningTabId, /* restoreVolume */ false);
+                }
+              } catch (_) { /* best-effort */ }
               try {
                 const savedVolume = await getTabVolume(trackedId);
                 await chrome.runtime.sendMessage({
@@ -5055,7 +5077,15 @@ if (contextMenusAPI) {
               if (!otherTab.mutedInfo?.muted) continue;
               try {
                 await browserAPI.tabs.update(trackedId, { muted: false });
+                // Cancel any active sleep-timer fade before restoring
+                // Tab Capture volume — Focus disable is user-intent (#136).
                 if (!isFirefox) {
+                  try {
+                    const timerHit = await findActiveTimerStateForTab(trackedId);
+                    if (timerHit && timerHit.state && timerHit.state.fadeStarted) {
+                      await cancelSleepTimer(timerHit.owningTabId, /* restoreVolume */ false);
+                    }
+                  } catch (_) { /* best-effort */ }
                   try {
                     const savedVolume = await getTabVolume(trackedId);
                     await chrome.runtime.sendMessage({
