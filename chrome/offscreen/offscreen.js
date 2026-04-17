@@ -497,6 +497,28 @@ function writeString(view, offset, string) {
 }
 
 // ==================== Message Handler ====================
+
+// Security: Message types that must never be accepted from content scripts.
+// Content scripts (sender.tab is set) share the extension's runtime.id, so the
+// existing sender.id check alone is insufficient. These types are restricted to
+// background/popup/options pages only — mirroring the isFromExtensionPage gate
+// added to background.js in #77. (#128, also covers #130)
+const CONTENT_SCRIPT_DENY_SET = new Set([
+  'START_RECORDING', 'STOP_RECORDING', 'CANCEL_RECORDING',
+  'GET_RECORDING_STATUS', 'GET_ANY_RECORDING_STATUS',
+  'REVOKE_BLOB_URL', 'CANCEL_STOP_BLOB_TIMER',
+  'TAB_REMOVED',
+  'SET_TAB_CAPTURE_VOLUME', 'SET_TAB_CAPTURE_BALANCE',
+  'SET_TAB_CAPTURE_SPEED',
+  'START_VISUALIZER_CAPTURE', 'STOP_VISUALIZER_CAPTURE',
+  'GET_VISUALIZER_DATA', 'GET_VISUALIZER_CAPTURE_STATUS',
+  'GET_AUDIO_DEVICES',
+  'SET_TAB_CAPTURE_BASS', 'SET_TAB_CAPTURE_TREBLE',
+  'SET_TAB_CAPTURE_VOICE', 'SET_TAB_CAPTURE_DEVICE',
+  'SET_TAB_CAPTURE_COMPRESSOR', 'SET_TAB_CAPTURE_CHANNEL_MODE',
+  'GET_TAB_CAPTURE_MODE'
+]);
+
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Security: Validate sender is our extension
   if (sender.id !== browserAPI.runtime.id) {
@@ -507,6 +529,14 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Security: Validate message type is a string
   if (typeof message.type !== 'string') {
     console.warn('[Offscreen] Invalid message type:', typeof message.type);
+    return false;
+  }
+
+  // Security: Reject content-script senders for privileged message types.
+  // Content scripts share our runtime.id but should never reach recording,
+  // capture, or audio-control handlers directly. (#128)
+  if (sender.tab && CONTENT_SCRIPT_DENY_SET.has(message.type)) {
+    console.warn('[Offscreen] Rejected', message.type, 'from content script (tab', sender.tab.id + ')');
     return false;
   }
 
