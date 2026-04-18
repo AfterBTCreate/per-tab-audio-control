@@ -342,7 +342,7 @@
             <li><strong>Audio Mode toggle</strong> — A button in the popup header toggles audio processing on (grey) or off (red)</li>
             <li><strong>Context menu</strong> — Right-click and select the audio processing option</li>
           </ul>
-          <p class="mt-8">Your preference is saved per-site.</p>
+          <p class="mt-8">Your preference is saved per-site. Sites where you've changed the audio mode appear under Settings → Audio Modes → Site Overrides — you can remove an override there to revert the site to your default.</p>
         </div>
 
         <div class="info-box">
@@ -446,6 +446,7 @@
             <li><strong>Arrow keys</strong> — Fine-grained seeking when the slider is focused</li>
             <li><strong>Left time</strong> — Always shows current playback position</li>
             <li><strong>Right time</strong> — Shows total duration (or time remaining as -M:SS when toggled)</li>
+            <li><strong>LIVE indicator</strong> — For live streams (where the duration is unknown or infinite), the right-side time shows <code>LIVE</code> instead of a duration and cannot be toggled to a countdown</li>
           </ul>
         </div>
 
@@ -588,13 +589,14 @@
 
         <div class="info-box">
           <h4>Voice Boost / Voice Cut</h4>
-          <p>Adjusts mid-range frequencies where human speech is most prominent. Use boost for:</p>
+          <p>Adjusts the presence range centered at 3 kHz, where vocal consonants and clarity live. Use boost for:</p>
           <ul class="feature-list">
             <li>Movies with quiet dialogue and loud sound effects</li>
             <li>Podcasts or interviews with soft-spoken guests</li>
             <li>Video calls where participants are hard to hear</li>
           </ul>
-          <p class="mt-8">Use cut to reduce harsh or nasal-sounding voices, or to reduce mid-range muddiness.</p>
+          <p class="mt-8">Use cut to reduce harsh or sibilant voices, or to soften mid-range muddiness.</p>
+          <p class="mt-8"><em>Note: when boosting, the filter narrows for a focused presence lift around 3 kHz. When cutting, it widens to cover the full vocal range (~700 Hz to 12 kHz) so the cut affects the whole voice rather than just the presence band.</em></p>
         </div>
 
         <div class="info-box">
@@ -780,13 +782,15 @@
 
         <div class="info-box">
           <h4>What Site Rules Save</h4>
-          <p>When you create a site rule, it captures ALL your current settings:</p>
+          <p>When you create a site rule, it captures the current values of:</p>
           <ul class="feature-list">
-            <li>Volume level, balance, and channel mode</li>
+            <li>Volume level, balance, and channel mode (Stereo / Mono / Swap)</li>
             <li>Playback speed</li>
-            <li>Audio effects (compressor, voice, bass, treble)</li>
+            <li>Bass <strong>boost</strong>, treble <strong>boost</strong>, and voice <strong>boost</strong> levels</li>
+            <li>Compressor preset (Off / Podcast / Movie / Max)</li>
             <li>Output device selection</li>
           </ul>
+          <p class="mt-8"><em>Note: only the boost (positive) side of the EQ effects is captured. If you have Bass Cut, Treble Cut, or Voice Cut active when you save the rule, those cut values are not part of the saved rule.</em></p>
         </div>
 
         <div class="info-box">
@@ -795,6 +799,7 @@
             <li><strong>Page rule</strong> — Applies only to the exact page URL. Click the <strong>Page</strong> button to select this scope, then click <strong>+ Add</strong>.</li>
             <li><strong>Domain rule</strong> — Applies to all pages on that website. Click the <strong>Domain</strong> button to select this scope, then click <strong>+ Add</strong>.</li>
           </ul>
+          <p class="mt-8"><em>When both a URL rule and a domain rule match the current page, the URL rule takes priority — most specific wins, regardless of which rule was added first.</em></p>
         </div>
 
         <div class="info-box">
