@@ -23,6 +23,112 @@ Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ---
 
+## [6.3.1] - 2026-04-17 — Multi-agent audit hardening
+
+This patch release ships the output of the 2026-04-12 six-agent security and QA audit of v6.3.0, plus a full accuracy pass of the in-extension Guide, FAQ, and Settings pages. 128 commits across accessibility, security, bug fixes, and documentation — no new features, no breaking changes. Two small user-visible behavior changes are called out below (Focus mode preserving manual mutes; URL-specific site rules winning over domain rules).
+
+### Security
+- **Message handler origin gating**: Recording and capture handlers (`START/STOP/CANCEL_RECORDING`, `DOWNLOAD_RECORDING`, `START_PERSISTENT_VISUALIZER_CAPTURE`, `RECORDING_AUTO_STOPPED`), recording-status queries (`GET_RECORDING_STATUS`, `GET_ANY_RECORDING_STATUS`), persistent-visualizer STOP/GET, and the offscreen message listener now require the sender to be a privileged extension page (popup/ or options/), not just any same-extension sender. Previously a content script on `<all_urls>` could have queried recording state, forced a Tab Capture recording, or smuggled messages through the offscreen document.
+- **Blob URL origin pinning**: `DOWNLOAD_RECORDING` and `RECORDING_AUTO_STOPPED` now require the full `blob:chrome-extension://<our-id>/` prefix — a blob URL bound to another extension can no longer be routed through these handlers.
+- **Download filename/format binding**: `DOWNLOAD_RECORDING` enforces that the file extension matches the declared format.
+- **Restored site-rule URL allowlist**: `http(s)://` only on restore. Backups can no longer re-insert a `javascript:` or `file:` URL into the site-rules list.
+- **Hostname-validator consistency**: The consecutive-dot guard is now uniform across all hostname validators — closes a validator-drift gap where one code path accepted input another would reject.
+- **CSP**: Inline style attributes removed from `permissions.html`.
+- **Terminology**: `SECURITY.md` updated for source-available accuracy.
+
+### Accessibility
+A full pass aligned with WAI-ARIA Authoring Practices (listbox, dialog, button patterns) and WCAG 2.1 AA. 34 commits.
+
+- **Dialog overlays** (recording disclaimer, valentine, Site Rules delete): APG Dialog pattern — `role="dialog"` / `role="alertdialog"`, `aria-modal`, focus trap, focus restoration on close, Escape to dismiss. Focus moves to a safe action on open and returns to the invoking control on close.
+- **Tab list** implemented as `role="listbox"` with `role="option"` items, `aria-selected`, roving tabindex (single tab stop), and full Arrow / Home / End navigation with wrapping.
+- **Keyboard access added** for controls that were mouse-only: visualizer canvas (Enter / Space / C), seekbar duration toggle, header edit-mode entry, drag-reorder alternative, options section headers (expand/collapse), all Tab Title buttons.
+- **Accurate screen-reader values**: `aria-valuetext` on volume (percent, not raw 0–100), bass / treble / voice / speed / compressor sliders (formatted unit), and seekbar (human-readable elapsed/total time).
+- **Dynamic state**: `aria-pressed` on Focus button, Basic/Advanced mode toggle, sections edit-mode toggles, header edit buttons. `aria-disabled` + `tabindex=-1` sync on visually-hidden buttons. `aria-expanded` on options section headers.
+- **Less screen-reader spam**: sleep-timer and recording-timer countdowns no longer announce every second. Volume value is no longer double-announced by a redundant sibling span.
+- **`:focus-visible` indicators** applied consistently on all interactive control types — tab-nav, record, balance, EQ reset, header, header edit, sections edit panel, dialog action buttons, visualizer canvas.
+- **Touch-target minimums** (WCAG 2.5.8 AA): balance mode/reset 16→24 px, header buttons ~30 px, reorder buttons 24 px.
+- **Contrast**: `.header-layout-label` and popup small-text labels raised to meet WCAG AA.
+- **Landmarks**: all extension pages now expose a `<main>` landmark.
+
+### Fixed
+
+**Sleep timer**
+- Mid-timer volume changes (popup, keyboard, context menu) are preserved instead of being overwritten by expiry.
+- With the **All Tabs** sleep-timer checkbox enabled, each tab's current volume is now snapshotted individually at start and faded from its own level. Before: every tab was forced to fade from the trigger tab's volume, clobbering differences.
+- **All Tabs** sleep timers are now a browser-wide singleton — starting a new one replaces the previous one instead of stacking.
+- Cancel-during-fade restores pre-fade volume per tab; keyboard/context-menu volume changes also cancel an active fade.
+- Tabs with an active recording are skipped during fade and expiry.
+- Expiry sends a new `PAUSE` message (no-op on already-paused tabs) instead of `TOGGLE_PLAYBACK`.
+- Fade window compresses correctly for timers shorter than 30 seconds.
+- Each fade step re-reads state to detect cancel; owning tab resolved before cancel; an **All Tabs** timer migrates to another tab when the trigger tab closes.
+- `fadeAbortedTabs` cleaned on cancel/expiry/tab-removed.
+
+**Recording**
+- Closed a TOCTOU race in `handleStartRecording` — concurrent `START_RECORDING` no longer creates duplicate MediaRecorder or AudioWorkletNode instances.
+- Blob URLs revoked on every auto-stop cleanup path (webm / wav / mp3 size limits) plus a safety-net revoke for orphans after stop.
+- `stopped` flag hoisted onto `recordingState` so stop/cancel paths can cut off in-flight PCM messages from the worklet port.
+- Disclaimer fails closed if the DOM overlay is missing (no silent consent skip).
+- MP3 flush allocation guarded against `MAX_RECORDING_BYTES`.
+- Popup recording timer clears on tab switch and restarts for the new tab if it has its own active recording.
+- `recordingStatusChecker` interval torn down defensively on `pagehide` and when `document.body` is gone.
+
+**Focus mode**
+- Tabs the user manually muted — before or during Focus — are preserved when Focus is turned off. Focus now tracks only the tabs it newly muted. *(Behavior change: previously, toggling Focus off unmuted every other tab.)*
+- Tabs with an active recording are never silenced by Focus (previously produced a silence-padded output file).
+- Tabs opened in the background while Focus is active are now auto-muted.
+- Tracked muted-tab set is preserved on `MUTE_OTHER_TABS` re-entry.
+- Sleep-timer fade is cancelled before Tab Capture volume restore.
+
+**Site rules**
+- Cross-domain navigation resets effect keys from the prior rule — rule A's settings no longer leak into rule B.
+- URL-specific rules now take priority over domain rules. *(Behavior change: previously a broader domain rule could shadow a more specific URL rule.)*
+- URL pattern matching normalizes scheme and host case.
+- EQ / balance / compressor sync to the Tab Capture pipeline on navigation.
+
+**Effects**
+- New media elements discovered during playback honor an active voice cut (previously gain was silently clamped to 0).
+- Voice filter Q adapts for cut vs boost in Web Audio mode — cuts cover the full vocal range instead of a narrow band.
+- Bass and treble apply the correct slider-format on navigation.
+
+**Seekbar**
+- Detects media-element swap (navigating between videos on the same page) and resets the display instead of briefly showing the previous media's duration.
+- Drops spurious mouseleave-during-drag seek commits.
+
+**Popup and general**
+- Popup reacts to controlled-tab closure instead of showing stale controls.
+- `opera://` added to restricted URL patterns.
+- Device routing resolves by label on Web Audio mode when stored `deviceId` is empty.
+- Context menu honors the compressor-EQ exclusive lockout.
+- Tab Capture: `initialVolume` passed on keyboard-shortcut start.
+- Visualizer: waveform buffer allocated at `fftSize` (not `frequencyBinCount`).
+- Backup: user is warned when site rules are skipped during restore.
+- `extractDomain` routes through `sanitizeHostname` so callers using the result as a storage key or site-rule match get the sanitization invariant.
+- Channel mode: no-op when unchanged (previously rebuilt the audio graph unnecessarily).
+- Background: sync-message responders return `false` consistently; storage-key enumeration uses `getKeys()` to avoid full hydration; offscreen setup error path aligned for first caller and waiters.
+
+### Changed
+- **Repo layout**: extension source now lives under `chrome/` with `README.md`, `CHANGELOG.md`, `LICENSE`, and `SECURITY.md` at the repo root. Load-unpacked workflow unchanged — still select `chrome/` in `chrome://extensions/`.
+- **Offscreen document justification** expanded to include the recording use-case.
+- **Internal cleanup** — dead code removal (`originalOnTabLoaded`, WebM `estimatedBytes`, `COMPRESSOR_PRESETS` dead block, `RECORDING_DISCLAIMER_ACCEPTED` storage key, unreachable `MIN_SPACERS` branch), redundant programmatic page-script injection removed, duplicate `tabs.onActivated` listeners merged.
+
+### Documentation
+A full accuracy pass of the Guide, FAQ, and Settings pages, driven by a pre-release audit that filed 37 findings. All 37 resolved. 13 commits.
+
+- **New Guide sections** for two features that shipped in v6.3.0 but lacked in-extension documentation: **Recording** (starting/stopping, per-tab-per-session disclaimer, formats, bitrates, size limits, troubleshooting) and **Focus Mode** (toggle behavior, recording-tab protection, background-tab auto-mute, user-mute preservation).
+- **Privacy scope clarified**: the "never records audio" phrasing in the microphone-permissions section was narrowed to clearly refer to the microphone only. Tab audio recording via Tab Capture is a separate, user-initiated feature with per-tab consent — both are now explicitly documented in context.
+- **Recording tab-close behavior**: the Guide now explicitly warns that closing the tab during a recording **cancels** the recording and discards the captured audio. Click the Record button to stop-and-save before closing the tab.
+- **Stale feature references removed**: the sleep-timer slider described in the Guide and FAQ was removed from the popup in v6.2.19; docs now describe only the preset buttons.
+- **Volume Row control list** corrected — Record and Tab List buttons were missing from the Guide's walkthrough.
+- **Factual corrections** across the three pages: preset counts (6 volume presets, not 5), spacer ranges, EQ frequency centres, seekbar LIVE-indicator behavior, site-rule scope buttons, keyboard-shortcut URLs, sleep-timer fade-out behavior, OGG format removal, `downloads` permission justification, section-name references.
+- **Browser Sync / Backup / Reset coverage lists** corrected to match what actually syncs, exports, and resets (recording sample rate is not in the CSV backup, only format + bitrate).
+- **Sample-rate hint rephrased** — the misleading "extension default is 44,100 Hz" phrasing was removed; the AudioContext's actual rate is used at encode time regardless of any stored preference. (Dead-plumbing cleanup for the unused `recordingSampleRate` storage key is tracked for v6.3.2.)
+
+### Performance
+- Background `storage.sync.get` calls batched per tab-settings sync — fewer roundtrips on tab activation.
+
+### Known Issues
+- **Ultrawide fullscreen (YouTube)**: Video is not properly pillarboxed on ultrawide (21:9) monitors in Tab Capture mode — bottom of video and controls are clipped. Standard widescreen (16:9) monitors work correctly. *(Carried over from v6.3.0.)*
+
 ## [6.3.0] - 2026-04-03 — Playlist fullscreen fix
 
 ### Fixed
