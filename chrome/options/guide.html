@@ -718,8 +718,10 @@
           <ul class="feature-list">
             <li>A countdown appears in the popup showing time remaining</li>
             <li>When the timer expires, media is paused (not muted)</li>
-            <li>You can cancel the timer at any time from the popup</li>
+            <li>During the last 30 seconds, volume fades out gently before the final pause. For timers shorter than 30 seconds, the fade occupies the whole timer.</li>
+            <li>You can cancel the timer at any time from the popup. The timer also cancels automatically if you change the volume (via slider, +/-, keyboard shortcut, or context menu) — that's read as a "still listening" signal.</li>
             <li>The timer continues running even when the popup is closed</li>
+            <li>Only one "All Tabs" timer can run at once across the whole browser; starting a new All Tabs timer cancels any existing one</li>
           </ul>
         </div>
 
