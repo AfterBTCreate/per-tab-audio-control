@@ -131,7 +131,7 @@
         </svg>
       </h3>
       <div class="faq-subsection-content">
-        <p class="section-desc">The microphone permission is required to list audio output devices. <strong>The extension never records audio.</strong></p>
+        <p class="section-desc">The microphone permission is required to list audio output devices. <strong>The microphone is never used to capture or record any audio</strong> — it is only consulted to read the names of your output devices.</p>
         <div class="info-box">
           <h4>Why this is necessary</h4>
           <p>Browsers require microphone permission to access the list of audio devices (speakers, headphones, etc.). This is a browser security requirement, not a choice by the extension.</p>
@@ -142,7 +142,8 @@
         </div>
         <div class="info-box">
           <h4>Privacy note</h4>
-          <p>The extension only calls <code>navigator.mediaDevices.enumerateDevices()</code> to get device names. No audio streams are ever created, recorded, or transmitted.</p>
+          <p>The extension only calls <code>navigator.mediaDevices.enumerateDevices()</code> to get device names. No microphone audio stream is ever created, recorded, or transmitted.</p>
+          <p class="mt-8">Tab audio <em>can</em> be recorded via the separate Recording feature (the ● button in the popup volume row), which uses Tab Capture rather than the microphone. Recordings are saved to your local Downloads folder and never leave your device. See the Recording question below for details.</p>
         </div>
       </div>
     </div>
@@ -504,7 +505,8 @@
             <li>All settings are stored in your browser's local and sync storage</li>
             <li>No data is ever sent to external servers</li>
             <li>No third-party libraries, scripts, or dependencies</li>
-            <li>Microphone permission is only used to list audio output devices — no audio is ever recorded or transmitted</li>
+            <li>Microphone permission is only used to list audio output devices — no microphone audio is ever captured or transmitted</li>
+            <li>Tab audio recordings (when you opt in via the Record button) are saved to your local Downloads folder and never leave your device</li>
           </ul>
         </div>
         <div class="info-box">
