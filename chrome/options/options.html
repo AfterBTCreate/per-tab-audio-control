@@ -523,6 +523,7 @@
           </div>
           <div class="disclaimer-text">
             <strong>Warning:</strong> Recording audio without the consent of all parties may violate wiretapping laws, copyright law, or third-party terms of service in your jurisdiction. You are solely responsible for ensuring lawful use of this feature. After Bedtime Creations is not liable for any legal consequences arising from recordings made with this extension.
+            <p class="mt-8"><strong>Per-recording confirmation:</strong> Before each recording, a shorter "I Understand" dialog appears in the popup. Acceptance is per-tab and resets each time the popup closes — that's intentional. The dialog is a deliberate consent surface, not an oversight, so you actively acknowledge each recording rather than relying on stored historical consent.</p>
           </div>
         </div>
 
@@ -537,7 +538,7 @@
               <option value="webm">WebM (Opus)</option>
             </select>
           </div>
-          <p class="recording-hint">MP3 is widely compatible. WAV is lossless but creates large files. WebM/OGG use the Opus codec.</p>
+          <p class="recording-hint">MP3 is widely compatible. WAV is lossless but creates large files. WebM uses the Opus codec and produces small files at good quality.</p>
 
           <div class="recording-format-row" id="recordingBitrateRow">
             <label for="recordingBitrate">Bitrate</label>
