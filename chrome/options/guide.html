@@ -819,7 +819,7 @@
             <li><strong>WAV</strong> — Uncompressed, lossless. No bitrate option — produces large files.</li>
             <li><strong>WebM (Opus)</strong> — Small files at good quality. Bitrates: 32, 64, 96, 128, 256 kbps.</li>
           </ul>
-          <p class="mt-8"><em>Sample rate is automatically matched to the AudioContext's actual rate (extension default is 44,100 Hz; the browser may use a different rate depending on your audio hardware). The Recording settings persist across browser sync.</em></p>
+          <p class="mt-8"><em>Sample rate is determined automatically by the browser and your audio hardware (typically 44,100 or 48,000 Hz). Format and bitrate persist across browser sync.</em></p>
         </div>
 
         <div class="info-box">
@@ -944,7 +944,7 @@
             <li>Header layout customization</li>
             <li>Popup sections layout (order, hidden, slider/preset per section)</li>
             <li>Keyboard shortcuts footer visibility</li>
-            <li>Recording settings (format, bitrate, sample rate)</li>
+            <li>Recording settings (format, bitrate)</li>
             <li>UI state (expanded/collapsed sections)</li>
           </ul>
         </div>
@@ -986,7 +986,7 @@
             <li>Appearance settings (theme, visualizer, badge style, seekbar, header layout, popup sections)</li>
             <li>Default audio mode and popup mode</li>
             <li>Default output device selection</li>
-            <li>Recording settings (format, bitrate, sample rate)</li>
+            <li>Recording settings (format, bitrate)</li>
           </ul>
           <p class="mt-8"><em>Useful for transferring settings between browsers (since cross-browser sync is not possible) or as a safety net before making changes.</em></p>
         </div>
