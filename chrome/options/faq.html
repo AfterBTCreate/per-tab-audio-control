@@ -561,6 +561,61 @@
       </div>
     </div>
 
+    <!-- Recording: how to record -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>How do I record audio from a tab?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Click the <strong>● (Record)</strong> button at the left of the popup volume row. Recording uses Tab Capture (the same audio pipeline that powers volume boost), so it works on any site — including DRM-protected streaming services.</p>
+        <div class="info-box">
+          <h4>How it works</h4>
+          <ul class="feature-list">
+            <li>The first time you record on a tab in this popup session, an "I Understand" disclaimer dialog appears. Accept it to start.</li>
+            <li>While recording, the button stays lit and a status bar shows the elapsed time. Click the button again to stop.</li>
+            <li>When you stop, the file is saved to your browser's Downloads folder. The filename uses the tab title plus the date and time.</li>
+            <li>Only one recording can run at a time across the whole browser. If a different tab is already recording, the Record button is disabled until you stop that one.</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Format and quality</h4>
+          <p>Choose MP3 (default), WAV (lossless), or WebM (Opus) in Settings → Recording. MP3 and WebM also let you pick a bitrate. Sample rate is automatically matched to the browser's audio capture rate.</p>
+        </div>
+        <div class="info-box">
+          <h4>Privacy</h4>
+          <p>Encoding happens locally in an offscreen document inside the browser, then the file is handed to the browser's downloads system. Nothing is sent to any external server. The microphone is never used — only Tab Capture audio is recorded.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recording: per-tab disclaimer -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Why does the recording disclaimer appear every time?</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">It's intentional. Recording audio without consent may violate wiretapping laws, copyright, or terms of service in your jurisdiction, so the dialog asks you to actively acknowledge each recording.</p>
+        <div class="info-box">
+          <h4>Scope of acceptance</h4>
+          <ul class="feature-list">
+            <li>Acceptance is per-tab — recording on a different tab will prompt again</li>
+            <li>Acceptance is per-popup-session — re-opening the popup resets it</li>
+            <li>Acceptance is never persisted to disk or storage</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <h4>Why we don't remember consent</h4>
+          <p>This is a deliberate design choice, not an oversight. A persistent "remember my consent" toggle would let a forgotten earlier acceptance cover a recording you didn't actually intend to start. Asking each time keeps the consent surface honest.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Q19: High volume warning -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">

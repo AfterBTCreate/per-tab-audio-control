@@ -369,6 +369,52 @@
       </div>
     </div>
 
+    <!-- Focus Mode -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Focus Mode (Active Tab Audio)</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Focus Mode (internally "Active Tab Audio") makes only the tab you're currently looking at audible. Switching tabs hands audio off automatically; opening a new background tab won't interrupt what you're listening to.</p>
+
+        <div class="info-box">
+          <h4>How to Toggle</h4>
+          <ul class="feature-list">
+            <li><strong>Header button</strong> — Click the Focus icon in the popup header. The icon stays lit while Focus Mode is on.</li>
+            <li><strong>Context menu</strong> — Right-click any page and choose <strong>Toggle Focus Mode</strong>.</li>
+          </ul>
+          <p class="mt-8"><em>The Focus button is one of the optional header icons — if you've hidden it via Quick Edit or Settings → Header Layout, use the context menu instead.</em></p>
+        </div>
+
+        <div class="info-box">
+          <h4>What Focus Mode Does</h4>
+          <ul class="feature-list">
+            <li>On activation, every tab except the current one is muted</li>
+            <li>When you switch tabs, the previously-active tab is muted and the newly-active tab is unmuted automatically</li>
+            <li>If you open a new tab in the background (middle-click, Ctrl+click) while Focus Mode is on, that tab is muted on creation so it can't surprise you with audio</li>
+            <li>Both the browser-level mute and the Tab Capture session volume are dropped together — important, because boosted Tab Capture audio bypasses the browser's regular mute</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Tabs Focus Mode Leaves Alone</h4>
+          <p>Focus Mode is careful not to override your other intentions:</p>
+          <ul class="feature-list">
+            <li><strong>Tabs you muted yourself</strong> — When you turn Focus Mode off, only the tabs Focus Mode itself muted are unmuted. Tabs you muted manually before or during Focus stay muted.</li>
+            <li><strong>Tabs that are recording</strong> — A tab with an active recording is never muted by Focus Mode, regardless of which tab you're viewing. Muting would silence the recording.</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>Persistence</h4>
+          <p>Focus Mode is a session-level toggle. The browser remembers it across tab switches and even across service-worker restarts (using session storage), but it resets when the browser closes. Re-enable it from the popup header or context menu when you want it back.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Now Playing & Visualizer -->
     <div class="faq-subsection">
       <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
@@ -733,6 +779,63 @@
             <li><strong>Short</strong> — 5 to 30 minutes (default: 15)</li>
             <li><strong>Medium</strong> — 15 to 60 minutes (default: 30)</li>
             <li><strong>Long</strong> — 30 to 120 minutes (default: 60)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recording -->
+    <div class="faq-subsection">
+      <h3 class="faq-subsection-header" role="button" aria-expanded="false" tabindex="0">
+        <span>Recording</span>
+        <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </h3>
+      <div class="faq-subsection-content">
+        <p class="section-desc">Record audio from any tab to a local file. Recording uses Tab Capture (the same pipeline that powers volume boost and EQ) — the microphone is never involved. Files are saved to your Downloads folder; nothing leaves your device.</p>
+
+        <div class="info-box">
+          <h4>Starting and Stopping a Recording</h4>
+          <ul class="feature-list">
+            <li>Click the <strong>● (Record)</strong> button at the left of the volume row in the popup. The first time you record on a tab in this popup session, an "I Understand" disclaimer dialog appears — accept it to start.</li>
+            <li>While recording, the button stays lit and a status bar shows <code>Recording ● MM:SS</code>. Click the button again (or close the tab) to stop.</li>
+            <li>When you stop, the file is saved to your browser's Downloads folder. The filename uses the tab title plus the current date and time (for example <code>YouTube_-_Title_2026-04-17_22-30-15.mp3</code>).</li>
+          </ul>
+          <p class="mt-8"><em>Only one recording can be active at a time across the whole browser. If another tab is already recording, the Record button is disabled until you stop that one.</em></p>
+        </div>
+
+        <div class="info-box">
+          <h4>The Per-Tab, Per-Session Disclaimer</h4>
+          <p>Before each recording on a new tab — and again whenever you re-open the popup — a brief consent dialog appears reminding you that recording audio without permission may be illegal. This is intentional: acceptance is per-tab and resets every time the popup closes, so you actively acknowledge each recording rather than relying on stored historical consent.</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Format and Quality</h4>
+          <p>Configure the default format and bitrate in Settings → Recording. Three formats are supported:</p>
+          <ul class="feature-list">
+            <li><strong>MP3</strong> (default) — Widely compatible. Bitrates: 64, 128, 192, 256, 320 kbps (default 192 kbps). Encoded locally with lamejs.</li>
+            <li><strong>WAV</strong> — Uncompressed, lossless. No bitrate option — produces large files.</li>
+            <li><strong>WebM (Opus)</strong> — Small files at good quality. Bitrates: 32, 64, 96, 128, 256 kbps.</li>
+          </ul>
+          <p class="mt-8"><em>Sample rate is automatically matched to the browser's audio capture rate (typically 48,000 Hz). The Recording settings persist across browser sync.</em></p>
+        </div>
+
+        <div class="info-box">
+          <h4>Limits and Safety</h4>
+          <ul class="feature-list">
+            <li><strong>Maximum file size</strong> — Recording stops automatically if the encoded file would exceed roughly 2 GB. Long recordings should prefer MP3 or WebM over WAV.</li>
+            <li><strong>Recording tabs are protected</strong> — Focus Mode will not mute a tab while it's recording, and Sleep Timer fades skip recording tabs (so the fade-out doesn't end up in your file).</li>
+            <li><strong>Local-only</strong> — The audio is encoded in an offscreen document inside the browser and handed to the browser's downloads system. Nothing is sent to any external server.</li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h4>If Something Goes Wrong</h4>
+          <ul class="feature-list">
+            <li>Recording requires Tab Capture to be active on the tab — open the popup on the recording tab first if you see a "No active audio capture" error.</li>
+            <li>If you close the popup while recording, the recording continues in the background. Re-opening the popup on the same tab resumes the timer display.</li>
+            <li>If you close the recording tab before stopping, the recording is cancelled and no file is saved.</li>
           </ul>
         </div>
       </div>
