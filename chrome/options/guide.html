@@ -601,10 +601,10 @@
           <h4>Slider vs Preset Mode</h4>
           <p>Bass, Treble, and Voice each support two control modes:</p>
           <ul class="feature-list">
-            <li><strong>Presets</strong> — 7 buttons for bass/treble/voice (-24/-18, -12/-10, -6/-4, Off, +6/+4, +12/+10, +24/+18 dB)</li>
+            <li><strong>Presets</strong> — 7 buttons each. Bass &amp; Treble share a ±24 dB range with default values <code>-24, -12, -6, Off, +6, +12, +24</code> dB. Voice has a tighter ±18 dB range with defaults <code>-18, -10, -4, Off, +4, +10, +18</code> dB.</li>
             <li><strong>Slider</strong> — Continuous adjustment with dB value display and reset button. Scroll wheel supported.</li>
           </ul>
-          <p class="mt-8"><em>Preset button values are customizable in Settings → Presets.</em></p>
+          <p class="mt-8"><em>Each preset value is customizable in Settings → Presets (separate Boost and Cut sections per effect).</em></p>
         </div>
       </div>
     </div>
@@ -631,10 +631,10 @@
 
         <div class="info-box">
           <h4>Customizing Speed Presets</h4>
-          <p>In Settings → Presets → Speed Presets:</p>
+          <p>Settings exposes two separate sections — <strong>Speed Slow</strong> and <strong>Speed Fast</strong> — each with three customisable preset values:</p>
           <ul class="feature-list">
-            <li><strong>Slow 1-3</strong> — Left-side buttons (0.05 to 0.99x)</li>
-            <li><strong>Fast 1-3</strong> — Right-side buttons (1.01 to 5.00x)</li>
+            <li><strong>Speed Slow</strong> — Three left-side buttons (combined range 0.05x to 0.95x). Each level has its own sub-range to keep Low &lt; Medium &lt; High: Low 0.70-0.95x, Medium 0.30-0.65x, High 0.05-0.25x.</li>
+            <li><strong>Speed Fast</strong> — Three right-side buttons (combined range 1.05x to 5.00x). Levels: Low 1.05-1.45x, Medium 1.50-2.45x, High 2.50-5.00x.</li>
           </ul>
           <p class="mt-8"><em>The center "1x" button always resets to normal speed.</em></p>
         </div>
@@ -723,7 +723,7 @@
 
         <div class="info-box">
           <h4>Customizing Presets</h4>
-          <p>In Settings → Presets → Sleep Timer Presets, you can customize the four quick-select durations:</p>
+          <p>In Settings → Presets → Sleep Timer, you can customize the four quick-select durations:</p>
           <ul class="feature-list">
             <li><strong>Quick</strong> — 1 to 10 minutes (default: 5)</li>
             <li><strong>Short</strong> — 5 to 30 minutes (default: 15)</li>
