@@ -799,10 +799,11 @@
           <h4>Starting and Stopping a Recording</h4>
           <ul class="feature-list">
             <li>Click the <strong>● (Record)</strong> button at the left of the volume row in the popup. The first time you record on a tab in this popup session, an "I Understand" disclaimer dialog appears — accept it to start.</li>
-            <li>While recording, the button stays lit and a status bar shows <code>Recording ● MM:SS</code>. Click the button again (or close the tab) to stop.</li>
+            <li>While recording, the button stays lit and a status bar shows <code>Recording ● MM:SS</code>. Click the button again to stop and save.</li>
             <li>When you stop, the file is saved to your browser's Downloads folder. The filename uses the tab title plus the current date and time (for example <code>YouTube_-_Title_2026-04-17_22-30-15.mp3</code>).</li>
           </ul>
           <p class="mt-8"><em>Only one recording can be active at a time across the whole browser. If another tab is already recording, the Record button is disabled until you stop that one.</em></p>
+          <p class="mt-8"><strong>Closing the tab cancels the recording</strong> — captured audio is discarded and no file is saved. Always click the Record button to stop-and-save before closing the tab.</p>
         </div>
 
         <div class="info-box">
@@ -818,7 +819,7 @@
             <li><strong>WAV</strong> — Uncompressed, lossless. No bitrate option — produces large files.</li>
             <li><strong>WebM (Opus)</strong> — Small files at good quality. Bitrates: 32, 64, 96, 128, 256 kbps.</li>
           </ul>
-          <p class="mt-8"><em>Sample rate is automatically matched to the browser's audio capture rate (typically 48,000 Hz). The Recording settings persist across browser sync.</em></p>
+          <p class="mt-8"><em>Sample rate is automatically matched to the AudioContext's actual rate (extension default is 44,100 Hz; the browser may use a different rate depending on your audio hardware). The Recording settings persist across browser sync.</em></p>
         </div>
 
         <div class="info-box">

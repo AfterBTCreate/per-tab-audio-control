@@ -551,7 +551,7 @@
             </select>
           </div>
 
-          <p class="recording-hint">Sample rate is automatically matched to the browser's audio capture rate (typically 48,000 Hz).</p>
+          <p class="recording-hint">Sample rate is automatically matched to the AudioContext's actual rate (extension default is 44,100 Hz; the browser may use a different rate depending on your audio hardware).</p>
 
           <div class="button-row mt-12">
             <button id="resetRecordingBtn" class="btn secondary" title="Reset recording settings to defaults" aria-label="Reset recording settings to defaults">Reset to Defaults</button>
